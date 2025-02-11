@@ -10,8 +10,8 @@ from octue.utils.objects import get_nested_attribute
 logger = logging.getLogger(__name__)
 
 
-def answer_pub_sub_question(question, project_name, service_configuration=None, app_configuration=None):
-    """Answer a question received by a service via Pub/Sub.
+def answer_question(question, project_name, service_configuration=None, app_configuration=None):
+    """Answer a question received by a service.
 
     :param dict question: a question event and its attributes
     :param str project_name: the name of the project the service is running on

@@ -6,12 +6,12 @@ from unittest.mock import patch
 import yaml
 
 from octue.cloud.emulators._pub_sub import MockTopic
-from octue.cloud.pub_sub.answer_question import answer_pub_sub_question
+from octue.cloud.events.answer_question import answer_question
 from octue.utils.patches import MultiPatcher
 from tests.mocks import MockOpen
 
 
-class TestAnswerPubSubQuestion(TestCase):
+class TestAnswerQuestion(TestCase):
     def test_with_no_app_configuration_file(self):
         """Test that the `answer_question` function uses the default service and app configuration values when the
         minimal service configuration is provided with no path to an app configuration file.
@@ -25,12 +25,12 @@ class TestAnswerPubSubQuestion(TestCase):
                     ),
                 ),
                 patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
-                patch("octue.cloud.pub_sub.answer_question.Service"),
+                patch("octue.cloud.events.answer_question.Service"),
                 patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
             ]
         ):
-            with patch("octue.cloud.pub_sub.answer_question.Runner.from_configuration") as mock_constructor:
-                answer_pub_sub_question(
+            with patch("octue.cloud.events.answer_question.Runner.from_configuration") as mock_constructor:
+                answer_question(
                     question={
                         "data": {},
                         "attributes": {
@@ -83,16 +83,16 @@ class TestAnswerPubSubQuestion(TestCase):
                 "app_configuration.json": json.dumps({"configuration_values": {"hello": "configuration"}}),
             }
 
-        with patch("octue.cloud.pub_sub.answer_question.Runner.from_configuration") as mock_constructor:
+        with patch("octue.cloud.events.answer_question.Runner.from_configuration") as mock_constructor:
             with MultiPatcher(
                 patches=[
                     patch("octue.configuration.open", mock.mock_open(mock=MockOpenForConfigurationFiles)),
                     patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
-                    patch("octue.cloud.pub_sub.answer_question.Service"),
+                    patch("octue.cloud.events.answer_question.Service"),
                     patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
                 ]
             ):
-                answer_pub_sub_question(
+                answer_question(
                     question={
                         "data": {},
                         "attributes": {

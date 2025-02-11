@@ -9,10 +9,10 @@ import click
 from google import auth
 
 from octue.cloud import storage
+from octue.cloud.events.answer_question import answer_question
 from octue.cloud.events.replayer import EventReplayer
 from octue.cloud.events.utils import make_question_event
 from octue.cloud.events.validation import VALID_EVENT_KINDS
-from octue.cloud.pub_sub.answer_question import answer_pub_sub_question
 from octue.cloud.pub_sub.bigquery import get_events
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
@@ -239,7 +239,7 @@ def local(input_values, input_manifest, attributes, service_config):
         _, project_name = auth.default()
         backend = service_backends.get_backend()(project_name=project_name)
 
-    answer_pub_sub_question(question=question, project_name=backend.project_name, service_configuration=service_config)
+    answer_question(question=question, project_name=backend.project_name, service_configuration=service_config)
 
 
 @question.group()
