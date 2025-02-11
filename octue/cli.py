@@ -432,11 +432,15 @@ def replay(
     --parent-question-uuid\n
     --originator-question-uuid\n
     """
-    if kinds:
-        kinds = kinds.split(",")
+    if only_handle_result:
+        kinds = ["result"]
+        exclude_kinds = None
+    else:
+        if kinds:
+            kinds = kinds.split(",")
 
-    if exclude_kinds:
-        exclude_kinds = exclude_kinds.split(",")
+        if exclude_kinds:
+            exclude_kinds = exclude_kinds.split(",")
 
     service_configuration = ServiceConfiguration.from_file(path=service_config)
 
