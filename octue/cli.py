@@ -215,13 +215,13 @@ def local(input_values, input_manifest, attributes, service_config):
         question = make_question_event(input_values=input_values, input_manifest=input_manifest, attributes=attributes)
     else:
         namespace, name, revision_tag = get_sruid_parts(service_configuration)
-        child_sruid = create_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
+        recipient = create_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
         question = make_question_event(
             input_values=input_values,
             input_manifest=input_manifest,
-            parent_sruid=create_sruid(),
-            child_sruid=child_sruid,
+            sender=create_sruid(),
+            recipient=recipient,
         )
 
     backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
