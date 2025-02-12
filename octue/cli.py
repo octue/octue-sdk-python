@@ -469,6 +469,11 @@ def replay(
         limit=limit,
     )
 
+    if not events:
+        logger.warning("No events were found for this question.")
+        click.echo(None)
+        return
+
     replayer = EventReplayer(
         include_service_metadata_in_logs=include_service_metadata,
         exclude_logs_containing=exclude_logs_containing,
@@ -478,11 +483,10 @@ def replay(
 
     result = replayer.handle_events(events)
 
-    if result:
-        click.echo(json.dumps(result, cls=OctueJSONEncoder))
-        return
+    if not result:
+        logger.warning("No result was found for this question.")
 
-    logger.warning("No result was found for this question.")
+    click.echo(json.dumps(result, cls=OctueJSONEncoder))
 
 
 @question.command()
