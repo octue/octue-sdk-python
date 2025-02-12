@@ -347,6 +347,9 @@ def get(
         limit=limit,
     )
 
+    if not events:
+        logger.warning("No events were found for this question.")
+
     click.echo(json.dumps(events, cls=OctueJSONEncoder))
 
 
