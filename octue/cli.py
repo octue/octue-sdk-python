@@ -159,7 +159,7 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous, serv
         click.echo(question_uuid)
         return
 
-    click.echo(answer)
+    click.echo(json.dumps(answer))
 
 
 @ask.command()
@@ -241,7 +241,7 @@ def local(input_values, input_manifest, attributes, service_config):
         app_configuration=app_configuration,
     )
 
-    click.echo(answer)
+    click.echo(json.dumps(answer))
 
 
 @question.group()
@@ -341,7 +341,7 @@ def get(
         limit=limit,
     )
 
-    click.echo(events)
+    click.echo(json.dumps(events))
 
 
 @events.command()
@@ -470,7 +470,7 @@ def replay(
     result = replayer.handle_events(events)
 
     if result:
-        click.echo(result)
+        click.echo(json.dumps(result))
         return
 
     logger.warning("No result was found for this question.")
