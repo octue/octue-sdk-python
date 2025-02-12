@@ -466,6 +466,139 @@ class TestQuestionEventsGetCommand(BaseTestCase):
         self.assertEqual(json.loads(result.output), self.EVENTS[:1])
 
 
+class TestQuestionEventsReplayCommand(BaseTestCase):
+    QUESTION_UUID = "3ffc192c-7db0-4941-9b66-328a9fc02b62"
+
+    with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
+        EVENTS = json.load(f)
+
+    maxDiff = None
+
+    def test_with_no_events_found(self):
+        """Test that an empty list is passed to `stdout` if no events are found for a question."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=[]):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "replay",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                    ],
+                )
+
+        self.assertEqual(result.output, "")
+
+    def test_with_question_uuid_types_and_validate_events(self):
+        """Test that each of the question UUID types is valid as an argument by themselves and that replaying still
+        works with the `--validate-events` option.
+        """
+        for options in (
+            ["--question-uuid"],
+            ["--parent-question-uuid"],
+            ["--originator-question-uuid"],
+            ["--validate-events", "--question-uuid"],
+        ):
+            with self.subTest(question_uuid_arg=options):
+                with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+                    with mock.patch("octue.cli.get_events", return_value=self.EVENTS):
+                        with self.assertLogs() as logging_context:
+                            result = CliRunner().invoke(
+                                octue_cli,
+                                [
+                                    "question",
+                                    "events",
+                                    "replay",
+                                    *options,
+                                    self.QUESTION_UUID,
+                                ],
+                            )
+
+                replayed_log_messages = "\n".join(logging_context.output)
+                log_record_events = [event for event in self.EVENTS if event["event"]["kind"] == "log_record"]
+
+                # Check logs messages were replayed.
+                for event in log_record_events:
+                    self.assertIn(event["event"]["log_record"]["msg"], replayed_log_messages)
+
+                # Check result is correct.
+                self.assertEqual(
+                    json.loads(result.output.splitlines()[-1])["output_values"],
+                    self.EVENTS[-2]["event"]["output_values"],
+                )
+
+    def test_with_kinds(self):
+        """Test that the `--kinds` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[-2:-1]) as mock_get_events:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "replay",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--kinds",
+                        "result",
+                    ],
+                )
+
+        # Check result is correct.
+        self.assertEqual(
+            json.loads(result.output.splitlines()[-1])["output_values"],
+            self.EVENTS[-2]["event"]["output_values"],
+        )
+
+        self.assertEqual(mock_get_events.call_args.kwargs["kinds"], ["result"])
+        self.assertIsNone(mock_get_events.call_args.kwargs["exclude_kinds"])
+
+    def test_with_exclude_kinds(self):
+        """Test that the `--exclude-kinds` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "replay",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--exclude-kinds",
+                        "log_record,result,heartbeat",
+                    ],
+                )
+
+        # Check result isn't replayed.
+        self.assertTrue(result.output.splitlines()[-1].endswith("No result was found for this question."))
+        self.assertIsNone(mock_get_events.call_args.kwargs["kinds"])
+        self.assertEqual(mock_get_events.call_args.kwargs["exclude_kinds"], ["log_record", "result", "heartbeat"])
+
+    def test_with_limit(self):
+        """Test that the `--limit` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "replay",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--limit",
+                        "1",
+                    ],
+                )
+
+        # Check result isn't replayed.
+        self.assertTrue(result.output.splitlines()[-1].endswith("No result was found for this question."))
+        self.assertEqual(mock_get_events.call_args.kwargs["limit"], 1)
+
+
 class TestStartCommand(BaseTestCase):
     @classmethod
     def setUpClass(cls):
