@@ -2,7 +2,6 @@ import logging
 
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
-from octue.configuration import load_service_and_app_configuration
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
 from octue.utils.objects import get_nested_attribute
@@ -10,18 +9,15 @@ from octue.utils.objects import get_nested_attribute
 logger = logging.getLogger(__name__)
 
 
-def answer_question(question, project_name, service_configuration=None, app_configuration=None):
+def answer_question(question, project_name, service_configuration, app_configuration):
     """Answer a question received by a service.
 
     :param dict question: a question event and its attributes
     :param str project_name: the name of the project the service is running on
-    :param octue.configuration.ServiceConfiguration|None service_configuration:
-    :param octue.configuration.AppConfiguration|None app_configuration:
+    :param octue.configuration.ServiceConfiguration service_configuration:
+    :param octue.configuration.AppConfiguration app_configuration:
     :return dict: the result event
     """
-    if not service_configuration:
-        service_configuration, app_configuration = load_service_and_app_configuration()
-
     service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
 
     service_sruid = create_sruid(
