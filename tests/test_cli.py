@@ -43,11 +43,12 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
 
     SRUID = "my-org/my-service:1.0.0"
     QUESTION_UUID = "81f35b28-068b-4314-9eeb-e55e60d0fe8a"
+    RESULT = {"output_values": {"some": "data"}}
 
     def test_with_input_values(self):
         """Test that the `octue question ask remote` CLI command works with just input values."""
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=self.MOCK_CONFIGURATIONS[0]):
-            with mock.patch("octue.cli.Child.ask", return_value=({"some": "data"}, self.QUESTION_UUID)) as mock_ask:
+            with mock.patch("octue.cli.Child.ask", return_value=(self.RESULT, self.QUESTION_UUID)) as mock_ask:
                 result = CliRunner().invoke(
                     octue_cli,
                     [
@@ -60,14 +61,14 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                 )
 
         mock_ask.assert_called_with(input_values={"height": 3}, input_manifest=None, asynchronous=False)
-        self.assertIn(json.dumps({"some": "data"}), result.output)
+        self.assertIn(json.dumps(self.RESULT), result.output)
 
     def test_with_input_manifest(self):
         """Test that the `octue question ask remote` CLI command works with just an input manifest."""
         input_manifest = self.create_valid_manifest()
 
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=self.MOCK_CONFIGURATIONS[0]):
-            with mock.patch("octue.cli.Child.ask", return_value=({"some": "data"}, self.QUESTION_UUID)) as mock_ask:
+            with mock.patch("octue.cli.Child.ask", return_value=(self.RESULT, self.QUESTION_UUID)) as mock_ask:
                 result = CliRunner().invoke(
                     octue_cli,
                     [
@@ -80,7 +81,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                 )
 
         self.assertEqual(mock_ask.call_args.kwargs["input_manifest"].id, input_manifest.id)
-        self.assertIn(json.dumps({"some": "data"}), result.output)
+        self.assertIn(json.dumps(self.RESULT), result.output)
 
     def test_with_input_values_and_manifest(self):
         """Test that the `octue question ask remote` CLI command works with input values and input manifest."""
@@ -88,7 +89,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
         input_manifest = self.create_valid_manifest()
 
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=self.MOCK_CONFIGURATIONS[0]):
-            with mock.patch("octue.cli.Child.ask", return_value=({"some": "data"}, self.QUESTION_UUID)) as mock_ask:
+            with mock.patch("octue.cli.Child.ask", return_value=(self.RESULT, self.QUESTION_UUID)) as mock_ask:
                 result = CliRunner().invoke(
                     octue_cli,
                     [
@@ -103,14 +104,14 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
 
         self.assertEqual(mock_ask.call_args.kwargs["input_values"], input_values)
         self.assertEqual(mock_ask.call_args.kwargs["input_manifest"].id, input_manifest.id)
-        self.assertIn(json.dumps({"some": "data"}), result.output)
+        self.assertIn(json.dumps(self.RESULT), result.output)
 
     def test_asynchronous(self):
         """Test that the `octue question ask remote` CLI command works with the `--asynchronous` option and returns the
         question UUID.
         """
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=self.MOCK_CONFIGURATIONS[0]):
-            with mock.patch("octue.cli.Child.ask", return_value=({"some": "data"}, self.QUESTION_UUID)) as mock_ask:
+            with mock.patch("octue.cli.Child.ask", return_value=(self.RESULT, self.QUESTION_UUID)) as mock_ask:
                 result = CliRunner().invoke(
                     octue_cli,
                     [
@@ -128,7 +129,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
 
     def test_with_no_service_configuration(self):
         """Test that the command works when no service configuration is provided."""
-        with mock.patch("octue.cli.Child.ask", return_value=({"some": "data"}, self.QUESTION_UUID)) as mock_ask:
+        with mock.patch("octue.cli.Child.ask", return_value=(self.RESULT, self.QUESTION_UUID)) as mock_ask:
             result = CliRunner().invoke(
                 octue_cli,
                 [
@@ -141,7 +142,183 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
             )
 
         mock_ask.assert_called_with(input_values={"height": 3}, input_manifest=None, asynchronous=False)
-        self.assertIn(json.dumps({"some": "data"}), result.output)
+        self.assertIn(json.dumps(self.RESULT), result.output)
+
+
+class TestQuestionAskLocalCommand(BaseTestCase):
+    MOCK_CONFIGURATIONS = (
+        ServiceConfiguration(name="test-app", namespace="testing"),
+        AppConfiguration(configuration_values={"n_iterations": 5}),
+    )
+
+    RESULT = {"output_values": {"some": "data"}}
+
+    def test_with_input_values(self):
+        """Test that the `octue question ask local` CLI command works with just input values and sends an originator
+        question.
+        """
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.answer_question", return_value=self.RESULT) as mock_answer_question:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "local",
+                        '--input-values={"height": 3}',
+                    ],
+                )
+
+        # Check service and app configuration.
+        mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
+        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+
+        # Check question event.
+        question = mock_answer_question_kwargs["question"]
+        self.assertEqual(question["event"], {"kind": "question", "input_values": {"height": 3}})
+
+        # Check question attributes.
+        self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
+        # The question should be an originator question.
+        self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["sender"])
+        self.assertIsNone(question["attributes"]["parent_question_uuid"])
+
+        # Check the result is in the output.
+        self.assertIn(json.dumps(self.RESULT), result.output)
+
+    def test_with_input_manifest(self):
+        """Test that the `octue question ask local` CLI command works with just an input manifest and sends an
+        originator question.
+        """
+        input_manifest = self.create_valid_manifest()
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.answer_question", return_value=self.RESULT) as mock_answer_question:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "local",
+                        f"--input-manifest={input_manifest.serialise()}",
+                    ],
+                )
+
+        # Check service and app configuration.
+        mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
+        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+
+        # Check question event.
+        question = mock_answer_question_kwargs["question"]
+        self.assertEqual(question["event"]["input_manifest"].id, input_manifest.id)
+
+        # Check question attributes.
+        self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
+        # The question should be an originator question.
+        self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["sender"])
+        self.assertIsNone(question["attributes"]["parent_question_uuid"])
+
+        # Check the result is in the output.
+        self.assertIn(json.dumps(self.RESULT), result.output)
+
+    def test_with_input_values_and_manifest(self):
+        """Test that the `octue question ask local` CLI command works with input values and input manifest and sends an
+        originator question."""
+        input_values = {"height": 3}
+        input_manifest = self.create_valid_manifest()
+
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.answer_question", return_value=self.RESULT) as mock_answer_question:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "local",
+                        f"--input-values={json.dumps(input_values)}",
+                        f"--input-manifest={input_manifest.serialise()}",
+                    ],
+                )
+
+        # Check service and app configuration.
+        mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
+        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+
+        # Check question event.
+        question = mock_answer_question_kwargs["question"]
+        self.assertEqual(question["event"]["input_values"], input_values)
+        self.assertEqual(question["event"]["input_manifest"].id, input_manifest.id)
+
+        # Check question attributes.
+        self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
+        # The question should be an originator question.
+        self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["sender"])
+        self.assertIsNone(question["attributes"]["parent_question_uuid"])
+
+        # Check the result is in the output.
+        self.assertIn(json.dumps(self.RESULT), result.output)
+
+    def test_with_attributes(self):
+        """Test that the `octue question ask remote` CLI command can be passed question attributes which are passed
+        along to the answering `Service` instance.
+        """
+        original_attributes = {
+            "datetime": "2024-04-11T10:46:48.236064",
+            "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+            "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+            "parent_question_uuid": "5776ad74-52a6-46f7-a526-90421d91b8b2",
+            "originator_question_uuid": "86dc55b2-4282-42bd-92d0-bd4991ae7356",
+            "parent": "octue/the-parent:1.0.0",
+            "originator": "octue/the-originator:1.0.5",
+            "sender": "octue/the-sender:2.0.0",
+            "sender_type": "CHILD",
+            "sender_sdk_version": "0.51.0",
+            "recipient": "octue/the-recipient:0.3.2",
+            "retry_count": 1,
+            "forward_logs": True,
+            "save_diagnostics": "SAVE_DIAGNOSTICS_OFF",
+            "cpus": 3,
+            "memory": "10Gi",
+            "ephemeral_storage": "500Mi",
+        }
+
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.answer_question", return_value=self.RESULT) as mock_answer_question:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "local",
+                        '--input-values={"height": 3}',
+                        f"--attributes={json.dumps(original_attributes)}",
+                    ],
+                )
+
+        # Check service and app configuration.
+        mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
+        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+
+        # Check question event and attributes.
+        question = mock_answer_question_kwargs["question"]
+        self.assertEqual(question["event"], {"kind": "question", "input_values": {"height": 3}})
+        self.assertEqual(question["attributes"], original_attributes)
+
+        # Check the result is in the output.
+        self.assertIn(json.dumps(self.RESULT), result.output)
 
 
 class TestStartCommand(BaseTestCase):
