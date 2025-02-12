@@ -455,7 +455,6 @@ def replay(
     )
 
     if not events:
-        click.echo(None)
         return
 
     replayer = EventReplayer(
@@ -465,6 +464,10 @@ def replay(
     )
 
     result = replayer.handle_events(events)
+
+    if not result:
+        return
+
     click.echo(json.dumps(result, cls=OctueJSONEncoder))
 
 
