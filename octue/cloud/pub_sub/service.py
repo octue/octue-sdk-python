@@ -731,7 +731,6 @@ class Service:
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
-        :param int|float start_time: the `time.perf_counter` time that the analysis was started [s]
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
