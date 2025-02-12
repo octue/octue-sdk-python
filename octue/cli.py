@@ -347,9 +347,6 @@ def get(
         limit=limit,
     )
 
-    if not events:
-        logger.warning("No events were found for this question.")
-
     click.echo(json.dumps(events, cls=OctueJSONEncoder))
 
 
@@ -470,7 +467,6 @@ def replay(
     )
 
     if not events:
-        logger.warning("No events were found for this question.")
         click.echo(None)
         return
 
@@ -482,10 +478,6 @@ def replay(
     )
 
     result = replayer.handle_events(events)
-
-    if not result:
-        logger.warning("No result was found for this question.")
-
     click.echo(json.dumps(result, cls=OctueJSONEncoder))
 
 

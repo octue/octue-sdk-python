@@ -367,19 +367,17 @@ class TestQuestionEventsGetCommand(BaseTestCase):
         """Test that a warning is logged if no events are found for a question."""
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
             with mock.patch("octue.cli.get_events", return_value=[]):
-                with self.assertLogs(level=logging.WARNING) as logging_context:
-                    result = CliRunner().invoke(
-                        octue_cli,
-                        [
-                            "question",
-                            "events",
-                            "get",
-                            "--question-uuid",
-                            self.QUESTION_UUID,
-                        ],
-                    )
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "get",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                    ],
+                )
 
-        self.assertIn("No events were found for this question.", logging_context.output[0])
         self.assertTrue(result.output.endswith("[]\n"))
 
     def test_with_question_uuid_types(self):

@@ -1,3 +1,4 @@
+import logging
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -51,11 +52,13 @@ class TestGetEvents(TestCase):
                 with self.assertRaises(ValueError):
                     get_events(table_id="blah", question_uuid="blah", kinds=invalid_kinds)
 
-    def test_no_events_found(self):
-        """Test that an empty list is returned if no events are found for the question UUID."""
+    def test_warning_logged_if_no_events_found(self):
+        """Test that an empty list is returned and a warning is logged if no events are found for the question UUID."""
         with patch("octue.cloud.pub_sub.bigquery.Client", MockEmptyBigQueryClient):
-            events = get_events(table_id="blah", question_uuid="blah")
+            with self.assertLogs(level=logging.WARNING) as logging_context:
+                events = get_events(table_id="blah", question_uuid="blah")
 
+        self.assertIn("No events were found for this question.", logging_context.output[0])
         self.assertEqual(events, [])
 
     def test_without_tail(self):

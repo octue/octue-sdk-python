@@ -3,7 +3,6 @@ import logging
 from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -77,6 +76,8 @@ class EventReplayer(AbstractEventHandler):
 
             if result:
                 return result
+
+        logger.warning("No result was found for this question.")
 
     def _extract_event_and_attributes(self, container):
         """Extract an event and its attributes from the event container.
