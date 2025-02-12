@@ -24,6 +24,7 @@ from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import Child, Manifest, service_backends
 from octue.runner import Runner
 from octue.utils.decoders import OctueJSONDecoder
+from octue.utils.encoders import OctueJSONEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +160,7 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous, serv
         click.echo(question_uuid)
         return
 
-    click.echo(json.dumps(answer))
+    click.echo(json.dumps(answer, cls=OctueJSONEncoder))
 
 
 @ask.command()
@@ -241,7 +242,7 @@ def local(input_values, input_manifest, attributes, service_config):
         app_configuration=app_configuration,
     )
 
-    click.echo(json.dumps(answer))
+    click.echo(json.dumps(answer, cls=OctueJSONEncoder))
 
 
 @question.group()
@@ -341,7 +342,7 @@ def get(
         limit=limit,
     )
 
-    click.echo(json.dumps(events))
+    click.echo(json.dumps(events, cls=OctueJSONEncoder))
 
 
 @events.command()
@@ -470,7 +471,7 @@ def replay(
     result = replayer.handle_events(events)
 
     if result:
-        click.echo(json.dumps(result))
+        click.echo(json.dumps(result, cls=OctueJSONEncoder))
         return
 
     logger.warning("No result was found for this question.")
