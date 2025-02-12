@@ -106,6 +106,27 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
         self.assertEqual(mock_ask.call_args.kwargs["input_manifest"].id, input_manifest.id)
         self.assertIn(json.dumps(self.RESULT), result.output)
 
+    def test_with_output_manifest(self):
+        """Test that the `octue question ask remote` CLI command returns output manifests in a useful form."""
+        result = {"output_values": {"some": "data"}, "output_manifest": self.create_valid_manifest()}
+
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=self.MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.Child.ask", return_value=(result, self.QUESTION_UUID)):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "remote",
+                        self.SRUID,
+                        f"--input-values={json.dumps({'height': 3})}",
+                    ],
+                )
+
+        output = json.loads(result.output)
+        self.assertEqual(output["output_values"], {"some": "data"})
+        self.assertEqual(len(output["output_manifest"]["datasets"]), 2)
+
     def test_asynchronous(self):
         """Test that the `octue question ask remote` CLI command works with the `--asynchronous` option and returns the
         question UUID.
@@ -230,7 +251,8 @@ class TestQuestionAskLocalCommand(BaseTestCase):
 
     def test_with_input_values_and_manifest(self):
         """Test that the `octue question ask local` CLI command works with input values and input manifest and sends an
-        originator question."""
+        originator question.
+        """
         input_values = {"height": 3}
         input_manifest = self.create_valid_manifest()
 
@@ -268,6 +290,26 @@ class TestQuestionAskLocalCommand(BaseTestCase):
 
         # Check the result is in the output.
         self.assertIn(json.dumps(self.RESULT), result.output)
+
+    def test_with_output_manifest(self):
+        """Test that the `octue question ask local` CLI command returns output manifests in a useful form."""
+        result = {"output_values": {"some": "data"}, "output_manifest": self.create_valid_manifest()}
+
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.answer_question", return_value=result):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "local",
+                        f"--input-values={json.dumps({'height': 3})}",
+                    ],
+                )
+
+        output = json.loads(result.output)
+        self.assertEqual(output["output_values"], {"some": "data"})
+        self.assertEqual(len(output["output_manifest"]["datasets"]), 2)
 
     def test_with_attributes(self):
         """Test that the `octue question ask remote` CLI command can be passed question attributes which are passed
