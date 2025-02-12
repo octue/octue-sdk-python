@@ -413,13 +413,6 @@ def get(
     help="Skip handling log messages containing this string.",
 )
 @click.option(
-    "-r",
-    "--only-handle-result",
-    is_flag=True,
-    help="Skip all events apart from the 'result' event (if there is one). If providing this option, the "
-    "`--include-kinds` and `--exclude-kinds` options are ignored. This option can speed up event handling.",
-)
-@click.option(
     "--validate-events",
     is_flag=True,
     help="Validate events before attempting to handle them (this is off by default to speed up event handling)",
@@ -434,7 +427,6 @@ def replay(
     service_config,
     include_service_metadata,
     exclude_logs_containing,
-    only_handle_result,
     validate_events,
 ):
     """Replay a question's events, returning the result as JSON at the end if there is one. One of the following must be
@@ -444,15 +436,11 @@ def replay(
     --parent-question-uuid\n
     --originator-question-uuid\n
     """
-    if only_handle_result:
-        kinds = ["result"]
-        exclude_kinds = None
-    else:
-        if kinds:
-            kinds = kinds.split(",")
+    if kinds:
+        kinds = kinds.split(",")
 
-        if exclude_kinds:
-            exclude_kinds = exclude_kinds.split(",")
+    if exclude_kinds:
+        exclude_kinds = exclude_kinds.split(",")
 
     service_configuration = ServiceConfiguration.from_file(path=service_config)
 
@@ -473,7 +461,6 @@ def replay(
     replayer = EventReplayer(
         include_service_metadata_in_logs=include_service_metadata,
         exclude_logs_containing=exclude_logs_containing,
-        only_handle_result=only_handle_result,
         validate_events=validate_events,
     )
 
