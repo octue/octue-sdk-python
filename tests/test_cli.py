@@ -357,6 +357,117 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         self.assertIn(json.dumps(RESULT), result.output)
 
 
+class TestQuestionEventsGetCommand(BaseTestCase):
+    QUESTION_UUID = "3ffc192c-7db0-4941-9b66-328a9fc02b62"
+
+    with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
+        EVENTS = json.load(f)
+
+    def test_warning_logged_if_no_events_found(self):
+        """Test that a warning is logged if no events are found for a question."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=[]):
+                with self.assertLogs(level=logging.WARNING) as logging_context:
+                    result = CliRunner().invoke(
+                        octue_cli,
+                        [
+                            "question",
+                            "events",
+                            "get",
+                            "--question-uuid",
+                            self.QUESTION_UUID,
+                        ],
+                    )
+
+        self.assertIn("No events were found for this question.", logging_context.output[0])
+        self.assertTrue(result.output.endswith("[]\n"))
+
+    def test_with_question_uuid_types(self):
+        """Test that each of the question UUID types is valid as an argument by themselves."""
+        for question_uuid_arg in (
+            "--question-uuid",
+            "--parent-question-uuid",
+            "--originator-question-uuid",
+        ):
+            with self.subTest(question_uuid_arg=question_uuid_arg):
+                with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+                    with mock.patch("octue.cli.get_events", return_value=self.EVENTS):
+                        result = CliRunner().invoke(
+                            octue_cli,
+                            [
+                                "question",
+                                "events",
+                                "get",
+                                question_uuid_arg,
+                                self.QUESTION_UUID,
+                            ],
+                        )
+
+                self.assertEqual(json.loads(result.output), self.EVENTS)
+
+    def test_with_kinds(self):
+        """Test that the `--kinds` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[-2:-1]) as mock_get_events:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "get",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--kinds",
+                        "result",
+                    ],
+                )
+
+        self.assertEqual(mock_get_events.call_args.kwargs["kinds"], ["result"])
+        self.assertIsNone(mock_get_events.call_args.kwargs["exclude_kinds"])
+        self.assertEqual(json.loads(result.output), self.EVENTS[-2:-1])
+
+    def test_with_exclude_kinds(self):
+        """Test that the `--exclude-kinds` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "get",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--exclude-kinds",
+                        "log_record,result,heartbeat",
+                    ],
+                )
+
+        self.assertIsNone(mock_get_events.call_args.kwargs["kinds"])
+        self.assertEqual(mock_get_events.call_args.kwargs["exclude_kinds"], ["log_record", "result", "heartbeat"])
+        self.assertEqual(json.loads(result.output), self.EVENTS[:1])
+
+    def test_with_limit(self):
+        """Test that the `--limit` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "get",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--limit",
+                        "1",
+                    ],
+                )
+
+        self.assertEqual(mock_get_events.call_args.kwargs["limit"], 1)
+        self.assertEqual(json.loads(result.output), self.EVENTS[:1])
+
+
 class TestStartCommand(BaseTestCase):
     @classmethod
     def setUpClass(cls):
