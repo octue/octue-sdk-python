@@ -160,6 +160,11 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous, serv
         click.echo(question_uuid)
         return
 
+    output_manifest = answer.get("output_manifest")
+
+    if output_manifest:
+        answer["output_manifest"] = output_manifest.to_primitive()
+
     click.echo(json.dumps(answer, cls=OctueJSONEncoder))
 
 
