@@ -12,7 +12,7 @@ from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService
 from octue.cloud.emulators.service import ServicePatcher
 from octue.configuration import AppConfiguration, ServiceConfiguration
-from octue.resources import Dataset
+from octue.resources import Dataset, Manifest
 from octue.utils.patches import MultiPatcher
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
@@ -230,7 +230,11 @@ class TestQuestionAskLocalCommand(BaseTestCase):
 
         # Check question event.
         question = mock_answer_question_kwargs["question"]
-        self.assertEqual(question["event"]["input_manifest"].id, input_manifest.id)
+
+        self.assertEqual(
+            Manifest.deserialise(question["event"]["input_manifest"], from_string=True).id,
+            input_manifest.id,
+        )
 
         # Check question attributes.
         self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
@@ -272,7 +276,11 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         # Check question event.
         question = mock_answer_question_kwargs["question"]
         self.assertEqual(question["event"]["input_values"], input_values)
-        self.assertEqual(question["event"]["input_manifest"].id, input_manifest.id)
+
+        self.assertEqual(
+            Manifest.deserialise(question["event"]["input_manifest"], from_string=True).id,
+            input_manifest.id,
+        )
 
         # Check question attributes.
         self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
