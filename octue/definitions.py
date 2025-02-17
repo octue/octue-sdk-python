@@ -1,3 +1,5 @@
+import importlib.metadata
+
 VALUES_FILENAME = "values.json"
 MANIFEST_FILENAME = "manifest.json"
 
@@ -16,4 +18,5 @@ OUTPUT_STRANDS = ("output_values", "output_manifest")
 # TODO this should probably be defined in twined
 RUN_STRANDS = ("input_values", "input_manifest", "credentials", "children")
 
-GOOGLE_COMPUTE_PROVIDERS = {"GOOGLE_CLOUD_FUNCTION", "GOOGLE_CLOUD_RUN", "GOOGLE_DATAFLOW"}
+GOOGLE_COMPUTE_PROVIDERS = {"GOOGLE_CLOUD_FUNCTION", "GOOGLE_KUEUE"}
+LOCAL_SDK_VERSION = importlib.metadata.version("octue")

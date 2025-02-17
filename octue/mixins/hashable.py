@@ -1,8 +1,11 @@
 import base64
 import collections.abc
 import datetime
+import warnings
 
-from google_crc32c import Checksum
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from google_crc32c import Checksum
 
 
 EMPTY_STRING_HASH_VALUE = "AAAAAA=="

@@ -1,24 +1,22 @@
 import concurrent.futures
 import copy
-import datetime
 import functools
-import importlib.metadata
 import json
 import logging
-import os
-import time
 import uuid
 
-import google.api_core.exceptions
-import jsonschema
 from google.api_core import retry
+import google.api_core.exceptions
 from google.cloud import pubsub_v1
+import jsonschema
 
-import octue.exceptions
-from octue.cloud.events import OCTUE_SERVICES_PREFIX
+from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
+from octue.cloud.events.extraction import extract_and_deserialise_attributes
+from octue.cloud.events.utils import make_attributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event_and_attributes_from_pub_sub_message
+from octue.cloud.pub_sub.bigquery import get_events
+from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
@@ -29,18 +27,17 @@ from octue.cloud.service_id import (
     validate_sruid,
 )
 from octue.compatibility import warn_if_incompatible
+from octue.definitions import LOCAL_SDK_VERSION
+import octue.exceptions
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
 from octue.utils.threads import RepeatingTimer
 
-
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
-OCTUE_SERVICE_REGISTRY_ENDPOINT = "services.registry.octue.com"
 
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
@@ -70,7 +67,7 @@ class Service:
 
     def __init__(self, backend, service_id=None, run_function=None, service_registries=None):
         if service_id is None:
-            self.id = create_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
+            self.id = create_sruid()
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
@@ -85,7 +82,6 @@ class Service:
         self.service_registries = service_registries
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
-        self._local_sdk_version = importlib.metadata.version("octue")
         self._event_handler = None
 
     def __repr__(self):
@@ -117,7 +113,7 @@ class Service:
         :raise octue.exceptions.ServiceNotFound: if the topic doesn't exist in the project
         :return octue.cloud.pub_sub.topic.Topic: the Octue services topic for the project
         """
-        topic = Topic(name=OCTUE_SERVICES_PREFIX, project_name=self.backend.project_name)
+        topic = Topic(name=OCTUE_SERVICES_TOPIC_NAME, project_name=self.backend.project_name)
 
         if not topic.exists():
             raise octue.exceptions.ServiceNotFound(
@@ -203,7 +199,7 @@ class Service:
         :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
-        :return None:
+        :return dict: the result event
         """
         try:
             (
@@ -234,12 +230,11 @@ class Service:
 
         try:
             self._send_delivery_acknowledgment(**routing_metadata)
-            start_time = time.perf_counter()
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
-                function=self._send_heartbeat_and_check_runtime,
-                kwargs={"start_time": start_time, **routing_metadata},
+                function=self._send_heartbeat,
+                kwargs=routing_metadata,
             )
 
             heartbeater.daemon = True
@@ -283,12 +278,13 @@ class Service:
 
             heartbeater.cancel()
             logger.info("%r answered question %r.", self, question_uuid)
+            return result
 
         except BaseException as error:  # noqa
             if heartbeater is not None:
                 heartbeater.cancel()
 
-            warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
+            warn_if_incompatible(child_sdk_version=LOCAL_SDK_VERSION, parent_sdk_version=parent_sdk_version)
             self.send_exception(timeout=timeout, **routing_metadata)
             raise error
 
@@ -308,6 +304,9 @@ class Service:
         push_endpoint=None,
         asynchronous=False,
         retry_count=0,
+        cpus=None,
+        memory=None,
+        ephemeral_storage=None,
         timeout=86400,
     ):
         """Ask a child a question (i.e. send it input values for it to analyse and produce output values for) and return
@@ -328,6 +327,9 @@ class Service:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
+        :param int|None cpus: the number of CPUs to request for the question; defaults to the number set by the child service
+        :param str|None memory: the amount of memory to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
+        :param str|None ephemeral_storage: the amount of ephemeral storage to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
         """
@@ -345,17 +347,7 @@ class Service:
                     service_registries=self.service_registries,
                 )
 
-        # If not using a service registry, check that the service revision exists by checking for its subscription.
-        elif service_revision_tag:
-            service_revision_subscription = Subscription(
-                name=convert_service_id_to_pub_sub_form(service_id),
-                topic=self.services_topic,
-            )
-
-            if not service_revision_subscription.exists():
-                raise octue.exceptions.ServiceNotFound(f"Service revision {service_id!r} not found.")
-
-        else:
+        elif not service_revision_tag:
             raise octue.exceptions.InvalidServiceID(
                 f"A service revision tag for {service_id!r} must be provided if service registries aren't being used."
             )
@@ -408,6 +400,9 @@ class Service:
             originator_question_uuid=originator_question_uuid,
             originator=originator,
             recipient=service_id,
+            cpus=cpus,
+            memory=memory,
+            ephemeral_storage=ephemeral_storage,
             retry_count=retry_count,
         )
 
@@ -452,6 +447,49 @@ class Service:
 
         finally:
             subscription.delete()
+
+    def cancel(self, question_uuid, event_store_table_id, timeout=30):
+        """Request cancellation of a running question.
+
+        :param str question_uuid: the question UUID of the question to cancel
+        :param str event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
+        :param float timeout: time to wait for the cancellation to send before raising a timeout error [s]
+        :raise ValueError: if no question or more than one question is found for the given question UUID
+        :return None:
+        """
+        questions = get_events(table_id=event_store_table_id, question_uuid=question_uuid, kinds=["question"])
+
+        if len(questions) == 0:
+            raise ValueError(f"No question found with question UUID {question_uuid!r}.")
+
+        if len(questions) > 1:
+            raise ValueError(f"Multiple questions found with same question UUID {question_uuid!r}.")
+
+        question_finished = get_events(
+            table_id=event_store_table_id,
+            question_uuid=question_uuid,
+            kinds=["result", "exception"],
+        )
+
+        if question_finished:
+            logger.warning("Cannot cancel question %r - it has already finished.", question_uuid)
+
+        question_attributes = questions[0]["attributes"]
+
+        self._emit_event(
+            {"kind": "cancellation"},
+            question_uuid=question_uuid,
+            parent_question_uuid=question_attributes["parent_question_uuid"],
+            originator_question_uuid=question_attributes["originator_question_uuid"],
+            parent=question_attributes["parent"],
+            originator=question_attributes["originator"],
+            recipient=question_attributes["recipient"],
+            retry_count=question_attributes["retry_count"],
+            attributes={"sender_type": PARENT_SENDER_TYPE},
+            timeout=timeout,
+        )
+
+        logger.info("Cancellation of question %r requested.", question_uuid)
 
     def send_exception(
         self,
@@ -506,6 +544,7 @@ class Service:
         recipient,
         retry_count,
         attributes=None,
+        wait=True,
         timeout=30,
     ):
         """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes.
@@ -532,25 +571,22 @@ class Service:
         :param str recipient: the SRUID of the service the event is intended for
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
         :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
+        :param bool wait: if `True`, wait for the result of the publishing future before continuing execution (this is important if the python process ends promptly after the event is emitted instead of being part of a prolonged stream as the publishing may not complete and the event won't actually be emitted)
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
         attributes = attributes or {}
 
-        attributes.update(
-            {
-                "uuid": str(uuid.uuid4()),
-                "datetime": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
-                "question_uuid": question_uuid,
-                "parent_question_uuid": parent_question_uuid,
-                "originator_question_uuid": originator_question_uuid,
-                "parent": parent,
-                "originator": originator,
-                "sender": self.id,
-                "sender_sdk_version": self._local_sdk_version,
-                "recipient": recipient,
-                "retry_count": retry_count,
-            }
+        attributes = make_attributes(
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
+            parent=parent,
+            originator=originator,
+            sender=self.id,
+            recipient=recipient,
+            retry_count=retry_count,
+            **attributes,
         )
 
         converted_attributes = {}
@@ -573,6 +609,9 @@ class Service:
             **converted_attributes,
         )
 
+        if wait:
+            future.result()
+
         return future
 
     def _send_question(
@@ -588,6 +627,9 @@ class Service:
         originator,
         recipient,
         retry_count,
+        cpus,
+        memory,
+        ephemeral_storage,
         timeout=30,
     ):
         """Send a question to a child service.
@@ -612,7 +654,7 @@ class Service:
             input_manifest.use_signed_urls_for_datasets()
             question["input_manifest"] = input_manifest.to_primitive()
 
-        future = self._emit_event(
+        self._emit_event(
             event=question,
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
@@ -625,12 +667,13 @@ class Service:
                 "forward_logs": forward_logs,
                 "save_diagnostics": save_diagnostics,
                 "sender_type": PARENT_SENDER_TYPE,
+                "cpus": cpus,
+                "memory": memory,
+                "ephemeral_storage": ephemeral_storage,
             },
             timeout=timeout,
         )
 
-        # Await successful publishing of the question.
-        future.result()
         logger.info("%r asked a question %r to service %r.", self, question_uuid, recipient)
 
     def _send_delivery_acknowledgment(
@@ -665,11 +708,12 @@ class Service:
             recipient=parent,
             retry_count=retry_count,
             attributes={"sender_type": CHILD_SENDER_TYPE},
+            wait=False,
         )
 
         logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
 
-    def _send_heartbeat_and_check_runtime(
+    def _send_heartbeat(
         self,
         question_uuid,
         parent_question_uuid,
@@ -677,12 +721,9 @@ class Service:
         parent,
         originator,
         retry_count,
-        start_time,
-        runtime_timeout_warning_time=3480,  # This is 58 minutes in seconds.
         timeout=30,
     ):
-        """Send a heartbeat to the parent, indicating that the service is alive. If it's running on Cloud Run and it's
-        been running for longer than the runtime timeout warning time, log a warning that it will be stopped soon.
+        """Send a heartbeat to the parent, indicating that the service is alive.
 
         :param str question_uuid: the UUID of the question this event relates to
         :param str|None parent_question_uuid: the UUID of the question that triggered this question
@@ -690,8 +731,6 @@ class Service:
         :param str parent: the SRUID of the parent that asked the question this event is related to
         :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
-        :param int|float start_time: the `time.perf_counter` time that the analysis was started [s]
-        :param int|float runtime_timeout_warning_time: the amount of time after which to warn that the runtime timeout is approaching [s]
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -706,13 +745,8 @@ class Service:
             retry_count=retry_count,
             attributes={"sender_type": CHILD_SENDER_TYPE},
             timeout=timeout,
+            wait=False,
         )
-
-        if (
-            os.environ.get("COMPUTE_PROVIDER") == "GOOGLE_CLOUD_RUN"
-            and time.perf_counter() - start_time > runtime_timeout_warning_time
-        ):
-            logger.warning("This analysis will reach the maximum runtime and be stopped soon.")
 
         logger.debug("Heartbeat sent by %r.", self)
 
@@ -750,14 +784,15 @@ class Service:
             retry_count=retry_count,
             timeout=timeout,
             attributes={"sender_type": CHILD_SENDER_TYPE},
+            wait=False,
         )
 
         logger.debug("Monitor message sent by %r.", self)
 
     def _parse_question(self, question):
-        """Parse a question in the Google Cloud Run or Google Pub/Sub format.
+        """Parse a question in dictionary format or direct Google Pub/Sub format.
 
-        :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
+        :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in dictionary format or direct Google Pub/Sub format
         :return (dict, str, str, str, bool, str, str, str, str, int): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, the SRUID of the parent that asked the question, the SRUID of the service revision that triggered all ancestor questions of this question, and the retry count)
         """
         logger.info("%r received a question.", self)
@@ -765,17 +800,19 @@ class Service:
         # Acknowledge the question if it's directly from Pub/Sub.
         if hasattr(question, "ack"):
             question.ack()
+            logger.info("Question acknowledged on Pub/Sub.")
 
-        event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
-        event_for_validation = copy.deepcopy(event)
+        event = extract_event(question)
+        attributes = extract_and_deserialise_attributes(question)
+        logger.info("Extracted question event and attributes.")
 
         raise_if_event_is_invalid(
-            event=event_for_validation,
+            event=copy.deepcopy(event),
             attributes=attributes,
             recipient=self.id,
             # Don't assume the presence of specific attributes before validation.
             parent_sdk_version=attributes.get("sender_sdk_version"),
-            child_sdk_version=importlib.metadata.version("octue"),
+            child_sdk_version=LOCAL_SDK_VERSION,
         )
 
         logger.info("%r parsed question %r successfully.", self, attributes["question_uuid"])

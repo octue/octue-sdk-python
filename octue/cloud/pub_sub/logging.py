@@ -1,7 +1,6 @@
 import logging
 import re
 
-
 ANSI_ESCAPE_SEQUENCES_PATTERN = r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])"
 
 
@@ -66,6 +65,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
                 originator_question_uuid=self.originator_question_uuid,
                 # The sender type is repeated here as a string to avoid a circular import.
                 attributes={"sender_type": "CHILD"},
+                wait=False,
             )
 
         except Exception:  # noqa

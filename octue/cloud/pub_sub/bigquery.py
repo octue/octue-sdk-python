@@ -1,7 +1,10 @@
+import logging
+
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 from octue.cloud.events.validation import VALID_EVENT_KINDS
 
+logger = logging.getLogger(__name__)
 
 DEFAULT_FIELDS = (
     "`originator_question_uuid`",
@@ -120,6 +123,7 @@ def get_events(
     result = query_job.result()
 
     if result.total_rows == 0:
+        logger.warning("No events were found for this question.")
         return []
 
     events = [_deserialise_event(event) for event in result]

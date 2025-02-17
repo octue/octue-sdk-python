@@ -5,7 +5,6 @@ from urllib.parse import urlparse
 
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 
-
 if os.environ.get("COMPUTE_PROVIDER", "UNKNOWN") in GOOGLE_COMPUTE_PROVIDERS:
     # Google Cloud logs don't support colour currently - provide a no-operation function.
     colourise = lambda string, text_colour=None, background_colour=None: string
@@ -189,8 +188,8 @@ def get_remote_handler(
 
 
 def get_log_record_attributes_for_environment():
-    """Get the correct log record attributes for the environment. If the environment is Google Cloud Run, get log record
-    attributes not including the timestamp in the log context to avoid the date appearing twice in the Google Cloud Run
+    """Get the correct log record attributes for the environment. If the environment is in Google Cloud, get log record
+    attributes not including the timestamp in the log context to avoid the date appearing twice in the Google Cloud
     logs (Google adds its own timestamp to log messages). Otherwise, get log record attributes including the timestamp.
 
     :return list:

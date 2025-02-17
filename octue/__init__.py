@@ -4,15 +4,11 @@ import os
 from .log_handlers import apply_log_handler, should_use_octue_log_handler
 from .runner import Runner
 
-
 logger = logging.getLogger(__name__)
 
 
 __all__ = ("Runner",)
-
-
 REPOSITORY_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-
 
 if should_use_octue_log_handler():
     apply_log_handler(

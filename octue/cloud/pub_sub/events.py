@@ -1,64 +1,35 @@
-import base64
+from datetime import datetime, timedelta
+from functools import cached_property
 import json
 import logging
 import time
-from datetime import datetime, timedelta
-from functools import cached_property
 
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
+from octue.cloud.events.extraction import extract_and_deserialise_attributes
 from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.utils.decoders import OctueJSONDecoder
-from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
-
 
 logger = logging.getLogger(__name__)
 
 MAX_SIMULTANEOUS_MESSAGES_PULL = 50
 
 
-def extract_event_and_attributes_from_pub_sub_message(message):
-    """Extract an Octue service event and its attributes from a Google Pub/Sub message in either direct Pub/Sub format
-    or in the Google Cloud Run format.
+def extract_event(message):
+    """Extract a Twined service event from a dictionary or Pub/Sub message.
 
-    :param dict|google.cloud.pubsub_v1.subscriber.message.Message message: the message in Google Cloud Run format or Google Pub/Sub format
-    :return (any, dict): the extracted event and its attributes
+    :param dict|google.cloud.pubsub_v1.subscriber.message.Message message: the message in dictionary format or direct Google Pub/Sub format
+    :return dict: the extracted event
     """
-    # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
-    attributes = dict(get_nested_attribute(message, "attributes"))
+    # Support already-extracted questions (e.g. from the `octue question ask local` CLI command).
+    if isinstance(message, dict) and "event" in message:
+        return message["event"]
 
-    # Deserialise the `parent_question_uuid`, `forward_logs`, and `retry_count`, fields if they're present
-    # (don't assume they are before validation).
-    if attributes.get("parent_question_uuid") == "null":
-        attributes["parent_question_uuid"] = None
-
-    retry_count = attributes.get("retry_count")
-
-    if retry_count:
-        attributes["retry_count"] = int(retry_count)
-    else:
-        attributes["retry_count"] = None
-
-    # Required for question events.
-    if attributes.get("sender_type") == "PARENT":
-        forward_logs = attributes.get("forward_logs")
-
-        if forward_logs:
-            attributes["forward_logs"] = bool(int(forward_logs))
-        else:
-            attributes["forward_logs"] = None
-
-    try:
-        # Parse event directly from Pub/Sub or Dataflow.
-        event = json.loads(message.data.decode(), cls=OctueJSONDecoder)
-    except Exception:
-        # Parse event from Google Cloud Run.
-        event = json.loads(base64.b64decode(message["data"]).decode("utf-8").strip(), cls=OctueJSONDecoder)
-
-    return event, attributes
+    # Extract event directly from Pub/Sub.
+    return json.loads(message.data.decode(), cls=OctueJSONDecoder)
 
 
 class GoogleCloudPubSubEventHandler(AbstractEventHandler):
@@ -274,4 +245,6 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         :param dict container: a Pub/Sub message
         :return (any, dict): the event and its attributes
         """
-        return extract_event_and_attributes_from_pub_sub_message(container.message)
+        event = extract_event(container.message)
+        attributes = extract_and_deserialise_attributes(container.message)
+        return event, attributes

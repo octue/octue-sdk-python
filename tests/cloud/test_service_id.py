@@ -6,9 +6,10 @@ from unittest.mock import patch
 
 import requests
 
-import octue.exceptions
 from octue.cloud.service_id import (
+    DEFAULT_NAMESPACE,
     convert_service_id_to_pub_sub_form,
+    create_sruid,
     get_default_sruid,
     get_sruid_from_pub_sub_resource_name,
     get_sruid_parts,
@@ -17,6 +18,7 @@ from octue.cloud.service_id import (
     validate_sruid,
 )
 from octue.configuration import ServiceConfiguration
+import octue.exceptions
 from octue.exceptions import InvalidServiceID
 from tests import MOCK_SERVICE_REVISION_TAG
 
@@ -74,6 +76,34 @@ class TestGetSRUIDParts(unittest.TestCase):
         self.assertEqual(revision_tag, "this-is-a-tag")
 
 
+class TestCreateSRUID(unittest.TestCase):
+    def test_error_raised_for_invalid_arguments(self):
+        """Test that an error is raised when trying to create an SRUID from invalid components."""
+        for namespace, name, revision_tag in (
+            ("MY-NAMESPACE", "my-name", "my-tag"),
+            ("my-namespace", "MY-NAME", "my-tag"),
+            ("my-namespace", "my-name", "@"),
+        ):
+            with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
+                with self.assertRaises(InvalidServiceID):
+                    create_sruid(namespace, name, revision_tag)
+
+    def test_default(self):
+        """Test that a valid SRUID is created when no arguments are provided and that a different SRUID is created each
+        time.
+        """
+        sruid = create_sruid()
+        validate_sruid(sruid)
+        self.assertTrue(sruid.startswith(DEFAULT_NAMESPACE))
+        self.assertNotEqual(sruid, create_sruid())
+
+    def test_with_arguments(self):
+        """Test that a valid SRUID is created from valid arguments."""
+        sruid = create_sruid("my-namespace", "my-name", "my-tag")
+        validate_sruid(sruid)
+        self.assertEqual(sruid, "my-namespace/my-name:my-tag")
+
+
 class TestConvertServiceIDToPubSubForm(unittest.TestCase):
     def test_convert_service_id_to_pub_sub_form(self):
         """Test that service IDs containing organisations, revision tags, and the services namespace are all converted
@@ -94,8 +124,8 @@ class TestConvertServiceIDToPubSubForm(unittest.TestCase):
 class TestGetSRUIDFromPubSubResourceName(unittest.TestCase):
     def test_get_sruid_from_pub_sub_resource_name(self):
         """Test that an SRUID can be extracted from a Pub/Sub resource name."""
-        sruid = get_sruid_from_pub_sub_resource_name("octue.example-service-cloud-run.0-3-2")
-        self.assertEqual(sruid, "octue/example-service-cloud-run:0.3.2")
+        sruid = get_sruid_from_pub_sub_resource_name("octue.example-service.0-3-2")
+        self.assertEqual(sruid, "octue/example-service:0.3.2")
 
 
 class TestValidateSRUID(unittest.TestCase):
@@ -117,7 +147,7 @@ class TestValidateSRUID(unittest.TestCase):
             "MY-ORG/my-service:1.9.4",
             "my-org/MY-SERVICE:1.9.4",
             "my-org/MY-SERVICE:@",
-            f"my-org/my-service:{'1'*129}",
+            f"my-org/my-service:{'1' * 129}",
             "/my-service",
             "/my-service:",
         ):
@@ -165,7 +195,7 @@ class TestValidateSRUID(unittest.TestCase):
             ("MY-ORG", "my-service", "1.9.4"),
             ("my-org", "MY-SERVICE", "1.9.4"),
             ("my-org", "my-service", "@"),
-            ("my-org", "my-service", f"{'1'*129}"),
+            ("my-org", "my-service", f"{'1' * 129}"),
         ):
             with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
                 with self.assertRaises(InvalidServiceID):
