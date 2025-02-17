@@ -7,7 +7,6 @@ from unittest.mock import patch
 from octue.cloud.events.replayer import EventReplayer
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 
-
 with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
     EVENTS = json.load(f)
 
@@ -31,7 +30,10 @@ EXPECTED_OUTPUT_MANIFEST = {
 class TestEventReplayer(unittest.TestCase):
     def test_with_no_events(self):
         """Test that `None` is returned if no events are passed in."""
-        result = EventReplayer().handle_events(events=[])
+        with self.assertLogs(level=logging.WARNING) as logging_context:
+            result = EventReplayer().handle_events(events=[])
+
+        self.assertIn("No result was found for this question.", logging_context.output[0])
         self.assertIsNone(result)
 
     def test_with_no_valid_events(self):
@@ -65,8 +67,9 @@ class TestEventReplayer(unittest.TestCase):
         with self.assertLogs() as logging_context:
             result = EventReplayer().handle_events(events=[event])
 
-        self.assertIsNone(result)
         self.assertIn("question was delivered", logging_context.output[0])
+        self.assertIn("No result was found for this question.", logging_context.output[1])
+        self.assertIsNone(result)
 
     def test_with_events_including_result_event(self):
         """Test that stored events can be replayed and the outputs extracted from the "result" event."""

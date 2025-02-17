@@ -7,8 +7,8 @@ from octue.utils.dictionaries import make_minimal_dictionary
 def make_question_event(
     input_values,
     input_manifest,
-    parent_sruid=None,
-    child_sruid=None,
+    sender=None,
+    recipient=None,
     question_uuid=None,
     attributes=None,
 ):
@@ -16,10 +16,10 @@ def make_question_event(
 
     :param dict input_values:
     :param octue.resources.manifest.Manifest input_manifest:
-    :param str parent_sruid:
-    :param str child_sruid:
-    :param str question_uuid:
-    :param dict attributes:
+    :param str|None sender:
+    :param str|None recipient:
+    :param str|None question_uuid:
+    :param dict|None attributes:
     :return dict:
     """
     if not attributes:
@@ -27,12 +27,8 @@ def make_question_event(
 
         attributes = EventAttributes(
             question_uuid=question_uuid,
-            parent_question_uuid=question_uuid,
-            originator_question_uuid=question_uuid,
-            parent=parent_sruid,
-            originator=parent_sruid,
-            sender=parent_sruid,
-            recipient=child_sruid,
+            sender=sender,
+            recipient=recipient,
             forward_logs=True,
             save_diagnostics="SAVE_DIAGNOSTICS_ON",
             sender_type="PARENT",

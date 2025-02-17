@@ -1,7 +1,6 @@
 import concurrent.futures
 import copy
 import functools
-import importlib.metadata
 import json
 import logging
 import uuid
@@ -11,10 +10,9 @@ import google.api_core.exceptions
 from google.cloud import pubsub_v1
 import jsonschema
 
-from octue.cloud import LOCAL_SDK_VERSION
 from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
 from octue.cloud.events.attributes import EventAttributes
-from octue.cloud.events.extraction import extract_and_convert_attributes
+from octue.cloud.events.extraction import extract_and_deserialise_attributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.bigquery import get_events
@@ -29,6 +27,7 @@ from octue.cloud.service_id import (
     validate_sruid,
 )
 from octue.compatibility import warn_if_incompatible
+from octue.definitions import LOCAL_SDK_VERSION
 import octue.exceptions
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
@@ -38,7 +37,6 @@ from octue.utils.threads import RepeatingTimer
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
 
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
@@ -68,7 +66,7 @@ class Service:
 
     def __init__(self, backend, service_id=None, run_function=None, service_registries=None):
         if service_id is None:
-            self.id = create_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
+            self.id = create_sruid()
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
@@ -200,7 +198,7 @@ class Service:
         :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
-        :return None:
+        :return dict: the result event
         """
         try:
             question, question_attributes = self._parse_question(question)
@@ -252,6 +250,7 @@ class Service:
             self._emit_event(event=result, attributes=response_attributes, timeout=timeout)
             heartbeater.cancel()
             logger.info("%r answered question %r.", self, question_attributes.question_uuid)
+            return result
 
         except BaseException as error:  # noqa
             if heartbeater is not None:
@@ -304,9 +303,9 @@ class Service:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
-        :param int|None cpus:
-        :param str|None memory:
-        :param str|None ephemeral_storage:
+        :param int|None cpus: the number of CPUs to request for the question; defaults to the number set by the child service
+        :param str|None memory: the amount of memory to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
+        :param str|None ephemeral_storage: the amount of ephemeral storage to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
         """
@@ -426,6 +425,14 @@ class Service:
             subscription.delete()
 
     def cancel(self, question_uuid, event_store_table_id, timeout=30):
+        """Request cancellation of a running question.
+
+        :param str question_uuid: the question UUID of the question to cancel
+        :param str event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
+        :param float timeout: time to wait for the cancellation to send before raising a timeout error [s]
+        :raise ValueError: if no question or more than one question is found for the given question UUID
+        :return None:
+        """
         questions = get_events(table_id=event_store_table_id, question_uuid=question_uuid, kinds=["question"])
 
         if len(questions) == 0:
@@ -441,7 +448,7 @@ class Service:
         )
 
         if question_finished:
-            raise ValueError(f"Question {question_uuid!r} has already finished.")
+            logger.warning("Cannot cancel question %r - it has already finished.", question_uuid)
 
         question_attributes = EventAttributes(**questions[0]["attributes"])
         self._emit_event({"kind": "cancellation"}, attributes=question_attributes, timeout=timeout)
@@ -607,7 +614,7 @@ class Service:
             logger.info("Question acknowledged on Pub/Sub.")
 
         event = extract_event(question)
-        attributes = extract_and_convert_attributes(question)
+        attributes = extract_and_deserialise_attributes(question)
         logger.info("Extracted question event and attributes.")
 
         raise_if_event_is_invalid(
@@ -616,7 +623,7 @@ class Service:
             recipient=self.id,
             # Don't assume the presence of specific attributes before validation.
             parent_sdk_version=attributes.get("sender_sdk_version"),
-            child_sdk_version=importlib.metadata.version("octue"),
+            child_sdk_version=LOCAL_SDK_VERSION,
         )
 
         logger.info("%r parsed question %r successfully.", self, attributes["question_uuid"])

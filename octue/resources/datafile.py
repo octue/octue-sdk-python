@@ -11,11 +11,6 @@ import warnings
 
 import requests
 
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    from google_crc32c import Checksum
-
-
 # The `h5py` package is only needed if dealing with HDF5 files. It's only available if the `hdf5` extra is provided
 # during installation of `octue`.
 try:
@@ -30,6 +25,10 @@ from octue.mixins import CloudPathable, Filterable, Hashable, Identifiable, Labe
 from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.metadata import METADATA_FILENAME, UpdateLocalMetadata, load_local_metadata_file
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from google_crc32c import Checksum
 
 
 logger = logging.getLogger(__name__)

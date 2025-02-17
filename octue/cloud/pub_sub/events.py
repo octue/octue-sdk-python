@@ -7,7 +7,7 @@ import time
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
-from octue.cloud.events.extraction import extract_and_convert_attributes
+from octue.cloud.events.extraction import extract_and_deserialise_attributes
 from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.utils.decoders import OctueJSONDecoder
@@ -246,5 +246,5 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         :return (any, dict): the event and its attributes
         """
         event = extract_event(container.message)
-        attributes = extract_and_convert_attributes(container.message)
+        attributes = extract_and_deserialise_attributes(container.message)
         return event, attributes

@@ -1,7 +1,5 @@
 import copy
 import functools
-import importlib.metadata
-import importlib.util
 import json
 import logging
 import os
@@ -11,16 +9,16 @@ import click
 from google import auth
 
 from octue.cloud import storage
+from octue.cloud.events.answer_question import answer_question
 from octue.cloud.events.replayer import EventReplayer
 from octue.cloud.events.utils import make_question_event
 from octue.cloud.events.validation import VALID_EVENT_KINDS
-from octue.cloud.pub_sub.answer_question import answer_pub_sub_question
 from octue.cloud.pub_sub.bigquery import get_events
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import ServiceConfiguration, load_service_and_app_configuration
-from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
+from octue.definitions import LOCAL_SDK_VERSION, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import Child, Manifest, service_backends
@@ -56,7 +54,7 @@ global_cli_context = {}
     show_default=True,
     help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
 )
-@click.version_option(version=importlib.metadata.version("octue"))
+@click.version_option(version=LOCAL_SDK_VERSION)
 def octue_cli(id, logger_uri, log_level, force_reset):
     """The CLI for the Octue SDK. Use it to start an Octue data service or digital twin locally or run an analysis on
     one locally.
@@ -106,14 +104,14 @@ def ask():
     "--project-name",
     type=str,
     default=None,
-    help="If asking a remote question, the name of the Google Cloud project the service is deployed in. If not "
-    "provided, the project name is detected from the local Google application credentials if present.",
+    help="The name of the Google Cloud project the service is deployed in. If not provided, the project name is "
+    "detected from the local Google application credentials if present.",
 )
 @click.option(
     "--asynchronous",
     is_flag=True,
-    help="If provided, ask the question and detach (the result and other events can be retrieved from the event store "
-    "later).",
+    help="If provided, ask the question and detach. The result and other events can be retrieved from the event store "
+    "later.",
 )
 @click.option(
     "-c",
@@ -127,9 +125,9 @@ def ask():
 def remote(sruid, input_values, input_manifest, project_name, asynchronous, service_config):
     """Ask a question to a remote Octue Twined service.
 
-    SRUID should be a valid service revision unique identifier for an existing Octue Twined service
+    SRUID should be a valid service revision unique identifier for an existing Octue Twined service e.g.
 
-        e.g. octue question ask octue/example-service:1.0.3
+        octue question ask remote your-org/example-service:1.2.0
     """
     try:
         service_configuration = ServiceConfiguration.from_file(service_config)
@@ -162,7 +160,12 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous, serv
         click.echo(question_uuid)
         return
 
-    click.echo(answer)
+    output_manifest = answer.get("output_manifest")
+
+    if output_manifest:
+        answer["output_manifest"] = output_manifest.to_primitive()
+
+    click.echo(json.dumps(answer, cls=OctueJSONEncoder))
 
 
 @ask.command()
@@ -202,9 +205,8 @@ def local(input_values, input_manifest, attributes, service_config):
 
     This command is similar to running `octue service start` and asking the resulting local service revision a question
     via Pub/Sub. Instead of starting a local Pub/Sub service revision, however, no Pub/Sub subscription or subscriber is
-    created; the question is instead passed directly and to local the service revision without Pub/Sub being involved.
-    Everything after this runs the same, though, with any events emitted by the service revision emitted via Pub/Sub as
-    usual.
+    created; the question is instead passed directly to local the service revision without Pub/Sub being involved.
+    Everything after this runs the same, though, with the service revision emitting any events via Pub/Sub as usual.
     """
     if input_values:
         input_values = json.loads(input_values, cls=OctueJSONDecoder)
@@ -216,20 +218,17 @@ def local(input_values, input_manifest, attributes, service_config):
 
     if attributes:
         attributes = json.loads(attributes, cls=OctueJSONDecoder)
-        parent_sruid = None
-        child_sruid = None
+        question = make_question_event(input_values=input_values, input_manifest=input_manifest, attributes=attributes)
     else:
-        parent_sruid = "local/local:local"
-        service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
-        child_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
+        namespace, name, revision_tag = get_sruid_parts(service_configuration)
+        recipient = create_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
-    question = make_question_event(
-        input_values=input_values,
-        input_manifest=input_manifest,
-        parent_sruid=parent_sruid,
-        child_sruid=child_sruid,
-        attributes=attributes,
-    )
+        question = make_question_event(
+            input_values=input_values,
+            input_manifest=input_manifest,
+            sender=create_sruid(),
+            recipient=recipient,
+        )
 
     backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
 
@@ -241,12 +240,19 @@ def local(input_values, input_manifest, attributes, service_config):
         _, project_name = auth.default()
         backend = service_backends.get_backend()(project_name=project_name)
 
-    answer_pub_sub_question(question=question, project_name=backend.project_name, service_configuration=service_config)
+    answer = answer_question(
+        question=question,
+        project_name=backend.project_name,
+        service_configuration=service_configuration,
+        app_configuration=app_configuration,
+    )
+
+    click.echo(json.dumps(answer, cls=OctueJSONEncoder))
 
 
 @question.group()
 def events():
-    """Get and replay events from questions to Octue Twined services."""
+    """Get and replay events from past and current questions."""
 
 
 @events.command()
@@ -259,12 +265,14 @@ def events():
 @click.option(
     "--parent-question-uuid",
     type=str,
-    help="The UUID of a parent question to get the sub-question events for",
+    default=None,
+    help="The UUID of a parent question to get the sub-question events for.",
 )
 @click.option(
     "--originator-question-uuid",
     type=str,
-    help="The UUID of an originator question get the full tree of events for",
+    default=None,
+    help="The UUID of an originator question get the full tree of events for.",
 )
 @click.option(
     "-k",
@@ -272,8 +280,7 @@ def events():
     type=str,
     default=None,
     help="The kinds of event to get as a comma-separated list e.g. 'question,result'. If not provided, all event kinds "
-    "are returned. The valid kinds are "
-    f"{VALID_EVENT_KINDS!r}.",
+    f"are returned. The valid kinds are {VALID_EVENT_KINDS!r}.",
 )
 @click.option(
     "-e",
@@ -281,8 +288,7 @@ def events():
     type=str,
     default=None,
     help="The kinds of event to exclude as a comma-separated list e.g. 'question,result'. If not provided, all event "
-    "kinds are returned. The valid kinds are "
-    f"{VALID_EVENT_KINDS!r}.",
+    f"kinds are returned. The valid kinds are {VALID_EVENT_KINDS!r}.",
 )
 @click.option(
     "--include-backend-metadata",
@@ -316,13 +322,11 @@ def get(
     limit,
     service_config,
 ):
-    """Get the raw events emitted during a question as JSON. One of the following must be set:
+    """Get the events emitted during a question as JSON. One of the following must be set:
 
-    --question-uuid
-
-    --parent-question-uuid
-
-    --originator-question-uuid
+    --question-uuid\n
+    --parent-question-uuid\n
+    --originator-question-uuid\n
     """
     if kinds:
         kinds = kinds.split(",")
@@ -343,7 +347,7 @@ def get(
         limit=limit,
     )
 
-    click.echo(events)
+    click.echo(json.dumps(events, cls=OctueJSONEncoder))
 
 
 @events.command()
@@ -356,12 +360,12 @@ def get(
 @click.option(
     "--parent-question-uuid",
     type=str,
-    help="The UUID of a parent question to get the sub-question events for",
+    help="The UUID of a parent question to get the sub-question events for.",
 )
 @click.option(
     "--originator-question-uuid",
     type=str,
-    help="The UUID of an originator question get the full tree of events for",
+    help="The UUID of an originator question get the full tree of events for.",
 )
 @click.option(
     "-k",
@@ -369,8 +373,7 @@ def get(
     type=str,
     default=None,
     help="The kinds of event to get as a comma-separated list e.g. 'question,result'. If not provided, all event kinds "
-    "are returned. The valid kinds are "
-    f"{VALID_EVENT_KINDS!r}.",
+    f"are returned. The valid kinds are {VALID_EVENT_KINDS!r}.",
 )
 @click.option(
     "-e",
@@ -378,8 +381,7 @@ def get(
     type=str,
     default=None,
     help="The kinds of event to exclude as a comma-separated list e.g. 'question,result'. If not provided, all event "
-    "kinds are returned. The valid kinds are "
-    f"{VALID_EVENT_KINDS!r}.",
+    f"kinds are returned. The valid kinds are {VALID_EVENT_KINDS!r}.",
 )
 @click.option(
     "-l",
@@ -399,22 +401,16 @@ def get(
     "is used.",
 )
 @click.option(
-    "--include-service-metadata-in-logs",
+    "--include-service-metadata",
     is_flag=True,
     help="Include the SRUIDs and question UUIDs of the service revisions involved in the question at the start of each "
-    "log message.",
+    "log message. This is useful when a child asks its own sub-questions.",
 )
 @click.option(
     "--exclude-logs-containing",
     type=str,
     default=None,
     help="Skip handling log messages containing this string.",
-)
-@click.option(
-    "-r",
-    "--only-handle-result",
-    is_flag=True,
-    help="Skip non-result events and only handle the 'result' event if present.",
 )
 @click.option(
     "--validate-events",
@@ -429,18 +425,16 @@ def replay(
     exclude_kinds,
     limit,
     service_config,
-    include_service_metadata_in_logs,
+    include_service_metadata,
     exclude_logs_containing,
-    only_handle_result,
     validate_events,
 ):
-    """Replay a question's events, returning the result as JSON if there is one. One of the following must be set:
+    """Replay a question's events, returning the result as JSON at the end if there is one. One of the following must be
+    set:
 
-    --question-uuid
-
-    --parent-question-uuid
-
-    --originator-question-uuid
+    --question-uuid\n
+    --parent-question-uuid\n
+    --originator-question-uuid\n
     """
     if kinds:
         kinds = kinds.split(",")
@@ -460,17 +454,21 @@ def replay(
         limit=limit,
     )
 
+    if not events:
+        return
+
     replayer = EventReplayer(
-        include_service_metadata_in_logs=include_service_metadata_in_logs,
+        include_service_metadata_in_logs=include_service_metadata,
         exclude_logs_containing=exclude_logs_containing,
-        only_handle_result=only_handle_result,
         validate_events=validate_events,
     )
 
     result = replayer.handle_events(events)
 
-    if result:
-        click.echo(result)
+    if not result:
+        return
+
+    click.echo(json.dumps(result, cls=OctueJSONEncoder))
 
 
 @question.command()
@@ -563,7 +561,7 @@ def diagnostics(cloud_path, local_path, download_datasets):
     "is used.",
 )
 def cancel(question_uuid, project_name, service_config):
-    """Cancel a question running on a Twined service.
+    """Cancel a question running on an Octue Twined service.
 
     QUESTION_UUID: The question UUID of a running question
     """
@@ -596,104 +594,6 @@ def cancel(question_uuid, project_name, service_config):
 )
 def get_diagnostics(cloud_path, local_path, download_datasets):
     diagnostics(cloud_path, local_path, download_datasets)
-
-
-@octue_cli.command(deprecated=True)
-@click.option(
-    "-c",
-    "--service-config",
-    type=click.Path(dir_okay=False),
-    default=None,
-    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
-    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
-    "is used.",
-)
-@click.option(
-    "--input-dir",
-    type=click.Path(file_okay=False, exists=True),
-    default=".",
-    show_default=True,
-    help="The path to a directory containing the input values (in a file called 'values.json') and/or input manifest "
-    "(in a file called 'manifest.json').",
-)
-@click.option(
-    "-o",
-    "--output-file",
-    type=click.Path(dir_okay=False),
-    default=None,
-    show_default=True,
-    help="The path to a JSON file to store the output values in, if required.",
-)
-@click.option(
-    "--output-manifest-file",
-    type=click.Path(dir_okay=False),
-    default=None,
-    help="The path to a JSON file to store the output manifest in. The default is 'output_manifest_<analysis_id>.json'.",
-)
-@click.option(
-    "--monitor-messages-file",
-    type=click.Path(dir_okay=False),
-    default=None,
-    show_default=True,
-    help="The path to a JSON file in which to store any monitor messages received. Monitor messages will be ignored "
-    "if this option isn't provided.",
-)
-def run(service_config, input_dir, output_file, output_manifest_file, monitor_messages_file):
-    """Run an analysis on the given input data using an Octue service or digital twin locally. The output values are
-    printed to `stdout`. If an output manifest is produced, it will be saved locally (see the `--output-manifest-file`
-    option).
-    """
-    service_configuration, app_configuration = load_service_and_app_configuration(service_config)
-
-    input_values_path = os.path.join(input_dir, VALUES_FILENAME)
-    input_manifest_path = os.path.join(input_dir, MANIFEST_FILENAME)
-
-    input_values = None
-    input_manifest = None
-
-    if os.path.exists(input_values_path):
-        input_values = input_values_path
-
-    if os.path.exists(input_manifest_path):
-        input_manifest = input_manifest_path
-
-    runner = Runner.from_configuration(service_configuration=service_configuration, app_configuration=app_configuration)
-
-    if monitor_messages_file:
-        if not os.path.exists(os.path.dirname(monitor_messages_file)):
-            os.makedirs(os.path.dirname(monitor_messages_file))
-
-        monitor_message_handler = lambda message: _add_monitor_message_to_file(monitor_messages_file, message)
-
-    else:
-        monitor_message_handler = None
-
-    analysis = runner.run(
-        analysis_id=global_cli_context["analysis_id"],
-        input_values=input_values,
-        input_manifest=input_manifest,
-        analysis_log_level=global_cli_context["log_level"],
-        analysis_log_handler=global_cli_context["log_handler"],
-        handle_monitor_message=monitor_message_handler,
-    )
-
-    click.echo(json.dumps(analysis.output_values, cls=OctueJSONEncoder))
-
-    if analysis.output_values and output_file:
-        if not os.path.exists(os.path.dirname(output_file)):
-            os.makedirs(os.path.dirname(output_file))
-
-        with open(output_file, "w") as f:
-            json.dump(analysis.output_values, f, cls=OctueJSONEncoder, indent=4)
-
-    if analysis.output_manifest:
-        if not os.path.exists(os.path.dirname(output_manifest_file)):
-            os.makedirs(os.path.dirname(output_manifest_file))
-
-        with open(output_manifest_file or f"output_manifest_{analysis.id}.json", "w") as f:
-            json.dump(analysis.output_manifest.to_primitive(), f, cls=OctueJSONEncoder, indent=4)
-
-    return 0
 
 
 @octue_cli.command()

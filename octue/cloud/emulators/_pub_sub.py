@@ -1,5 +1,4 @@
 from collections import defaultdict
-import importlib.metadata
 import json
 import logging
 
@@ -7,6 +6,7 @@ import google.api_core
 
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import PARENT_SENDER_TYPE, Service
+from octue.definitions import LOCAL_SDK_VERSION
 from octue.resources import Manifest
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
@@ -341,7 +341,7 @@ class MockService(Service):
         memory=None,
         ephemeral_storage=None,
         timeout=86400,
-        parent_sdk_version=importlib.metadata.version("octue"),
+        parent_sdk_version=LOCAL_SDK_VERSION,
     ):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
         the response to the register, and return a MockFuture containing the answer subscription path.

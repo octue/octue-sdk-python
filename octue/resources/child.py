@@ -99,14 +99,14 @@ class Child:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True`, don't wait for an answer or create an answer subscription (the result and other events can be retrieved from the event store later)
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
-        :param int|None cpus:
-        :param str|None memory:
-        :param str|None ephemeral_storage:
+        :param int|None cpus: the number of CPUs to request for the question; defaults to the number set by the child service
+        :param str|None memory: the amount of memory to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
+        :param str|None ephemeral_storage: the amount of ephemeral storage to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
         :param bool raise_errors: if `True` and the question fails, raise the error; if False, return the error in place of the answer
         :param int max_retries: if `raise_errors=False` and the question fails, retry the question up to this number of times
         :param list(type)|None prevent_retries_when: if `raise_errors=False` and the question fails, prevent retrying the question if it fails with an exception type in this list
         :param bool log_errors: if `True`, `raise_errors=False`, and the question fails after its final retry, log the error
-        :param float timeout: time in seconds to wait for an answer before raising a timeout error
+        :param float timeout: time to wait for an answer before raising a timeout error [s]
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :raise Exception: if the question raises an error and `raise_errors=True`
@@ -238,4 +238,11 @@ class Child:
         return [answer[1] for answer in sorted(answers.items(), key=lambda item: item[0])]
 
     def cancel(self, question_uuid, event_store_table_id, timeout=30):
+        """Request cancellation of a running question.
+
+        :param str question_uuid: the question UUID of the question to cancel
+        :param str event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
+        :param float timeout: time to wait for the cancellation to send before raising a timeout error [s]
+        :return None:
+        """
         self._service.cancel(question_uuid=question_uuid, event_store_table_id=event_store_table_id, timeout=timeout)

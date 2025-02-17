@@ -1,12 +1,12 @@
 import logging
 import os
 import re
+import uuid
 
 import coolname
 import requests
 
 import octue.exceptions
-
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,8 @@ COMPILED_REVISION_TAG_PATTERN = re.compile(REVISION_TAG_PATTERN)
 
 SRUID_PATTERN = rf"^{SERVICE_NAMESPACE_AND_NAME_PATTERN}\/{SERVICE_NAMESPACE_AND_NAME_PATTERN}:{REVISION_TAG_PATTERN}$"
 COMPILED_SRUID_PATTERN = re.compile(SRUID_PATTERN)
+
+DEFAULT_NAMESPACE = "default"
 
 
 def get_sruid_parts(service_configuration):
@@ -61,16 +63,16 @@ def get_sruid_parts(service_configuration):
     return service_namespace, service_name, service_revision_tag
 
 
-def create_sruid(namespace, name, revision_tag=None):
-    """Create and validate a service revision unique identifier (SRUID) from a namespace, name, and revision tag. If no
-    revision tag is given, a "cool name" revision tag is generated.
+def create_sruid(namespace=DEFAULT_NAMESPACE, name=None, revision_tag=None):
+    """Create and validate a service revision unique identifier (SRUID) from a namespace, name, and revision tag.
 
     :param str namespace: the name of the group to which the service belongs
-    :param str name: the name of the service
-    :param str|None revision_tag: a tag that uniquely identifies a particular revision of the service
+    :param str|None name: the name of the service; if not provided, a UUID is generated
+    :param str|None revision_tag: a tag that uniquely identifies a particular revision of the service; if not provided, a "cool name" is generated
     :raise octue.exceptions.InvalidServiceID: if any of the namespace, name, or revision tag are invalid
     :return str: the valid SRUID comprising the namespace, name, and revision tag
     """
+    name = name or str(uuid.uuid4())
     revision_tag = revision_tag or coolname.generate_slug(2)
     validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
     return f"{namespace}/{name}:{revision_tag}"
