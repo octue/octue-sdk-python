@@ -230,11 +230,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
 
         # Check question event.
         question = mock_answer_question_kwargs["question"]
-
-        self.assertEqual(
-            Manifest.deserialise(question["event"]["input_manifest"], from_string=True).id,
-            input_manifest.id,
-        )
+        self.assertEqual(Manifest.deserialise(question["event"]["input_manifest"]).id, input_manifest.id)
 
         # Check question attributes.
         self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
@@ -276,11 +272,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         # Check question event.
         question = mock_answer_question_kwargs["question"]
         self.assertEqual(question["event"]["input_values"], input_values)
-
-        self.assertEqual(
-            Manifest.deserialise(question["event"]["input_manifest"], from_string=True).id,
-            input_manifest.id,
-        )
+        self.assertEqual(Manifest.deserialise(question["event"]["input_manifest"]).id, input_manifest.id)
 
         # Check question attributes.
         self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
