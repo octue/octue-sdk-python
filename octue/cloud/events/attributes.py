@@ -23,8 +23,8 @@ class EventAttributes:
         originator=None,
         sender_sdk_version=None,
         retry_count=0,
-        forward_logs=True,
-        save_diagnostics=True,
+        forward_logs=None,
+        save_diagnostics=None,
         cpus=None,
         memory=None,
         ephemeral_storage=None,
@@ -43,9 +43,12 @@ class EventAttributes:
         self.recipient = recipient
         self.retry_count = int(retry_count)
 
-        # Question event attributes.
-        self.forward_logs = bool(forward_logs)
-        self.save_diagnostics = save_diagnostics
+        # Question event attributes with non-`None` defaults.
+        if sender_type == "PARENT":
+            self.forward_logs = forward_logs or True
+            self.save_diagnostics = save_diagnostics or "SAVE_DIAGNOSTICS_ON_CRASH"
+
+        # Question event attributes with `None` defaults.
         self.cpus = cpus
         self.memory = memory
         self.ephemeral_storage = ephemeral_storage
