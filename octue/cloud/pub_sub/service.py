@@ -600,7 +600,7 @@ class Service:
         """Send the result to the parent.
 
         :param octue.resources.analysis.Analysis analysis: the analysis object containing the output values and/or output manifest
-        :param octue.cloud.events.attributes.EventAttributes attributes: the attributes to use for the monitor message event
+        :param octue.cloud.events.attributes.EventAttributes attributes: the attributes to use for the result event
         :param float timeout: time in seconds to retry sending the message
         :return dict: the result
         """
