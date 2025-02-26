@@ -21,7 +21,7 @@ class EventAttributes:
         originator_question_uuid=None,
         parent=None,
         originator=None,
-        sender_sdk_version=None,
+        sender_sdk_version=LOCAL_SDK_VERSION,
         retry_count=0,
         forward_logs=None,
         save_diagnostics=None,
@@ -39,9 +39,9 @@ class EventAttributes:
         self.originator = originator or sender
         self.sender = sender
         self.sender_type = sender_type
-        self.sender_sdk_version = sender_sdk_version or LOCAL_SDK_VERSION
+        self.sender_sdk_version = sender_sdk_version
         self.recipient = recipient
-        self.retry_count = int(retry_count)
+        self.retry_count = retry_count
 
         # Question event attributes with non-`None` defaults.
         if sender_type == "PARENT":
