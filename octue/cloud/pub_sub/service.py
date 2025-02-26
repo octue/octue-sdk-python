@@ -457,7 +457,7 @@ class Service:
     def send_exception(self, attributes, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
-        :param octue.cloud.events.attributes.EventAttributes attributes:
+        :param octue.cloud.events.attributes.EventAttributes attributes: the attributes to use for the exception event
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -492,7 +492,7 @@ class Service:
         - `datetime`
 
         :param dict event: JSON-serialisable data to emit as an event
-        :param octue.cloud.events.attributes.EventAttributes attributes:
+        :param octue.cloud.events.attributes.EventAttributes attributes:  the attributes to use for the event
         :param bool wait: if `True`, wait for the result of the publishing future before continuing execution (this is important if the python process ends promptly after the event is emitted instead of being part of a prolonged stream as the publishing may not complete and the event won't actually be emitted)
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
@@ -573,7 +573,7 @@ class Service:
     def _send_delivery_acknowledgment(self, attributes, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
-        :param octue.cloud.events.attributes.EventAttributes attributes:
+        :param octue.cloud.events.attributes.EventAttributes attributes: the attributes to use for the delivery acknowledgement event
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -583,7 +583,7 @@ class Service:
     def _send_heartbeat(self, attributes, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
-        :param octue.cloud.events.attributes.EventAttributes attributes:
+        :param octue.cloud.events.attributes.EventAttributes attributes: the attributes to use for the heartbeat event
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -594,7 +594,7 @@ class Service:
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
-        :param octue.cloud.events.attributes.EventAttributes attributes:
+        :param octue.cloud.events.attributes.EventAttributes attributes: the attributes to use for the monitor message event
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
