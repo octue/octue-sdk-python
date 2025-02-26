@@ -67,18 +67,23 @@ ruff = "^0.6.9"
 
 [tool.ruff]
 line-length = 120
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes.
-lint.select = ["E", "F"]
+
+[tool.ruff.lint]
+# Enable pydocstyle (`D`), pycodestyle (`E`), and Pyflakes (`F`) codes.
+select = ["D", "E", "F"]
 # Ignore E501 line-too-long - see https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black for why
-lint.ignore = ["F405", "E501", "E203", "E731", "N818"]
+ignore = [
+    "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D203", "D205", "D213", "D400", "D415",
+    "E501", "E203", "E731",
+    "F405",
+    "N818",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["octue", "app", "fractal", "test", "tests", "twined"]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 force-sort-within-sections = true
 
-[tool.pydocstyle]
-ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D203", "D205", "D213", "D400", "D415"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
