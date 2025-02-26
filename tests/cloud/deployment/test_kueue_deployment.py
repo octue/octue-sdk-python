@@ -9,15 +9,14 @@ from octue.cloud.pub_sub.bigquery import get_events
 from octue.resources import Child
 import twined.exceptions
 
-EXAMPLE_SERVICE_SRUID = "octue/example-service:0.5.0"
+EXAMPLE_SERVICE_SRUID = "octue/example-service-kueue:0.1.0"
 
 
 @unittest.skipUnless(
-    condition=os.getenv("RUN_CLOUD_RUN_DEPLOYMENT_TEST", "0").lower() == "1",
-    reason="'RUN_CLOUD_RUN_DEPLOYMENT_TEST' environment variable is False or not present.",
+    condition=os.getenv("RUN_DEPLOYMENT_TEST", "0").lower() == "1",
+    reason="'RUN_DEPLOYMENT_TEST' environment variable is False or not present.",
 )
-class TestCloudRunDeployment(TestCase):
-    # This is the service ID of the example service deployed to Google Cloud Run.
+class TestKueueDeployment(TestCase):
     child = Child(
         id=EXAMPLE_SERVICE_SRUID,
         backend={"name": "GCPPubSubBackend", "project_name": os.environ["TEST_PROJECT_NAME"]},
@@ -29,8 +28,8 @@ class TestCloudRunDeployment(TestCase):
             self.child.ask(input_values={"invalid_input_data": "hello"})
 
     def test_synchronous_question(self):
-        """Test that the Google Cloud Run example deployment works, providing a service that can be asked questions and
-        send responses.
+        """Test that the Kueue example deployment works, providing a service that can be asked questions and send
+        responses.
         """
         answer, _ = self.child.ask(input_values={"n_iterations": 3})
 
@@ -47,9 +46,9 @@ class TestCloudRunDeployment(TestCase):
         self.assertIsNone(answer)
 
         # Wait for question to complete.
-        time.sleep(15)
+        time.sleep(60)
 
-        events = get_events(table_id="octue_sdk_python_test_dataset.service-events", question_uuid=question_uuid)
+        events = get_events(table_id="octue_twined.service-events", question_uuid=question_uuid)
 
         self.assertTrue(
             is_event_valid(

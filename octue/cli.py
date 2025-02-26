@@ -212,7 +212,7 @@ def local(input_values, input_manifest, attributes, service_config):
         input_values = json.loads(input_values, cls=OctueJSONDecoder)
 
     if input_manifest:
-        input_manifest = Manifest.deserialise(input_manifest, from_string=True)
+        input_manifest = json.loads(input_manifest, cls=OctueJSONDecoder)
 
     service_configuration, app_configuration = load_service_and_app_configuration(service_config)
 

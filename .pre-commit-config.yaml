@@ -31,11 +31,6 @@ repos:
     hooks:
       - id: prettier
 
-  - repo: https://github.com/pycqa/pydocstyle
-    rev: 6.1.1
-    hooks:
-      - id: pydocstyle
-
   - repo: https://github.com/thclark/pre-commit-sphinx
     rev: 0.0.3
     hooks:
