@@ -491,6 +491,7 @@ class Service:
         - `retry_count`
         - `datetime`
 
+        :param dict event: JSON-serialisable data to emit as an event
         :param octue.cloud.events.attributes.EventAttributes attributes:
         :param bool wait: if `True`, wait for the result of the publishing future before continuing execution (this is important if the python process ends promptly after the event is emitted instead of being part of a prolonged stream as the publishing may not complete and the event won't actually be emitted)
         :param int|float timeout: the timeout for sending the event in seconds
