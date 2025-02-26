@@ -2,7 +2,7 @@ import datetime as dt
 import json
 import uuid as uuid_library
 
-from octue.cloud import LOCAL_SDK_VERSION
+from octue.definitions import LOCAL_SDK_VERSION
 from octue.utils.dictionaries import make_minimal_dictionary
 
 SENDER_TYPE_OPPOSITES = {"CHILD": "PARENT", "PARENT": "CHILD"}
@@ -11,9 +11,6 @@ SENDER_TYPE_OPPOSITES = {"CHILD": "PARENT", "PARENT": "CHILD"}
 class EventAttributes:
     def __init__(
         self,
-        originator_question_uuid,
-        parent,
-        originator,
         sender,
         sender_type,
         recipient,
@@ -21,6 +18,9 @@ class EventAttributes:
         datetime=None,
         question_uuid=None,
         parent_question_uuid=None,
+        originator_question_uuid=None,
+        parent=None,
+        originator=None,
         sender_sdk_version=None,
         retry_count=0,
         forward_logs=True,
@@ -34,9 +34,9 @@ class EventAttributes:
         self.datetime = datetime or dt.datetime.now(tz=dt.timezone.utc).isoformat()
         self.question_uuid = question_uuid or str(uuid_library.uuid4())
         self.parent_question_uuid = parent_question_uuid
-        self.originator_question_uuid = originator_question_uuid
-        self.parent = parent
-        self.originator = originator
+        self.originator_question_uuid = originator_question_uuid or question_uuid
+        self.parent = parent or sender
+        self.originator = originator or sender
         self.sender = sender
         self.sender_type = sender_type
         self.sender_sdk_version = sender_sdk_version or LOCAL_SDK_VERSION
