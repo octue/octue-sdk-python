@@ -34,21 +34,18 @@ class EventAttributes:
         self.datetime = datetime or dt.datetime.now(tz=dt.timezone.utc).isoformat()
         self.question_uuid = question_uuid or str(uuid_library.uuid4())
         self.parent_question_uuid = parent_question_uuid
-        self.originator_question_uuid = originator_question_uuid or question_uuid
-        self.parent = parent or sender
-        self.originator = originator or sender
+        self.originator_question_uuid = originator_question_uuid or self.question_uuid
         self.sender = sender
+        self.parent = parent or self.sender
+        self.originator = originator or self.sender
         self.sender_type = sender_type
         self.sender_sdk_version = sender_sdk_version
         self.recipient = recipient
         self.retry_count = retry_count
 
-        # Question event attributes with non-`None` defaults.
-        if sender_type == "PARENT":
-            self.forward_logs = forward_logs or True
-            self.save_diagnostics = save_diagnostics or "SAVE_DIAGNOSTICS_ON_CRASH"
-
-        # Question event attributes with `None` defaults.
+        # Question event attributes.
+        self.forward_logs = forward_logs
+        self.save_diagnostics = save_diagnostics
         self.cpus = cpus
         self.memory = memory
         self.ephemeral_storage = ephemeral_storage
