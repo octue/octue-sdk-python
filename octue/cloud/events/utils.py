@@ -1,5 +1,3 @@
-import uuid
-
 from octue.cloud.events.attributes import EventAttributes
 from octue.utils.dictionaries import make_minimal_dictionary
 
@@ -23,14 +21,12 @@ def make_question_event(
     :return dict:
     """
     if not attributes:
-        question_uuid = question_uuid or str(uuid.uuid4())
-
         attributes = EventAttributes(
             question_uuid=question_uuid,
             sender=sender,
             recipient=recipient,
             forward_logs=True,
-            save_diagnostics="SAVE_DIAGNOSTICS_ON",
+            save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
             sender_type="PARENT",
         ).to_dict()
 
