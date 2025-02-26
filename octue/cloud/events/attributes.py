@@ -59,6 +59,10 @@ class EventAttributes:
         attributes["sender_type"] = SENDER_TYPE_OPPOSITES[self.sender_type]
         attributes["sender_sdk_version"] = LOCAL_SDK_VERSION
         attributes["recipient"] = self.sender
+
+        for attr in ("forward_logs", "save_diagnostics", "cpus", "memory", "ephemeral_storage"):
+            del attributes[attr]
+
         return EventAttributes(**attributes)
 
     def to_dict(self):
