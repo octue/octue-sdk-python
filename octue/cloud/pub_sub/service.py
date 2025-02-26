@@ -242,12 +242,7 @@ class Service:
                 originator=question_attributes.originator,
             )
 
-            result = make_minimal_dictionary(kind="result", output_values=analysis.output_values)
-
-            if analysis.output_manifest is not None:
-                result["output_manifest"] = analysis.output_manifest.to_primitive()
-
-            self._emit_event(event=result, attributes=response_attributes, timeout=timeout)
+            result = self._send_result(analysis, response_attributes)
             heartbeater.cancel()
             logger.info("%r answered question %r.", self, question_attributes.question_uuid)
             return result
@@ -600,6 +595,22 @@ class Service:
         """
         self._emit_event({"kind": "monitor_message", "data": data}, attributes=attributes, timeout=timeout, wait=False)
         logger.debug("Monitor message sent by %r.", self)
+
+    def _send_result(self, analysis, attributes, timeout=30):
+        """Send the result to the parent.
+
+        :param octue.resources.analysis.Analysis analysis: the analysis object containing the output values and/or output manifest
+        :param octue.cloud.events.attributes.EventAttributes attributes: the attributes to use for the monitor message event
+        :param float timeout: time in seconds to retry sending the message
+        :return dict: the result
+        """
+        result = make_minimal_dictionary(kind="result", output_values=analysis.output_values)
+
+        if analysis.output_manifest is not None:
+            result["output_manifest"] = analysis.output_manifest.to_primitive()
+
+        self._emit_event(event=result, attributes=attributes, timeout=timeout)
+        return result
 
     def _parse_question(self, question):
         """Parse a question in dictionary format or direct Google Pub/Sub format.
