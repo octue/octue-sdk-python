@@ -58,7 +58,8 @@ class EventAttributes:
         attributes["recipient"] = self.sender
 
         for attr in ("forward_logs", "save_diagnostics", "cpus", "memory", "ephemeral_storage"):
-            del attributes[attr]
+            if attr in attributes:
+                del attributes[attr]
 
         return EventAttributes(**attributes)
 
