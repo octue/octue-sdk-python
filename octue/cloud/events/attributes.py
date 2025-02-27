@@ -31,7 +31,7 @@ class EventAttributes:
     ):
         # Attributes for all event kinds.
         self.uuid = uuid or str(uuid_library.uuid4())
-        self.datetime = datetime or dt.datetime.now(tz=dt.timezone.utc).isoformat()
+        self.datetime = datetime or dt.datetime.now(tz=dt.timezone.utc)
         self.question_uuid = question_uuid or str(uuid_library.uuid4())
         self.parent_question_uuid = parent_question_uuid
         self.originator_question_uuid = originator_question_uuid or self.question_uuid
@@ -92,6 +92,8 @@ class EventAttributes:
                 value = str(int(value))
             elif isinstance(value, (int, float)):
                 value = str(value)
+            elif isinstance(value, dt.datetime):
+                value = value.isoformat()
             elif value is None:
                 value = json.dumps(value)
 
