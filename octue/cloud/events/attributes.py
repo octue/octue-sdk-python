@@ -81,9 +81,9 @@ class EventAttributes:
         """
         attributes = self.to_minimal_dict()
         attributes["sender"] = self.recipient
+        attributes["recipient"] = self.sender
         attributes["sender_type"] = SENDER_TYPE_OPPOSITES[self.sender_type]
         attributes["sender_sdk_version"] = LOCAL_SDK_VERSION
-        attributes["recipient"] = self.sender
 
         for attr in ("forward_logs", "save_diagnostics", "cpus", "memory", "ephemeral_storage"):
             if attr in attributes:
