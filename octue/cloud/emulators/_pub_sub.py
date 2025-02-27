@@ -4,6 +4,7 @@ import logging
 
 import google.api_core
 
+from octue.cloud.events.attributes import EventAttributes
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import PARENT_SENDER_TYPE, Service
 from octue.definitions import LOCAL_SDK_VERSION
@@ -405,9 +406,7 @@ class MockService(Service):
         # If the originator isn't provided, assume that this service revision is the originator.
         originator = originator or self.id
 
-        attributes = make_minimal_dictionary(
-            datetime="2024-04-11T10:46:48.236064",
-            uuid="a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+        attributes = EventAttributes(
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,
@@ -426,7 +425,9 @@ class MockService(Service):
         )
 
         try:
-            self.children[service_id].answer(MockMessage.from_primitive(data=question, attributes=attributes))
+            self.children[service_id].answer(
+                MockMessage.from_primitive(data=question, attributes=attributes.to_serialised_attributes())
+            )
         except Exception as e:  # noqa
             logger.exception(e)
 
