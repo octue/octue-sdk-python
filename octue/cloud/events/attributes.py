@@ -8,7 +8,9 @@ SENDER_TYPE_OPPOSITES = {"CHILD": "PARENT", "PARENT": "CHILD"}
 
 
 class EventAttributes:
-    """A data structure for holding and working with attributes for a single Octue Twined event.
+    """A data structure for holding and working with attributes for a single Octue Twined event. If originator and
+    parent information aren't provided, the attributes will correspond to an event of any kind related to an originator
+    question.
 
     :param str sender: the unique identifier (SRUID) of the service revision sending the question
     :param str sender_type: the type of sender for this event; must be one of {"PARENT", "CHILD"}
