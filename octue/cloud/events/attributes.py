@@ -1,5 +1,4 @@
 import datetime as dt
-import json
 import uuid as uuid_library
 
 from octue.definitions import LOCAL_SDK_VERSION
@@ -134,8 +133,6 @@ class EventAttributes:
                 value = str(value)
             elif isinstance(value, dt.datetime):
                 value = value.isoformat()
-            elif value is None:
-                value = json.dumps(value)
 
             serialised_attributes[key] = value
 
