@@ -46,7 +46,7 @@ class TestKueueDeployment(TestCase):
         self.assertIsNone(answer)
 
         # Wait for question to complete.
-        time.sleep(60)
+        time.sleep(90)
 
         events = get_events(table_id="octue_twined.service-events", question_uuid=question_uuid)
 
