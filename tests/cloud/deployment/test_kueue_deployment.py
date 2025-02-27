@@ -19,7 +19,7 @@ EXAMPLE_SERVICE_SRUID = "octue/example-service-kueue:0.1.0"
 class TestKueueDeployment(TestCase):
     child = Child(
         id=EXAMPLE_SERVICE_SRUID,
-        backend={"name": "GCPPubSubBackend", "project_name": os.environ["TEST_PROJECT_NAME"]},
+        backend={"name": "GCPPubSubBackend", "project_name": "octue-twined-services"},
     )
 
     def test_forwards_exceptions_to_parent(self):
