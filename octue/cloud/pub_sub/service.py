@@ -15,7 +15,6 @@ from octue.cloud.events.attributes import EventAttributes
 from octue.cloud.events.extraction import extract_and_deserialise_attributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.bigquery import get_events
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.cloud.service_id import (
@@ -419,35 +418,35 @@ class Service:
         finally:
             subscription.delete()
 
-    def cancel(self, question_uuid, event_store_table_id, timeout=30):
-        """Request cancellation of a running question.
-
-        :param str question_uuid: the question UUID of the question to cancel
-        :param str event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
-        :param float timeout: time to wait for the cancellation to send before raising a timeout error [s]
-        :raise ValueError: if no question or more than one question is found for the given question UUID
-        :return None:
-        """
-        questions = get_events(table_id=event_store_table_id, question_uuid=question_uuid, kinds=["question"])
-
-        if len(questions) == 0:
-            raise ValueError(f"No question found with question UUID {question_uuid!r}.")
-
-        if len(questions) > 1:
-            raise ValueError(f"Multiple questions found with same question UUID {question_uuid!r}.")
-
-        question_finished = get_events(
-            table_id=event_store_table_id,
-            question_uuid=question_uuid,
-            kinds=["result", "exception"],
-        )
-
-        if question_finished:
-            logger.warning("Cannot cancel question %r - it has already finished.", question_uuid)
-
-        question_attributes = EventAttributes(**questions[0]["attributes"])
-        self._emit_event({"kind": "cancellation"}, attributes=question_attributes, timeout=timeout)
-        logger.info("Cancellation of question %r requested.", question_uuid)
+    # def cancel(self, question_uuid, event_store_table_id, timeout=30):
+    #     """Request cancellation of a running question.
+    #
+    #     :param str question_uuid: the question UUID of the question to cancel
+    #     :param str event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
+    #     :param float timeout: time to wait for the cancellation to send before raising a timeout error [s]
+    #     :raise ValueError: if no question or more than one question is found for the given question UUID
+    #     :return None:
+    #     """
+    #     questions = get_events(table_id=event_store_table_id, question_uuid=question_uuid, kinds=["question"])
+    #
+    #     if len(questions) == 0:
+    #         raise ValueError(f"No question found with question UUID {question_uuid!r}.")
+    #
+    #     if len(questions) > 1:
+    #         raise ValueError(f"Multiple questions found with same question UUID {question_uuid!r}.")
+    #
+    #     question_finished = get_events(
+    #         table_id=event_store_table_id,
+    #         question_uuid=question_uuid,
+    #         kinds=["result", "exception"],
+    #     )
+    #
+    #     if question_finished:
+    #         logger.warning("Cannot cancel question %r - it has already finished.", question_uuid)
+    #
+    #     question_attributes = EventAttributes(**questions[0]["attributes"])
+    #     self._emit_event({"kind": "cancellation"}, attributes=question_attributes, timeout=timeout)
+    #     logger.info("Cancellation of question %r requested.", question_uuid)
 
     def send_exception(self, attributes, timeout=30):
         """Serialise and send the exception being handled to the parent.
