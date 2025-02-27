@@ -206,7 +206,7 @@ class Service:
             return
 
         heartbeater = None
-        response_attributes = question_attributes.make_response_attributes()
+        response_attributes = question_attributes.make_opposite_attributes()
 
         try:
             self._send_delivery_acknowledgment(response_attributes)

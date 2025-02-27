@@ -28,7 +28,7 @@ def make_question_event(
             forward_logs=True,
             save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
             sender_type="PARENT",
-        ).to_dict()
+        ).to_minimal_dict()
 
     return {
         "event": make_minimal_dictionary(input_values=input_values, input_manifest=input_manifest, kind="question"),
