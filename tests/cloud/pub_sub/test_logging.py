@@ -5,9 +5,22 @@ from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import MESSAGES, MockService
 from octue.cloud.emulators.service import ServicePatcher
+from octue.cloud.events.attributes import EventAttributes
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.base import BaseTestCase
+
+QUESTION_UUID = "96d69278-44ac-4631-aeea-c90fb08a1b2b"
+
+ATTRIBUTES = EventAttributes(
+    question_uuid=QUESTION_UUID,
+    originator_question_uuid=QUESTION_UUID,
+    parent="another/service:1.0.0",
+    originator="another/service:1.0.0",
+    sender="another/service:1.0.0",
+    sender_type="CHILD",
+    recipient="another/service:1.0.0",
+)
 
 
 class NonJSONSerialisable:
@@ -36,23 +49,13 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
 
     def test_emit(self):
         """Test the log message is published when `GoogleCloudPubSubHandler.emit` is called."""
-        question_uuid = "96d69278-44ac-4631-aeea-c90fb08a1b2b"
         log_record = makeLogRecord({"msg": "Starting analysis."})
         service = MockService(backend=GCPPubSubBackend(project_name="blah"))
 
-        GoogleCloudPubSubHandler(
-            event_emitter=service._emit_event,
-            question_uuid=question_uuid,
-            parent_question_uuid=None,
-            originator_question_uuid=question_uuid,
-            parent="another/service:1.0.0",
-            originator="another/service:1.0.0",
-            recipient="another/service:1.0.0",
-            retry_count=0,
-        ).emit(log_record)
+        GoogleCloudPubSubHandler(event_emitter=service._emit_event, attributes=ATTRIBUTES).emit(log_record)
 
         self.assertEqual(
-            json.loads(MESSAGES[question_uuid][0].data.decode())["log_record"]["msg"],
+            json.loads(MESSAGES[QUESTION_UUID][0].data.decode())["log_record"]["msg"],
             "Starting analysis.",
         )
 
@@ -60,7 +63,6 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         """Test that non-JSON-serialisable arguments to log messages are converted to their string representation
         before being serialised and published to the Pub/Sub topic.
         """
-        question_uuid = "96d69278-44ac-4631-aeea-c90fb08a1b2b"
         non_json_serialisable_thing = NonJSONSerialisable()
 
         # Check that it can't be serialised to JSON.
@@ -74,16 +76,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
         service = MockService(backend=GCPPubSubBackend(project_name="blah"))
 
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
-            GoogleCloudPubSubHandler(
-                event_emitter=service._emit_event,
-                question_uuid=question_uuid,
-                parent_question_uuid=None,
-                originator_question_uuid=question_uuid,
-                parent="another/service:1.0.0",
-                originator="another/service:1.0.0",
-                recipient="another/service:1.0.0",
-                retry_count=0,
-            ).emit(record)
+            GoogleCloudPubSubHandler(event_emitter=service._emit_event, attributes=ATTRIBUTES).emit(record)
 
         self.assertEqual(
             json.loads(mock_publish.call_args.kwargs["data"].decode())["log_record"]["msg"],

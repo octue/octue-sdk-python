@@ -200,7 +200,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
         self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
         self.assertEqual(question["attributes"]["parent"], question["attributes"]["sender"])
-        self.assertIsNone(question["attributes"]["parent_question_uuid"])
+        self.assertNotIn("parent_question_uuid", question["attributes"])
 
         # Check the result is in the output.
         self.assertIn(json.dumps(RESULT), result.output)
@@ -238,7 +238,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
         self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
         self.assertEqual(question["attributes"]["parent"], question["attributes"]["sender"])
-        self.assertIsNone(question["attributes"]["parent_question_uuid"])
+        self.assertNotIn("parent_question_uuid", question["attributes"])
 
         # Check the result is in the output.
         self.assertIn(json.dumps(RESULT), result.output)
@@ -280,7 +280,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
         self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
         self.assertEqual(question["attributes"]["parent"], question["attributes"]["sender"])
-        self.assertIsNone(question["attributes"]["parent_question_uuid"])
+        self.assertNotIn("parent_question_uuid", question["attributes"])
 
         # Check the result is in the output.
         self.assertIn(json.dumps(RESULT), result.output)

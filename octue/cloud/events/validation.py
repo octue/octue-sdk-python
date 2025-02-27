@@ -51,13 +51,8 @@ SERVICE_COMMUNICATION_SCHEMA = {
                             "description": "The UUID of the question the event is related to.",
                         },
                         "parent_question_uuid": {
-                            "oneOf": [
-                                {
-                                    "type": "string",
-                                    "description": "The UUID of the question that triggered this question.",
-                                },
-                                {"type": "null", "description": "If this is the originating question."},
-                            ]
+                            "type": "string",
+                            "description": "If this isn't the originating question, the UUID of the question that triggered this question. If it is, don't provide this.",
                         },
                         "originator_question_uuid": {
                             "type": "string",
@@ -106,7 +101,6 @@ SERVICE_COMMUNICATION_SCHEMA = {
                         "datetime",
                         "uuid",
                         "question_uuid",
-                        "parent_question_uuid",
                         "originator_question_uuid",
                         "forward_logs",
                         "save_diagnostics",
@@ -137,13 +131,8 @@ SERVICE_COMMUNICATION_SCHEMA = {
                             "description": "The UUID of the question the event is related to.",
                         },
                         "parent_question_uuid": {
-                            "oneOf": [
-                                {
-                                    "type": "string",
-                                    "description": "The UUID of the question that triggered this question.",
-                                },
-                                {"type": "null", "description": "If this is the originating question."},
-                            ]
+                            "type": "string",
+                            "description": "If this isn't the originating question, the UUID of the question that triggered this question. If it is, don't provide this.",
                         },
                         "originator_question_uuid": {
                             "type": "string",
@@ -188,7 +177,6 @@ SERVICE_COMMUNICATION_SCHEMA = {
                         "datetime",
                         "uuid",
                         "question_uuid",
-                        "parent_question_uuid",
                         "originator_question_uuid",
                         "parent",
                         "originator",

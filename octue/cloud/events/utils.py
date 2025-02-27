@@ -1,13 +1,10 @@
-import datetime
-import uuid
-
-from octue.definitions import LOCAL_SDK_VERSION
+from octue.cloud.events.attributes import EventAttributes
 from octue.utils.dictionaries import make_minimal_dictionary
 
 
 def make_question_event(
-    input_values,
-    input_manifest,
+    input_values=None,
+    input_manifest=None,
     sender=None,
     recipient=None,
     question_uuid=None,
@@ -15,79 +12,25 @@ def make_question_event(
 ):
     """Make a question event. If the `attributes` argument isn't provided, the question will be an originator question.
 
-    :param dict input_values:
-    :param octue.resources.manifest.Manifest input_manifest:
-    :param str|None sender:
-    :param str|None recipient:
-    :param str|None question_uuid:
-    :param dict|None attributes:
-    :return dict:
+    :param dict|None input_values: any input values for the question
+    :param dict|None input_manifest: an input manifest of any datasets needed for the question as a python primitive
+    :param str|None sender: the service revision unique identifier (SRUID) of the service revision sending the question
+    :param str|None recipient: the service revision unique identifier (SRUID) of the service revision the question is for
+    :param str|None question_uuid: the UUID to use for the question; if `None`, a UUID is generated
+    :param dict|None attributes: the attributes to use for the question event; if none are provided, the question will be an originator question
+    :return dict: the question event and its attributes
     """
     if not attributes:
-        question_uuid = question_uuid or str(uuid.uuid4())
-
-        attributes = make_attributes(
+        attributes = EventAttributes(
             question_uuid=question_uuid,
             sender=sender,
             recipient=recipient,
             forward_logs=True,
-            save_diagnostics="SAVE_DIAGNOSTICS_ON",
+            save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
             sender_type="PARENT",
-        )
+        ).to_minimal_dict()
 
     return {
         "event": make_minimal_dictionary(input_values=input_values, input_manifest=input_manifest, kind="question"),
         "attributes": attributes,
     }
-
-
-def make_attributes(
-    sender,
-    sender_type,
-    recipient,
-    question_uuid=None,
-    parent_question_uuid=None,
-    originator_question_uuid=None,
-    parent=None,
-    originator=None,
-    retry_count=0,
-    forward_logs=None,
-    save_diagnostics=None,
-    cpus=None,
-    memory=None,
-    ephemeral_storage=None,
-):
-    # If the originator isn't provided, assume that this service revision is the originator.
-    originator_question_uuid = originator_question_uuid or question_uuid
-    parent = parent or sender
-    originator = originator or sender
-
-    attributes = {
-        "uuid": str(uuid.uuid4()),
-        "datetime": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
-        "question_uuid": question_uuid or str(uuid.uuid4()),
-        "parent_question_uuid": parent_question_uuid,
-        "originator_question_uuid": originator_question_uuid,
-        "parent": parent,
-        "originator": originator,
-        "sender": sender,
-        "sender_type": sender_type,
-        "sender_sdk_version": LOCAL_SDK_VERSION,
-        "recipient": recipient,
-        "retry_count": int(retry_count),
-    }
-
-    if sender_type == "PARENT":
-        if forward_logs:
-            attributes["forward_logs"] = bool(forward_logs)
-
-        attributes.update(
-            make_minimal_dictionary(
-                save_diagnostics=save_diagnostics,
-                cpus=cpus,
-                memory=memory,
-                ephemeral_storage=ephemeral_storage,
-            )
-        )
-
-    return attributes
