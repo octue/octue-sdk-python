@@ -16,7 +16,7 @@ variable "github_organisation" {
 }
 
 
-variable "developer_service_account_names" {
+variable "maintainer_service_account_names" {
   type = set(string)
   default = ["cortadocodes", "thclark"]
 }
