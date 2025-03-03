@@ -109,7 +109,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
 
         return datetime.now() - self._last_heartbeat
 
-    def handle_events(self, timeout=60, maximum_heartbeat_interval=300):
+    def handle_events(self, timeout=60, maximum_heartbeat_interval=360):
         """Pull events from the subscription and handle them in the order they were sent until a "result" event is
         handled, then return the handled result.
 

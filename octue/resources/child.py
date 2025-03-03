@@ -76,7 +76,7 @@ class Child:
         prevent_retries_when=None,
         log_errors=True,
         timeout=86400,
-        maximum_heartbeat_interval=300,
+        maximum_heartbeat_interval=360,
     ):
         """Ask the child either:
         - A synchronous (ask-and-wait) question and wait for it to return an output. Questions are synchronous if

@@ -384,7 +384,7 @@ class Service:
         handle_monitor_message=None,
         record_events=True,
         timeout=60,
-        maximum_heartbeat_interval=300,
+        maximum_heartbeat_interval=360,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
