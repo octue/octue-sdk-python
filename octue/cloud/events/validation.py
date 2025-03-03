@@ -58,7 +58,7 @@ SERVICE_COMMUNICATION_SCHEMA = {
                             "type": "string",
                             "description": "The UUID of the ultimate question that triggered this tree of questions.",
                         },
-                        "forward_logs": {"oneOf": [{"type": "boolean"}, {"enum": ["0", "1"]}]},
+                        "forward_logs": {"type": "boolean"},
                         "save_diagnostics": {
                             "enum": ["SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"]
                         },
