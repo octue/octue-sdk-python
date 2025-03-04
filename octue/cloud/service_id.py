@@ -260,7 +260,7 @@ def get_default_sruid(namespace, name, service_registries):
     for registry in service_registries:
         response = _make_service_registry_request(registry, namespace, name)
 
-        if response.ok:
+        if response.status_code == 200:
             revision_tag = response.json()["revision_tag"]
             logger.info("Found service revision '%s:%s' in %r registry.", service_id, revision_tag, registry["name"])
             return create_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
@@ -284,7 +284,7 @@ def raise_if_revision_not_registered(sruid, service_registries):
     for registry in service_registries:
         response = _make_service_registry_request(registry, namespace, name, revision_tag)
 
-        if response.ok:
+        if response.status_code == 200:
             logger.info("Found service revision %r in %r registry.", sruid, registry["name"])
             return
 
