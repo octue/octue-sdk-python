@@ -4,6 +4,8 @@ import re
 import uuid
 
 import coolname
+import google.auth.transport.requests
+import google.oauth2.id_token
 import requests
 
 import octue.exceptions
@@ -301,7 +303,7 @@ def raise_if_revision_not_registered(sruid, service_registries):
 
 
 def _make_service_registry_request(registry, namespace, name, revision_tag=None):
-    """Make a request to a service registry about a service.
+    """Make an authenticated request to a service registry about a service.
 
     :param dict registry: a dictionary with the keys "endpoint" and "name"
     :param str namespace: the namespace of the service
@@ -310,7 +312,13 @@ def _make_service_registry_request(registry, namespace, name, revision_tag=None)
     :raise requests.exceptions.HTTPError: if the request fails with a status code other than 404
     :return requests.Response: the response from the service registry
     """
-    response = requests.get(f"{registry['endpoint']}/{namespace}/{name}", params={"revision_tag": revision_tag})
+    id_token = google.oauth2.id_token.fetch_id_token(google.auth.transport.requests.Request(), registry["endpoint"])
+
+    response = requests.get(
+        f"{registry['endpoint']}/{namespace}/{name}",
+        params={"revision_tag": revision_tag},
+        headers={"Authorization": f"Bearer {id_token}"},
+    )
 
     if response.status_code != 404:
         response.raise_for_status()
