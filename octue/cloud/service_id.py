@@ -258,7 +258,7 @@ def get_default_sruid(namespace, name, service_registries):
     service_id = f"{namespace}/{name}"
 
     for registry in service_registries:
-        response = requests.get(f"{registry['endpoint']}/{service_id}")
+        response = _make_service_registry_request(registry, namespace, name)
 
         if response.ok:
             revision_tag = response.json()["revision_tag"]
@@ -282,7 +282,7 @@ def raise_if_revision_not_registered(sruid, service_registries):
     namespace, name, revision_tag = split_service_id(sruid, require_revision_tag=True)
 
     for registry in service_registries:
-        response = requests.get(f"{registry['endpoint']}/{namespace}/{name}?revision_tag={revision_tag}")
+        response = _make_service_registry_request(registry, namespace, name, revision_tag)
 
         if response.ok:
             logger.info("Found service revision %r in %r registry.", sruid, registry["name"])
@@ -291,3 +291,21 @@ def raise_if_revision_not_registered(sruid, service_registries):
     raise octue.exceptions.ServiceNotFound(
         f"Service revision {sruid!r} was not found in any of the specified service registries: {service_registries!r}"
     )
+
+
+def _make_service_registry_request(registry, namespace, name, revision_tag=None):
+    """Make a request to a service registry about a service.
+
+    :param dict registry: a dictionary with the keys "endpoint" and "name"
+    :param str namespace: the namespace of the service
+    :param str name: the name of the service
+    :param str|None revision_tag: the revision tag for a revision of the service
+    :raise requests.exceptions.HTTPError: if the request fails with a status code other than 404
+    :return requests.Response: the response from the service registry
+    """
+    response = requests.get(f"{registry['endpoint']}/{namespace}/{name}", params={"revision_tag": revision_tag})
+
+    if response.status_code != 404:
+        response.raise_for_status()
+
+    return response
