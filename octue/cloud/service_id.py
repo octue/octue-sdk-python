@@ -262,7 +262,14 @@ def get_default_sruid(namespace, name, service_registries):
 
         if response.status_code == 200:
             revision_tag = response.json()["revision_tag"]
-            logger.info("Found service revision '%s:%s' in %r registry.", service_id, revision_tag, registry["name"])
+
+            logger.info(
+                "Found default service revision '%s:%s' in %r registry.",
+                service_id,
+                revision_tag,
+                registry["name"],
+            )
+
             return create_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
     raise octue.exceptions.ServiceNotFound(
