@@ -235,6 +235,19 @@ class TestSplitServiceID(unittest.TestCase):
 class TestGetLatestSRUID(unittest.TestCase):
     SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "https://blah.com/services"}]
 
+    def test_error_raised_if_request_fails(self):
+        """Test that an error is raised if the request to the service registry fails."""
+        mock_response = requests.Response()
+        mock_response.status_code = 403
+
+        with patch("requests.get", return_value=mock_response):
+            with self.assertRaises(requests.HTTPError):
+                get_default_sruid(
+                    namespace="my-org",
+                    name="my-service",
+                    service_registries=self.SERVICE_REGISTRIES,
+                )
+
     def test_error_raised_if_revision_not_found(self):
         """Test that an error is raised if no revision is found for the service in the given registries."""
         mock_response = requests.Response()
@@ -285,6 +298,18 @@ class TestGetLatestSRUID(unittest.TestCase):
 
 class TestRaiseIfRevisionNotRegistered(unittest.TestCase):
     SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "https://blah.com/services"}]
+
+    def test_error_raised_if_request_fails(self):
+        """Test that an error is raised if the request to the service registry fails."""
+        mock_response = requests.Response()
+        mock_response.status_code = 403
+
+        with patch("requests.get", return_value=mock_response):
+            with self.assertRaises(requests.HTTPError):
+                raise_if_revision_not_registered(
+                    sruid="my-org/my-service:1.0.0",
+                    service_registries=self.SERVICE_REGISTRIES,
+                )
 
     def test_error_raised_if_revision_not_found(self):
         """Test that an error is raised if no revision is found for the service in the given registries."""
