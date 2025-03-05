@@ -59,10 +59,6 @@ SERVICE_COMMUNICATION_SCHEMA = {
                             "type": "string",
                             "description": "The UUID of the ultimate question that triggered this tree of questions.",
                         },
-                        "forward_logs": {"type": "boolean"},
-                        "save_diagnostics": {
-                            "enum": ["SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"]
-                        },
                         "parent": {
                             "type": "string",
                             "description": "The service revision unique identifier (SRUID) of the parent that asked the question this event is related to.",
@@ -97,14 +93,36 @@ SERVICE_COMMUNICATION_SCHEMA = {
                             "description": "The retry count for the question. All events related to the retry of a given question will have the same retry count. A question that is being asked for the first time will have a retry count of 0.",
                             "minimum": 0,
                         },
+                        "forward_logs": {
+                            "type": "boolean",
+                            "description": "If `True`, forward any logs from the child to the parent and handle them with the local log handlers",
+                        },
+                        "save_diagnostics": {
+                            "type": "string",
+                            "enum": ["SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"],
+                            "description": "If turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails",
+                        },
+                        "cpus": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "The number of CPUs to request for the question; defaults to the number set by the child service",
+                        },
+                        "memory": {
+                            "type": "string",
+                            "description": "The amount of memory to request for the question; defaults to the amount set by the child service",
+                            "examples": ["256Mi", "1Gi"],
+                        },
+                        "ephemeral_storage": {
+                            "type": "string",
+                            "description": "The amount of ephemeral storage to request for the question; defaults to the amount set by the child service",
+                            "examples": ["256Mi", "1Gi"],
+                        },
                     },
                     "required": [
                         "datetime",
                         "uuid",
                         "question_uuid",
                         "originator_question_uuid",
-                        "forward_logs",
-                        "save_diagnostics",
                         "parent",
                         "originator",
                         "sender",
@@ -112,6 +130,8 @@ SERVICE_COMMUNICATION_SCHEMA = {
                         "sender_sdk_version",
                         "recipient",
                         "retry_count",
+                        "forward_logs",
+                        "save_diagnostics",
                     ],
                 },
                 {
