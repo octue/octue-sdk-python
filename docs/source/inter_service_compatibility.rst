@@ -3,15 +3,9 @@ Inter-service compatibility
 ===========================
 
 Octue services acting as parents and children communicate with each other according to the `services communication
-schema <https://strands.octue.com/octue/service-communication>`_. Up until version ``0.51.0``, services running nearly
-all versions of ``octue`` could communicate with each other compatibly. To allow a significant infrastructure upgrade,
-version ``0.51.0`` introduced a number of breaking changes to the standard meaning services running versions ``0.51.0``
-to ``0.52.1`` are only able to communicate with other services running versions in the same range. The same applies to
-services running versions ``>=0.53.0``.
-
-The table below shows which ``octue`` versions parents can run (rows) to send questions compatible with versions
-children are running (columns). Note that this table does not display whether children's responses are compatible with
-the parent, just that a child is able to accept a question.
+schema <https://strands.octue.com/octue/service-communication>`_. The table below shows which ``octue`` versions parents
+can run (rows) to send questions compatible with versions children are running (columns). Note that this table does not
+display whether children's responses are compatible with the parent, just that a child is able to accept a question.
 
 **Key**
 
