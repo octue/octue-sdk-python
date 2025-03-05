@@ -10,7 +10,7 @@ variable "google_cloud_region" {
 }
 
 
-variable "github_organisation" {
+variable "github_account" {
   type = string
   default = "octue"
 }
