@@ -27,6 +27,7 @@ SERVICE_COMMUNICATION_SCHEMA = {
     "title": "Octue services communication",
     "description": "A schema describing the events Octue services can emit and consume.",
     "type": "object",
+    "additionalProperties": False,
     "properties": {
         "attributes": {
             "title": "Event attributes",
