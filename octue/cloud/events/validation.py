@@ -278,14 +278,6 @@ SERVICE_COMMUNICATION_SCHEMA = {
                     },
                     "required": ["kind"],
                 },
-                {
-                    "title": "Cancellation",
-                    "description": "A cancellation of a question. This type of message can only be sent by a parent.",
-                    "properties": {
-                        "kind": {"type": "string", "pattern": "^cancellation$"},
-                    },
-                    "required": ["kind"],
-                },
             ],
         },
     },
