@@ -5,7 +5,7 @@ Services can be operated locally (e.g. for testing or ad-hoc data processing). Y
 
 - Run your service once (i.e. run one analysis):
 
-  - Via the CLI
+  - Via the ``octue`` CLI
   - By using the ``octue`` library in a python script
 
 - Start your service as a child, allowing it to answer any number of questions from any other Twined service:
@@ -19,22 +19,14 @@ Running a service once
 Via the CLI
 -----------
 1. Ensure you've created a valid :ref:`octue.yaml <octue_yaml>` file for your service
-2. If your service requires inputs, create an input directory with the following structure
+
+2. Run:
 
     .. code-block:: shell
 
-        input_directory
-        |---  values.json    (if input values are required)
-        |---  manifest.json  (if an input manifest is required)
+        octue question ask local --input-values='{"some": "input"}'
 
-3. Run:
-
-    .. code-block:: shell
-
-        octue run --input-dir=my_input_directory
-
-Any output values will be printed to ``stdout`` and any output datasets will be referenced in an output manifest file
-named ``output_manifest_<analysis_id>.json``.
+The output values and/or manifest will be printed to ``stdout`` but are also stored in the event store.
 
 Via a python script
 -------------------
