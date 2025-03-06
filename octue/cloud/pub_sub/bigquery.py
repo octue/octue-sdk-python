@@ -27,7 +27,7 @@ BACKEND_METADATA_FIELDS = ("`backend`", "`backend_metadata`")
 
 
 def get_events(
-    table_id,
+    table_id="octue_twined.service-events",
     question_uuid=None,
     parent_question_uuid=None,
     originator_question_uuid=None,
@@ -47,7 +47,7 @@ def get_events(
     When the limit is smaller than the total number of events, the default behaviour is to return the "tail" of the
     event stream for the question (the most recent n events for the question).
 
-    :param str table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
+    :param str table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-dataset.your-table"
     :param str|None question_uuid: the UUID of a question to get events for
     :param str|None parent_question_uuid: the UUID of a parent question to get the sub-question events for
     :param str|None originator_question_uuid: the UUID of an originator question get the full tree of events for
