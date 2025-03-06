@@ -63,14 +63,18 @@ You can also set the following options when you call :mod:`Child.ask <octue.reso
 - ``subscribe_to_logs`` - if true, the child will forward its logs to you
 - ``allow_local_files`` - if true, local files/datasets are allowed in any input manifest you supply
 - ``handle_monitor_message`` - if provided a function, it will be called on any monitor messages from the child
-- ``record_events`` – if ``True``, events received from the parent while it processes the question are saved to the ``Child.received_events`` property
+- ``record_events`` – if true, events received from the parent while it processes the question are saved to the ``Child.received_events`` property
 - ``save_diagnostics`` – must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if the analysis fails
 - ``question_uuid`` - if provided, the question will use this UUID instead of a generated one
 - ``push_endpoint`` - if provided, the result and other events produced during the processing of the question will be pushed to this HTTP endpoint (a URL)
-- ``asynchronous`` - if ``True``, don't wait for an answer to the question (the result and other events can be :ref:`retrieved from the event store later <retrieving_asynchronous_answers>`)
+- ``asynchronous`` - if true, don't wait for an answer to the question (the result and other events can be :ref:`retrieved from the event store later <retrieving_asynchronous_answers>`)
+- ``cpus`` - the number of CPUs to request for the question; defaults to the number set by the child service
+- ``memory`` - the amount of memory to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
+- ``ephemeral_storage`` - the amount of ephemeral storage to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
 - ``timeout`` - how long in seconds to wait for an answer (``None`` by default - i.e. don't time out)
 
 If the question fails:
+
 - If ``raise_errors=False``, the unraised error is returned
 - If ``raise_errors=False`` and ``max_retries > 0``, the question is retried up to this number of times
 - If ``raise_errors=False``, ``max_retries > 0``, and ``prevent_retries_when`` is a list of exception types, the question is retried unless the error type is in the list
@@ -101,14 +105,11 @@ access the event store and run:
 
     from octue.cloud.pub_sub.bigquery import get_events
 
-    events = get_events(
-        table_id="your-project.your-dataset.your-table",
-        question_uuid="53353901-0b47-44e7-9da3-a3ed59990a71",
-    )
+    events = get_events(question_uuid="53353901-0b47-44e7-9da3-a3ed59990a71")
 
 
 **Options**
-
+- ``table_id`` - If you're not using the standard deployment, you can specify a different table here
 - ``question_uuid`` - Retrieve events from this specific question
 - ``parent_question_uuid`` - Retrieve events from questions triggered by the same parent question (this doesn't include the parent question's events)
 - ``originator_question_uuid`` - Retrieve events for the entire tree of questions triggered by an originator question (a question asked manually through ``Child.ask``; this does include the originator question's events)
@@ -351,20 +352,17 @@ whole tree of children, grandchildren, and so on, please `upvote this issue.
 Using a service registry
 ========================
 When asking a question, you can optionally specify one or more `service registries
-<https://django-twined.readthedocs.io/en/latest/>`_ to resolve SRUIDs against. This is analogous to specifying a
-different ``pip`` index for resolving package names when using ``pip install``. If you don't specify any registries, the
-default Twined service registry is used.
+<https://django-twined.readthedocs.io/en/latest/>`_ to resolve SRUIDs against. This checks if the service revision
+exists (good for catching typos in SRUIDs) and raises an error if it doesn't. Service registries can also get the
+default revision of a service if you don't provide a revision tag. Asking a question if without specifying a registry
+will bypass these checks.
 
-Specifying service registries can be useful if:
-
-- You have your own private services that aren't on the default Twined service registry
-- You want services from one service registry with the same name as in another service registry to be prioritised
 
 Specifying service registries
 -----------------------------
 You can specify service registries in two ways:
 
-1. Globally for all questions asked inside a service. In the service configuration (``octue.yaml`` file):
+1. For all questions asked inside a service. In the service configuration (``octue.yaml`` file):
 
     .. code-block:: yaml
 
