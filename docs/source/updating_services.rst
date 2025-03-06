@@ -3,15 +3,15 @@
 Updating an Twined service
 =========================
 
-This page describes how to update an existing, deployed Twined service - in other words, how to deploy a new Octue
+This page describes how to update an existing, deployed Twined service - in other words, how to deploy a new Twined
 service revision.
 
 We assume that:
 
 - Your service's repository is on GitHub and you have push access to it
-- Octue's `standard deployment GitHub Actions workflow <https://github.com/octue/workflows/blob/main/.github/workflows/deploy-cloud-run-service.yml>`_
-  is set up in the repository and being used to deploy the service to Google Cloud Run on merge of a pull request into
-  the ``main`` branch (see an example `here <https://github.com/octue/example-service-cloud-run/blob/main/.github/workflows/cd.yaml>`_)
+- The `standard Twined deployment GitHub Actions workflow <https://github.com/octue/workflows/blob/main/.github/workflows/build-twined-service.yml>`_
+  is set up in the repository and being used to build and push the service image to the artifact registry on merge of a
+  pull request into the ``main`` branch (see an example `here <https://github.com/octue/example-service-kueue/blob/main/.github/workflows/cd.yml>`_)
 - A release workflow is set up that will tag and release the new service revision on GitHub (see an example
   `here <https://github.com/octue/example-service-cloud-run/blob/main/.github/workflows/release.yml>`_)
 
