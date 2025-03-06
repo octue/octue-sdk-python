@@ -448,10 +448,15 @@ def replay(
     if exclude_kinds:
         exclude_kinds = exclude_kinds.split(",")
 
-    service_configuration = ServiceConfiguration.from_file(path=service_config)
+    service_configuration = ServiceConfiguration.from_file(path=service_config, allow_not_found=True)
+
+    if service_configuration:
+        event_store_table_id = service_configuration.event_store_table_id
+    else:
+        event_store_table_id = DEFAULT_EVENT_STORE_TABLE_ID
 
     events = get_events(
-        table_id=service_configuration.event_store_table_id,
+        table_id=event_store_table_id,
         question_uuid=question_uuid,
         parent_question_uuid=parent_question_uuid,
         originator_question_uuid=originator_question_uuid,
