@@ -23,11 +23,13 @@ DEFAULT_FIELDS = (
     "`other_attributes`",
 )
 
+DEFAULT_EVENT_STORE_TABLE_ID = "octue_twined.service-events"
+
 BACKEND_METADATA_FIELDS = ("`backend`", "`backend_metadata`")
 
 
 def get_events(
-    table_id="octue_twined.service-events",
+    table_id=DEFAULT_EVENT_STORE_TABLE_ID,
     question_uuid=None,
     parent_question_uuid=None,
     originator_question_uuid=None,
