@@ -486,11 +486,13 @@ class Service:
         - `datetime`
 
         :param dict event: JSON-serialisable data to emit as an event
-        :param octue.cloud.events.attributes.EventAttributes attributes:  the attributes to use for the event
+        :param octue.cloud.events.attributes.EventAttributes attributes: the attributes to use for the event
         :param bool wait: if `True`, wait for the result of the publishing future before continuing execution (this is important if the python process ends promptly after the event is emitted instead of being part of a prolonged stream as the publishing may not complete and the event won't actually be emitted)
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
+        attributes.refresh()
+
         future = self.publisher.publish(
             topic=self.services_topic.path,
             data=json.dumps(event, cls=OctueJSONEncoder).encode(),

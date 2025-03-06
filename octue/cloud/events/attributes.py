@@ -73,6 +73,15 @@ class EventAttributes:
         self.memory = memory
         self.ephemeral_storage = ephemeral_storage
 
+    def refresh(self):
+        """Set a new UUID and datetime. This avoids having to create a new instance for every single event (for which
+        all other attributes are the same).
+
+        :return None:
+        """
+        self.uuid = str(uuid_library.uuid4())
+        self.datetime = dt.datetime.now(tz=dt.timezone.utc)
+
     def make_opposite_attributes(self):
         """Create the attributes for an event of the opposite sender type to this event (parent -> child or child
         -> parent). For example, if these attributes are for a question event, create the attributes for a response

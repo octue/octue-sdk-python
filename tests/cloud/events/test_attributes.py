@@ -43,6 +43,22 @@ class TestEventAttributes(unittest.TestCase):
             },
         )
 
+    def test_refresh(self):
+        """Test that refreshing the attributes changes the UUID and datetime."""
+        attributes = EventAttributes(
+            sender=SENDER,
+            sender_type=SENDER_TYPE,
+            recipient=RECIPIENT,
+            question_uuid=QUESTION_UUID,
+        )
+
+        original_uuid = attributes.uuid
+        original_datetime = attributes.datetime
+
+        attributes.refresh()
+        self.assertNotEqual(attributes.uuid, original_uuid)
+        self.assertNotEqual(attributes.datetime, original_datetime)
+
     def test_make_opposite_attributes(self):
         """Test that the sender and recipient are reversed when making opposite attributes from a set of attributes."""
         attributes = EventAttributes(
