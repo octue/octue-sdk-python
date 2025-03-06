@@ -155,7 +155,7 @@ class AbstractEventHandler:
         :param dict attributes: the event's attributes
         :return None:
         """
-        logger.info("%r's question was delivered at %s.", attributes["recipient"], attributes["datetime"])
+        logger.info("%rs question was delivered at %s.", attributes["recipient"], attributes["datetime"])
 
     def _handle_heartbeat(self, event, attributes):
         """Record the time the heartbeat was received.
