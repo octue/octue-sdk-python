@@ -133,11 +133,12 @@ class TestService(BaseTestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with self.assertRaises(exceptions.ServiceNotFound):
-                service.ask(
-                    service_id=f"my-org/unregistered-service:{MOCK_SERVICE_REVISION_TAG}",
-                    input_values=[1, 2, 3, 4],
-                )
+            with patch("octue.cloud.service_id._get_google_cloud_id_token", return_value="some-token"):
+                with self.assertRaises(exceptions.ServiceNotFound):
+                    service.ask(
+                        service_id=f"my-org/unregistered-service:{MOCK_SERVICE_REVISION_TAG}",
+                        input_values=[1, 2, 3, 4],
+                    )
 
     def test_ask_unregistered_service_with_no_revision_tag_when_service_registries_specified_results_in_error(self):
         """Test that an error is raised when attempting to ask a question to an unregistered service without including
@@ -152,8 +153,9 @@ class TestService(BaseTestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with self.assertRaises(exceptions.ServiceNotFound):
-                service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
+            with patch("octue.cloud.service_id._get_google_cloud_id_token", return_value="some-token"):
+                with self.assertRaises(exceptions.ServiceNotFound):
+                    service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
 
     def test_ask_service_with_no_revision_tag_when_service_registries_not_specified_results_in_error(self):
         """Test that an error is raised when attempting to ask a question to a service without including a revision tag

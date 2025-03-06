@@ -312,7 +312,7 @@ def _make_service_registry_request(registry, namespace, name, revision_tag=None)
     :raise requests.exceptions.HTTPError: if the request fails with a status code other than 404
     :return requests.Response: the response from the service registry
     """
-    id_token = google.oauth2.id_token.fetch_id_token(google.auth.transport.requests.Request(), registry["endpoint"])
+    id_token = _get_google_cloud_id_token(registry)
 
     response = requests.get(
         f"{registry['endpoint']}/{namespace}/{name}",
@@ -324,3 +324,12 @@ def _make_service_registry_request(registry, namespace, name, revision_tag=None)
         response.raise_for_status()
 
     return response
+
+
+def _get_google_cloud_id_token(registry):
+    """Get an ID token for Google Cloud.
+
+    :param dict registry: a dictionary with the keys "endpoint" and "name"
+    :return str: an ID token for Google Cloud
+    """
+    return google.oauth2.id_token.fetch_id_token(google.auth.transport.requests.Request(), registry["endpoint"])

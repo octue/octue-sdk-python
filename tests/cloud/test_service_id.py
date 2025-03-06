@@ -232,8 +232,17 @@ class TestSplitServiceID(unittest.TestCase):
         self.assertIsNone(revision_tag)
 
 
-class TestGetLatestSRUID(unittest.TestCase):
+class TestGetDefaultSRUID(unittest.TestCase):
     SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "https://blah.com/services"}]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.id_token_patch = patch("octue.cloud.service_id._get_google_cloud_id_token", return_value="some-token")
+        cls.id_token_patch.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.id_token_patch.stop()
 
     def test_error_raised_if_request_fails(self):
         """Test that an error is raised if the request to the service registry fails."""
@@ -298,6 +307,15 @@ class TestGetLatestSRUID(unittest.TestCase):
 
 class TestRaiseIfRevisionNotRegistered(unittest.TestCase):
     SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "https://blah.com/services"}]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.id_token_patch = patch("octue.cloud.service_id._get_google_cloud_id_token", return_value="some-token")
+        cls.id_token_patch.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.id_token_patch.stop()
 
     def test_error_raised_if_request_fails(self):
         """Test that an error is raised if the request to the service registry fails."""
