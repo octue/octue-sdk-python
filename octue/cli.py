@@ -129,10 +129,11 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous, serv
 
         octue question ask remote your-org/example-service:1.2.0
     """
-    try:
-        service_configuration = ServiceConfiguration.from_file(service_config)
+    service_configuration = ServiceConfiguration.from_file(service_config, allow_not_found=True)
+
+    if service_configuration:
         service_registries = service_configuration.service_registries
-    except FileNotFoundError:
+    else:
         service_registries = None
 
     if input_values:

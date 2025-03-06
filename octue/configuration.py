@@ -76,16 +76,23 @@ class ServiceConfiguration:
             logger.warning(f"The following keyword arguments were not used by {type(self).__name__}: {kwargs!r}.")
 
     @classmethod
-    def from_file(cls, path=None):
+    def from_file(cls, path=None, allow_not_found=False):
         """Load a service configuration from a YAML file.
 
         :param str|None path: the path to the service configuration YAML file; if not provided, the `OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` is used
-        :return ServiceConfiguration: the service configuration loaded from the file
+        :param bool allow_not_found: if `True`, return `None` if a service configuration file isn't found
+        :return ServiceConfiguration|None: the service configuration loaded from the file
         """
         path = path or os.environ.get("OCTUE_SERVICE_CONFIGURATION_PATH", DEFAULT_SERVICE_CONFIGURATION_PATH)
 
-        with open(path) as f:
-            raw_service_configuration = yaml.load(f, Loader=yaml.SafeLoader)
+        try:
+            with open(path) as f:
+                raw_service_configuration = yaml.load(f, Loader=yaml.SafeLoader)
+        except FileNotFoundError as error:
+            if allow_not_found:
+                return None
+            else:
+                raise error
 
         absolute_path = os.path.abspath(path)
         logger.info("Service configuration loaded from %r.", absolute_path)
