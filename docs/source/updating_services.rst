@@ -1,9 +1,9 @@
 .. _updating_services:
 
-Updating an Octue service
+Updating an Twined service
 =========================
 
-This page describes how to update an existing, deployed Octue service - in other words, how to deploy a new Octue
+This page describes how to update an existing, deployed Twined service - in other words, how to deploy a new Octue
 service revision.
 
 We assume that:

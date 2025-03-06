@@ -29,7 +29,7 @@ This is followed by the actual log message on the right:
 
 Colourised services
 -------------------
-Another advantage to using the Octue log handler is that each Octue service is coloured according to its position in the
+Another advantage to using the Octue log handler is that each Twined service is coloured according to its position in the
 tree, making it much easier to read log messages from multiple levels of children.
 
 .. image:: images/coloured_logs.png

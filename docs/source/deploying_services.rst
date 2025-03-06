@@ -3,8 +3,8 @@
 ======================================
 Deploying services (developer's guide)
 ======================================
-This is a guide for developers that want to deploy Octue services themselves - it is not needed if Octue manages your
-services for you or if you are only asking questions to existing Octue services.
+This is a guide for developers that want to deploy Twined services themselves - it is not needed if Octue manages your
+services for you or if you are only asking questions to existing Twined services.
 
 .. attention::
 
@@ -19,11 +19,11 @@ services for you or if you are only asking questions to existing Octue services.
 
 What deployment enables
 -----------------------
-Deploying an Octue service to Google Cloud Run means it:
+Deploying an Twined service to Google Cloud Run means it:
 
 * Is deployed as a docker container
-* Is ready to be asked questions by any other Octue service that has the correct permissions (you can control this)
-* Can ask questions to any other Octue service for which it has the correct permissions
+* Is ready to be asked questions by any other Twined service that has the correct permissions (you can control this)
+* Can ask questions to any other Twined service for which it has the correct permissions
 * Will automatically build and redeploy upon the conditions you provide (e.g. pushes or merges into ``main``)
 * Will automatically start and run when Pub/Sub messages are received from the topic you created. The Pub/Sub
   messages can be sent from anywhere in the world, but the container will only run in the region you chose (you can

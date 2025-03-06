@@ -9,9 +9,9 @@ return answers. They can run locally on any machine or be deployed to the cloud.
 - The language of the entrypoint must by ``python3`` (you can call processes using other languages within this though)
 
 
-Anatomy of an Octue service
+Anatomy of an Twined service
 ===========================
-An Octue service is defined by the following files (located in the repository root by default).
+An Twined service is defined by the following files (located in the repository root by default).
 
 app.py
 ------
@@ -71,7 +71,7 @@ App configuration file (optional)
 
             ----
 
-        If your app needs any configuration, asks questions to any other Octue services, or produces output
+        If your app needs any configuration, asks questions to any other Twined services, or produces output
         datafiles/datasets, you will need to provide an app configuration. Currently, this must take the form of a JSON
         file. It can contain the following keys:
 
@@ -93,7 +93,7 @@ Dockerfile (optional)
 
             ----
 
-        Octue services run in a Docker container if they are deployed. They can also run this way locally. The SDK
+        Twined services run in a Docker container if they are deployed. They can also run this way locally. The SDK
         provides a default ``Dockerfile`` for these purposes that will work for most cases:
 
         - For deploying to `Google Cloud Run <https://github.com/octue/octue-sdk-python/blob/main/octue/cloud/deployment/google/cloud_run/Dockerfile>`_
@@ -149,7 +149,7 @@ Template apps
 We've created some template apps for you to look at and play around with. We recommend going through them in this order:
 
 1. The `fractal app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-fractal>`_ -
-   introduces a basic Octue service that returns output values to its parent.
+   introduces a basic Twined service that returns output values to its parent.
 2. The `using-manifests app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-using-manifests>`_ -
    introduces using a manifest of output datasets to return output files to its parent.
 3. The `child-services app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-child-services>`_ -

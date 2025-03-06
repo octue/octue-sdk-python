@@ -58,7 +58,7 @@ Accessing inputs and storing outputs
 ------------------------------------
 Your app must access configuration and input data from and store output data on the :mod:`analysis <octue.resources.analysis.Analysis>`
 parameter (for function-based apps) or attribute (for class-based apps). This allows standardised
-configuration/input/output validation against the twine and interoperability of all Octue services while leaving you
+configuration/input/output validation against the twine and interoperability of all Twined services while leaving you
 freedom to do any kind of computation. To access the data, use the following attributes on the ``analysis``
 parameter/attribute:
 

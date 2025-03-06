@@ -4,7 +4,7 @@ Authentication
 You need authentication while using ``octue`` to:
 
 - Access data from Google Cloud Storage
-- Use, run, or deploy Octue services
+- Use, run, or deploy Twined services
 
 Authentication can be provided by using one of:
 

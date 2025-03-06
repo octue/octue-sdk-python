@@ -2,7 +2,7 @@
 Inter-service compatibility
 ===========================
 
-Octue services acting as parents and children communicate with each other according to the `services communication
+Twined services acting as parents and children communicate with each other according to the `services communication
 schema <https://strands.octue.com/octue/service-communication>`_. The table below shows which ``octue`` versions parents
 can run (rows) to send questions compatible with versions children are running (columns). Note that this table does not
 display whether children's responses are compatible with the parent, just that a child is able to accept a question.

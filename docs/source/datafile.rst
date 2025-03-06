@@ -21,7 +21,7 @@ Datafile
     Use a datafile to work with a file if you want to:
 
     - Read/write to local and cloud files in the same way
-    - Include it in a :doc:`dataset <dataset>` that can be sent to an Octue service for processing
+    - Include it in a :doc:`dataset <dataset>` that can be sent to an Twined service for processing
     - Add metadata to it for future sorting and filtering
 
 Key features

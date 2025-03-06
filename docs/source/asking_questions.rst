@@ -219,7 +219,7 @@ This method uses multithreading, allowing all the questions to be asked at once 
 
 Asking a question within a service
 ==================================
-If you have :doc:`created your own Octue service <creating_services>` and want to ask children questions, you can do
+If you have :doc:`created your own Twined service <creating_services>` and want to ask children questions, you can do
 this more easily than above. Children are accessible from the ``analysis`` object by the keys you give them in the
 :ref:`app configuration <app_configuration>` file. For example, you can ask an ``elevation`` service a question like
 this:
@@ -353,11 +353,11 @@ Using a service registry
 When asking a question, you can optionally specify one or more `service registries
 <https://django-twined.readthedocs.io/en/latest/>`_ to resolve SRUIDs against. This is analogous to specifying a
 different ``pip`` index for resolving package names when using ``pip install``. If you don't specify any registries, the
-default Octue service registry is used.
+default Twined service registry is used.
 
 Specifying service registries can be useful if:
 
-- You have your own private services that aren't on the default Octue service registry
+- You have your own private services that aren't on the default Twined service registry
 - You want services from one service registry with the same name as in another service registry to be prioritised
 
 Specifying service registries

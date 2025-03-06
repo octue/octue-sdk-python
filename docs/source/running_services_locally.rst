@@ -8,7 +8,7 @@ Services can be operated locally (e.g. for testing or ad-hoc data processing). Y
   - Via the CLI
   - By using the ``octue`` library in a python script
 
-- Start your service as a child, allowing it to answer any number of questions from any other Octue service:
+- Start your service as a child, allowing it to answer any number of questions from any other Twined service:
 
   - Via the CLI
 
