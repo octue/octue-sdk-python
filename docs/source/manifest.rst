@@ -8,11 +8,11 @@ Manifest
 
     :mod:`Manifest <octue.resources.manifest.Manifest>`
         A set of related cloud and/or local :doc:`datasets <dataset>`, metadata, and helper methods. Typically produced
-        by or needed for processing by an Twined service.
+        by or needed for processing by a Twined service.
 
 .. tip::
 
-    Use a manifest to send :doc:`datasets <dataset>` to an Twined service as a question (for processing) - the service
+    Use a manifest to send :doc:`datasets <dataset>` to a Twined service as a question (for processing) - the service
     will send an output manifest back with its answer if the answer includes output datasets.
 
 
@@ -38,7 +38,7 @@ Make a clear grouping of datasets needed for a particular analysis.
 
 Send datasets to a service
 --------------------------
-Get an Twined service to analyse data for you as part of a larger analysis.
+Get a Twined service to analyse data for you as part of a larger analysis.
 
 .. code-block:: python
 
@@ -56,7 +56,7 @@ See :doc:`here <asking_questions>` for more information.
 
 Receive datasets from a service
 -------------------------------
-Access output datasets from an Twined service from the cloud when you're ready.
+Access output datasets from a Twined service from the cloud when you're ready.
 
 .. code-block:: python
 

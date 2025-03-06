@@ -19,7 +19,7 @@ services for you or if you are only asking questions to existing Twined services
 
 What deployment enables
 -----------------------
-Deploying an Twined service to Google Cloud Run means it:
+Deploying a Twined service to Google Cloud Run means it:
 
 * Is deployed as a docker container
 * Is ready to be asked questions by any other Twined service that has the correct permissions (you can control this)

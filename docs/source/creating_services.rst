@@ -9,9 +9,9 @@ return answers. They can run locally on any machine or be deployed to the cloud.
 - The language of the entrypoint must by ``python3`` (you can call processes using other languages within this though)
 
 
-Anatomy of an Twined service
+Anatomy of a Twined service
 ===========================
-An Twined service is defined by the following files (located in the repository root by default).
+A Twined service is defined by the following files (located in the repository root by default).
 
 app.py
 ------

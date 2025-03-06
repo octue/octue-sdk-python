@@ -1,6 +1,6 @@
 .. _updating_services:
 
-Updating an Twined service
+Updating a Twined service
 =========================
 
 This page describes how to update an existing, deployed Twined service - in other words, how to deploy a new Twined

@@ -19,7 +19,7 @@ Currently, all of them are related to wind energy. Here's a quick glossary of te
         its answer, and so on.
 
     Parent
-        An Twined service that asks a question to another Twined service (a child).
+        A Twined service that asks a question to another Twined service (a child).
 
     Asking a question
         Sending data (input values and/or an input manifest) to a child for processing/analysis.
@@ -47,7 +47,7 @@ They look like ``namespace/name:tag`` where the tag is often a semantic version 
 .. admonition:: Definitions
 
     Service revision
-        A specific instance of an Twined service that can be individually addressed. The revision could correspond to a
+        A specific instance of a Twined service that can be individually addressed. The revision could correspond to a
         version of the service, a dynamic development branch for it, or a deliberate duplication or variation of it.
 
     .. _sruid_definition:
