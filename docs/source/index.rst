@@ -96,4 +96,3 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    api
    license
    version_history
-   bibliography
