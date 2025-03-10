@@ -16,6 +16,9 @@ Deploying a Twined service means the service:
 * Will automatically spin down after it has finished answering a question
 * Will automatically build and redeploy after a relevant code change (e.g. on push or merge into ``main``)
 
+The main part of the deployment process is deploying the service network infrastructure. Once this is done, services can
+be easily added as necessary.
+
 Prerequisites
 =============
 Twined services are currently deployable to Google Cloud Platform (GCP). You must have "owner" level access to the GCP
@@ -23,40 +26,39 @@ project you're deploying to and billing must be set up for it.
 
 Deploying step-by-step
 ======================
-The main part of deployment is deploying the service network infrastructure. Once this is done, services can be easily
-added as necessary.
-
 There are three steps to a deployment:
 
 1. Deploy the core infrastructure (e.g. storage bucket, event store, service accounts and roles)
 2. Deploy the Kubernetes cluster and partner cloud functions
 3. Build and push service docker images to the artifact registry
 
-Deploy core infrastructure
---------------------------
+1. Deploy core infrastructure
+-----------------------------
 
-- Deploy the ``terraform-octue-twined-core`` Terraform module
+- Follow `the instructions <https://github.com/octue/terraform-octue-twined-core>`_ to deploy the resources in the
+  ``terraform-octue-twined-core`` Terraform module
 - This only needs to be done once per service network
-- Follow the instructions `here <https://github.com/octue/terraform-octue-twined-core>`_
 
-Deploy Kubernetes cluster
--------------------------
+2. Deploy Kubernetes cluster
+----------------------------
 
-- Deploy the ``terraform-octue-twined-cluster`` Terraform module
+- Follow the `instructions <https://github.com/octue/terraform-octue-twined-cluster>`_ to deploy the resources in the
+  ``terraform-octue-twined-cluster`` Terraform module
 - This only needs to be done once per service network
-- Follow the instructions `here <https://github.com/octue/terraform-octue-twined-cluster>`_
 
-Build and push service docker images
-------------------------------------
+3. Build and push service docker images
+---------------------------------------
 Your service is available if its docker image is in the service network's artifact registry repository. We recommend
-pushing a new image for each merge into the ``main`` branch, corresponding to a new service revision.
+pushing a new image for each merge into the ``main`` branch, corresponding to a new service revision. This can be done
+automatically:
 
-- Add the `build-twined-service <https://github.com/octue/workflows/blob/main/.github/workflows/build-twined-service.yml>`_
-  GitHub Actions workflow to your service's GitHub repository
-- This needs to be done for every service you want to deploy
-- Follow the instructions `here <https://github.com/octue/workflows#deploying-a-kuberneteskueue-octue-twined-service-revision>`_
+- Follow the `instructions <https://github.com/octue/workflows#deploying-a-kuberneteskueue-octue-twined-service-revision>`_
+  to add the `build-twined-service <https://github.com/octue/workflows/blob/main/.github/workflows/build-twined-service.yml>`_
+  GitHub Actions workflow to your service's GitHub repository. Set its trigger to merge or push to ``main`` (see example
+  below)
+- This needs to be done **once for every service** you want to deploy
 - A live example can be `found here <https://github.com/octue/example-service-kueue/blob/main/.github/workflows/release.yml>`_
-  including automated pre-deployment testing and release of the code on GitHub
+  including automated pre-deployment testing and creation of a GitHub release
 
 What next?
 ==========
