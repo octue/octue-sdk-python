@@ -6,93 +6,59 @@ Deploying services (developer's guide)
 This is a guide for developers that want to deploy Twined services themselves - it is not needed if Octue manages your
 services for you or if you are only asking questions to existing Twined services.
 
-.. attention::
-
-    The ``octue deploy`` CLI command can be used to deploy services automatically, but it:
-
-    - Is in alpha so may not work as intended
-    - Requires the ``gcloud`` CLI tool with ``Google Cloud SDK 367.0.0`` and ``beta 2021.12.10`` to be available
-    - Requires the correct permissions via the ``gcloud`` tool logged into a Google user account and/or with an
-      appropriate service account available
-
-    For now, we recommend `contacting us <https://www.octue.com/contact>`_ to help set up deployments for you.
-
 What deployment enables
------------------------
-Deploying a Twined service to Google Cloud Run means it:
+=======================
+Deploying a Twined service means the service:
 
-* Is deployed as a docker container
-* Is ready to be asked questions by any other Twined service that has the correct permissions (you can control this)
-* Can ask questions to any other Twined service for which it has the correct permissions
-* Will automatically build and redeploy upon the conditions you provide (e.g. pushes or merges into ``main``)
-* Will automatically start and run when Pub/Sub messages are received from the topic you created. The Pub/Sub
-  messages can be sent from anywhere in the world, but the container will only run in the region you chose (you can
-  create multiple Cloud Run services in different regions for the same repository if this is a problem).
-* Will automatically stop shortly after finishing the analyses asked for in the Pub/Sub message (although
-  you can set a minimum container count so one is always running to minimise cold starts).
+* Is a docker image that is spun up and down in a Kubernetes cluster on demand
+* Is ready at any time to answer questions from users and other Twined services in the service network
+* Can ask questions to any other Twined service in the service network
+* Will automatically spin down after it has finished answering a question
+* Will automatically build and redeploy after a relevant code change (e.g. on push or merge into ``main``)
 
-How to deploy
--------------
-1. Ensuring you are in the desired project, go to the `Google Cloud Run <https://console.cloud.google.com/run>`_ page
-   and create a new service
+Prerequisites
+=============
+Twined services are currently deployable to Google Cloud Platform (GCP). You must have "owner" level access to the GCP
+project you're deploying to and billing must be set up for it.
 
-.. image:: images/deploying_services_advanced/create_service.png
+Deploying step-by-step
+======================
+The main part of deployment is deploying the service network infrastructure. Once this is done, services can be easily
+added as necessary.
 
-2. Give your service a unique name
+There are three steps to a deployment:
 
-.. image:: images/deploying_services_advanced/service_name_and_region.png
+1. Deploy the core infrastructure (e.g. storage bucket, event store, service accounts and roles)
+2. Deploy the Kubernetes cluster and partner cloud functions
+3. Build and push service docker images to the artifact registry
 
-3. Choose a `low-carbon region <https://cloud.google.com/sustainability/region-carbon#data>`_ that supports Eventarc
-   triggers and is in a convenient geographic location for you (e.g. physically close to you for low latency or in a
-   region compatible with your data protection requirements).
+Deploy core infrastructure
+--------------------------
 
-.. image:: images/deploying_services_advanced/low_carbon_regions.png
+- Deploy the ``terraform-octue-twined-core`` Terraform module
+- This only needs to be done once per service network
+- Follow the instructions `here <https://github.com/octue/terraform-octue-twined-core>`_
 
-3. Click "Next". When changes are made to the source code, we want them to be deployed automatically. So, we need to
-   connect the repository to GCP to enable this. Select "Continuously deploy new revisions from a source repository" and
-   then "Set up with cloud build".
+Deploy Kubernetes cluster
+-------------------------
 
-.. image:: images/deploying_services_advanced/set_up_with_cloud_build.png
+- Deploy the ``terraform-octue-twined-cluster`` Terraform module
+- This only needs to be done once per service network
+- Follow the instructions `here <https://github.com/octue/terraform-octue-twined-cluster>`_
 
-4. Choose your source code repository provider and the repository containing the code you'd like to deploy. You'll have
-   to give the provider permission to access the repository. If your provider isn't GitHub, BitBucket, or Google Cloud
-   Source Repositories (GCSR), you'll need to mirror the repository to GCSR before completing this step as Google Cloud
-   Build only supports these three providers currently.
+Build and push service docker images
+------------------------------------
+Your service is available if its docker image is in the service network's artifact registry repository. We recommend
+pushing a new image for each merge into the ``main`` branch, corresponding to a new service revision.
 
-.. image:: images/deploying_services_advanced/choose_repository.png
+- Add the `build-push-twined-service <https://github.com/octue/workflows/blob/main/.github/workflows/build-twined-service.yml>`_
+  GitHub Actions workflow to your service's GitHub repository
+- This needs to be done for every service you want to deploy
+- Follow the instructions `here <https://github.com/octue/workflows#deploying-a-kuberneteskueue-octue-twined-service-revision>`_
+- A live example can be `found here <https://github.com/octue/example-service-kueue/blob/main/.github/workflows/release.yml>`_
+  including automated pre-deployment testing and release of the code on GitHub
 
-5. Click "Next", enter a regular expression for the branches you want to automatically deploy from (``main`` by default).
-   As the service will run in a docker container, select "Dockerfile" and click "Save".
-
-.. image:: images/deploying_services_advanced/choose_dockerfile.png
-
-6. Click "Next". If you want your service to be private, select "Allow internal traffic only" and "Require
-   authentication". This stops anyone without permission from using the service.
-
-.. image:: images/deploying_services_advanced/set_traffic.png
-
-7. The service needs a trigger to start up and respond to. We'll be using Google Pub/Sub. Click "Add eventarc trigger",
-   choose "Cloud Pub/Sub topic" as the trigger event, click on the menu called "Select a Cloud Pub/Sub topic", then
-   click "Create a topic". Any services that want to ask your service a question will publish their question to this
-   topic.
-
-.. image:: images/deploying_services_advanced/create_trigger.png
-
-8. The topic ID should be in the form ``octue.services.my-organisation.my-service``. Click "Create topic".
-
-9. Under "Invocation settings", click on the "Service account" menu and then "Create new service account".
-
-.. image:: images/deploying_services_advanced/create_service_account.png
-
-10. Make a new service account with a related name e.g. "my-service", then click "Create". Add the
-    "octue-service-user" and "Cloud Run Invoker" roles to the service account. Contact us if the "octue-service-user"
-    role is not available.
-
-.. image:: images/deploying_services_advanced/add_roles_to_service_account.png
-
-11. Click "Save" and then "Create".
-
-.. image:: images/deploying_services_advanced/save_and_create.png
-
-12. You can now view your service in the list of `Cloud Run services <https://console.cloud.google.com/run>`_ and view
-    its build trigger in the list of `Cloud Build triggers <https://console.cloud.google.com/cloud-build>`_.
+What next?
+==========
+:doc:`Ask your service some questions <asking_questions>`! It will be available in the service network as
+``<namespace>/<name>:<version>`` (e.g. ``octue/example-service-kueue:0.1.1``).
