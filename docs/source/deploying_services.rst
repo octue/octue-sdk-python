@@ -51,7 +51,7 @@ Build and push service docker images
 Your service is available if its docker image is in the service network's artifact registry repository. We recommend
 pushing a new image for each merge into the ``main`` branch, corresponding to a new service revision.
 
-- Add the `build-push-twined-service <https://github.com/octue/workflows/blob/main/.github/workflows/build-twined-service.yml>`_
+- Add the `build-twined-service <https://github.com/octue/workflows/blob/main/.github/workflows/build-twined-service.yml>`_
   GitHub Actions workflow to your service's GitHub repository
 - This needs to be done for every service you want to deploy
 - Follow the instructions `here <https://github.com/octue/workflows#deploying-a-kuberneteskueue-octue-twined-service-revision>`_
