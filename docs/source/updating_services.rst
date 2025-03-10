@@ -9,11 +9,11 @@ service revision.
 We assume that:
 
 - Your service's repository is on GitHub and you have push access to it
-- The `standard Twined deployment GitHub Actions workflow <https://github.com/octue/workflows/blob/main/.github/workflows/build-twined-service.yml>`_
+- The `standard Twined service deployment GitHub Actions workflow <https://github.com/octue/workflows/blob/main/.github/workflows/build-twined-service.yml>`_
   is set up in the repository and being used to build and push the service image to the artifact registry on merge of a
-  pull request into the ``main`` branch (see an example `here <https://github.com/octue/example-service-kueue/blob/main/.github/workflows/cd.yml>`_)
+  pull request into the ``main`` branch (see an example `here <https://github.com/octue/example-service-kueue/blob/main/.github/workflows/release.yml>`_)
 - A release workflow is set up that will tag and release the new service revision on GitHub (see an example
-  `here <https://github.com/octue/example-service-cloud-run/blob/main/.github/workflows/release.yml>`_)
+  `here <https://github.com/octue/example-service-kueue/blob/main/.github/workflows/release.yml>`_)
 
 Instructions
 -------------
