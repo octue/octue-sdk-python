@@ -4,7 +4,6 @@ import os
 
 import yaml
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -80,7 +79,7 @@ class ServiceConfiguration:
         """Load a service configuration from a YAML file.
 
         :param str|None path: the path to the service configuration YAML file; if not provided, the `OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` is used
-        :param bool allow_not_found: if `True`, return `None` if a service configuration file isn't found
+        :param bool allow_not_found: if `True`, return `None` instead of raising an error if a service configuration file isn't found
         :return ServiceConfiguration|None: the service configuration loaded from the file
         """
         path = path or os.environ.get("OCTUE_SERVICE_CONFIGURATION_PATH", DEFAULT_SERVICE_CONFIGURATION_PATH)
