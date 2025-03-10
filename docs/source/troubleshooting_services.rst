@@ -27,15 +27,15 @@ message. A user with credentials to access this path can use the ``octue`` CLI t
 
 .. code-block:: shell
 
-    octue get-diagnostics <cloud-path>
+    octue question diagnostics <cloud-path>
 
 More information on the command:
 
 .. code-block::
 
-    >>> octue get-diagnostics -h
+    >>> octue question diagnostics -h
 
-    Usage: octue get-diagnostics [OPTIONS] CLOUD_PATH
+    Usage: octue question diagnostics [OPTIONS] CLOUD_PATH
 
       Download diagnostics for an analysis from the given directory in
       Google Cloud Storage. The cloud path should end in the analysis ID.
