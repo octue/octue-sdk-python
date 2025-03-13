@@ -10,13 +10,10 @@ def extract_and_deserialise_attributes(container):
     """
     # Cast attributes to a dictionary to avoid defaultdict-like behaviour from Pub/Sub message attributes container.
     attributes = dict(get_nested_attribute(container, "attributes"))
-
     retry_count = attributes.get("retry_count")
 
     if retry_count:
         attributes["retry_count"] = int(retry_count)
-    else:
-        attributes["retry_count"] = None
 
     if attributes.get("sender_type") == "PARENT":
         attributes = _deserialise_question_attributes(attributes)
@@ -35,8 +32,6 @@ def _deserialise_question_attributes(attributes):
 
     if forward_logs:
         attributes["forward_logs"] = bool(int(forward_logs))
-    else:
-        attributes["forward_logs"] = None
 
     cpus = attributes.get("cpus")
 
