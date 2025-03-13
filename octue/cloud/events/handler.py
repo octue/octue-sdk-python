@@ -7,7 +7,7 @@ import time
 
 from octue.cloud import EXCEPTIONS_MAPPING
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
-from octue.definitions import GOOGLE_COMPUTE_PROVIDERS, LOCAL_SDK_VERSION
+from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
 
@@ -115,8 +115,6 @@ class AbstractEventHandler:
             event=event,
             attributes=attributes,
             recipient=attributes.recipient,
-            parent_sdk_version=LOCAL_SDK_VERSION,
-            child_sdk_version=attributes.sender_sdk_version,
             schema=self.schema,
         ):
             return (None, None)

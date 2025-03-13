@@ -250,8 +250,8 @@ class Service:
                 heartbeater.cancel()
 
             warn_if_incompatible(
-                child_sdk_version=LOCAL_SDK_VERSION,
-                parent_sdk_version=question_attributes.sender_sdk_version,
+                recipient_sdk_version=LOCAL_SDK_VERSION,
+                sender_sdk_version=question_attributes.sender_sdk_version,
             )
 
             self.send_exception(attributes=response_attributes, timeout=timeout)
@@ -629,14 +629,7 @@ class Service:
         attributes = QuestionAttributes.from_serialised_attributes(get_nested_attribute(question, "attributes"))
         logger.info("Extracted question event and attributes.")
 
-        raise_if_event_is_invalid(
-            event=copy.deepcopy(event),
-            attributes=attributes,
-            recipient=self.id,
-            parent_sdk_version=attributes.sender_sdk_version,
-            child_sdk_version=LOCAL_SDK_VERSION,
-        )
-
+        raise_if_event_is_invalid(event=copy.deepcopy(event), attributes=attributes, recipient=self.id)
         logger.info("%r parsed question %r successfully.", self, attributes.question_uuid)
 
         if attributes.retry_count > 0:

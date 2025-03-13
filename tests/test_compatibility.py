@@ -64,21 +64,21 @@ class TestWarnIfIncompatible(BaseTestCase):
     def test_warn_if_incompatible_with_missing_child_version_information(self):
         """Test that a warning is raised when calling `warn_if_incompatible` with missing child version information."""
         with self.assertLogs(level=logging.WARNING) as logging_context:
-            warn_if_incompatible(parent_sdk_version="0.51.0", child_sdk_version=None)
+            warn_if_incompatible(sender_sdk_version="0.51.0", recipient_sdk_version=None)
 
         self.assertIn(
-            "The child couldn't be checked for compatibility with this service because its Octue SDK version wasn't "
-            "provided. Please update it to the latest Octue SDK version.",
+            "The recipient couldn't be checked for compatibility with this service because its Octue SDK version "
+            "wasn't provided. Please update it to the latest Octue SDK version.",
             logging_context.output[0],
         )
 
     def test_warn_if_incompatible_with_missing_parent_version_information(self):
         """Test that a warning is raised when calling `warn_if_incompatible` with missing parent version information."""
         with self.assertLogs(level=logging.WARNING) as logging_context:
-            warn_if_incompatible(parent_sdk_version=None, child_sdk_version="0.16.0")
+            warn_if_incompatible(sender_sdk_version=None, recipient_sdk_version="0.16.0")
 
         self.assertIn(
-            "The parent couldn't be checked for compatibility with this service because its Octue SDK version wasn't "
+            "The sender couldn't be checked for compatibility with this service because its Octue SDK version wasn't "
             "provided. Please update it to the latest Octue SDK version.",
             logging_context.output[0],
         )
@@ -86,10 +86,10 @@ class TestWarnIfIncompatible(BaseTestCase):
     def test_warn_if_incompatible_with_incompatible_versions(self):
         """Test that a warning is raised if incompatible versions are detected."""
         with self.assertLogs(level=logging.WARNING) as logging_context:
-            warn_if_incompatible(parent_sdk_version="0.50.0", child_sdk_version="0.51.0")
+            warn_if_incompatible(sender_sdk_version="0.50.0", recipient_sdk_version="0.51.0")
 
         self.assertIn(
-            "The parent's Octue SDK version 0.50.0 is incompatible with the child's version 0.51.0. Please update "
+            "The sender's Octue SDK version 0.50.0 is incompatible with the recipient's version 0.51.0. Please update "
             "either or both to the latest version.",
             logging_context.output[0],
         )
@@ -100,7 +100,7 @@ class TestWarnIfIncompatible(BaseTestCase):
 
         try:
             with self.assertLogs(level=logging.WARNING):
-                warn_if_incompatible(parent_sdk_version="0.40.0", child_sdk_version="0.40.0")
+                warn_if_incompatible(sender_sdk_version="0.40.0", recipient_sdk_version="0.40.0")
         except AssertionError:
             no_warnings = True
 
