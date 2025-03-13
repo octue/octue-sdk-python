@@ -17,11 +17,10 @@ from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
+from octue.cloud.registry import get_default_sruid, raise_if_revision_not_registered
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
-    get_default_sruid,
-    raise_if_revision_not_registered,
     split_service_id,
     validate_sruid,
 )
