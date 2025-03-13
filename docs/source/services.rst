@@ -4,8 +4,8 @@
 Octue Twined services
 =====================
 
-There's a growing range of live :ref:`services <service_definition>` in the Octue ecosystem that you can query.
-Currently, all of them are related to wind energy. Here's a quick glossary of terms before we tell you more:
+There's a growing range of live :ref:`services <service_definition>` in the Octue ecosystem that you can query, mostly
+related to wind energy and other renewables. Here's a quick glossary of terms before we tell you more:
 
 .. admonition:: Definitions
 
