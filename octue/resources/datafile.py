@@ -27,7 +27,7 @@ from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.metadata import METADATA_FILENAME, UpdateLocalMetadata, load_local_metadata_file
 
 with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
+    warnings.filterwarnings("ignore", category=RuntimeWarning, module="google_crc32c")
     from google_crc32c import Checksum
 
 
