@@ -10,6 +10,7 @@ from google.cloud.pubsub_v1 import SubscriberClient
 from octue.cloud.events.attributes import ResponseAttributes
 from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
+from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
@@ -110,7 +111,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
 
         return datetime.now() - self._last_heartbeat
 
-    def handle_events(self, timeout=60, maximum_heartbeat_interval=360):
+    def handle_events(self, timeout=60, maximum_heartbeat_interval=DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL):
         """Pull events from the subscription and handle them in the order they were sent until a "result" event is
         handled, then return the handled result.
 

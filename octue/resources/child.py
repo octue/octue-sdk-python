@@ -4,6 +4,7 @@ import logging
 import os
 
 from octue.cloud.pub_sub.service import Service
+from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.resources import service_backends
 
 logger = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ class Child:
         prevent_retries_when=None,
         log_errors=True,
         timeout=86400,
-        maximum_heartbeat_interval=360,
+        maximum_heartbeat_interval=DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL,
     ):
         """Ask the child either:
         - A synchronous (ask-and-wait) question and wait for it to return an output. Questions are synchronous if

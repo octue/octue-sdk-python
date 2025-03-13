@@ -24,7 +24,7 @@ from octue.cloud.service_id import (
     validate_sruid,
 )
 from octue.compatibility import warn_if_incompatible
-from octue.definitions import LOCAL_SDK_VERSION
+from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL, LOCAL_SDK_VERSION
 import octue.exceptions
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
@@ -383,7 +383,7 @@ class Service:
         handle_monitor_message=None,
         record_events=True,
         timeout=60,
-        maximum_heartbeat_interval=360,
+        maximum_heartbeat_interval=DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
