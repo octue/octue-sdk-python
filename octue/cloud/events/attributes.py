@@ -173,6 +173,12 @@ class QuestionAttributes(EventAttributes):
         self.ephemeral_storage = ephemeral_storage
 
     def to_minimal_dict(self):
+        """Convert the attributes to a minimal dictionary containing only the attributes that have a non-`None` value.
+        Using a minimal dictionary means the smallest possible data structure is used so `None` values don't,
+        for example, need to be redundantly encoded and transmitted when part of a JSON payload for a Pub/Sub message.
+
+        :return dict: the non-`None` attributes
+        """
         return {
             **super().to_minimal_dict(),
             **make_minimal_dictionary(
