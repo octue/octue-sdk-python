@@ -1,3 +1,4 @@
+import copy
 import datetime as dt
 import uuid as uuid_library
 
@@ -89,17 +90,17 @@ class EventAttributes:
 
         :return octue.cloud.events.attributes.EventAttributes: the event attributes for an event with the opposite sender type
         """
-        attributes = self.to_minimal_dict()
-        attributes["sender"] = self.recipient
-        attributes["recipient"] = self.sender
-        attributes["sender_type"] = SENDER_TYPE_OPPOSITES[self.sender_type]
-        attributes["sender_sdk_version"] = LOCAL_SDK_VERSION
+        attributes = copy.copy(self)
+        attributes.sender = self.recipient
+        attributes.recipient = self.sender
+        attributes.sender_type = SENDER_TYPE_OPPOSITES[self.sender_type]
+        attributes.sender_sdk_version = LOCAL_SDK_VERSION
 
+        # Response attributes don't have these attributes set.
         for attr in ("forward_logs", "save_diagnostics", "cpus", "memory", "ephemeral_storage"):
-            if attr in attributes:
-                del attributes[attr]
+            setattr(self, attr, None)
 
-        return EventAttributes(**attributes)
+        return attributes
 
     def to_minimal_dict(self):
         """Convert the attributes to a minimal dictionary containing only the attributes that have a non-`None` value.
