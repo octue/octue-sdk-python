@@ -5,14 +5,14 @@ from unittest.mock import patch
 
 from octue.cloud.emulators._pub_sub import MESSAGES, MockService
 from octue.cloud.emulators.service import ServicePatcher
-from octue.cloud.events.attributes import EventAttributes
+from octue.cloud.events.attributes import ResponseAttributes
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests.base import BaseTestCase
 
 QUESTION_UUID = "96d69278-44ac-4631-aeea-c90fb08a1b2b"
 
-ATTRIBUTES = EventAttributes(
+ATTRIBUTES = ResponseAttributes(
     question_uuid=QUESTION_UUID,
     originator_question_uuid=QUESTION_UUID,
     parent="another/service:1.0.0",

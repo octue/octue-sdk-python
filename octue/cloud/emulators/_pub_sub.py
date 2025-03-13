@@ -4,7 +4,7 @@ import logging
 
 import google.api_core
 
-from octue.cloud.events.attributes import EventAttributes
+from octue.cloud.events.attributes import QuestionAttributes
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import PARENT_SENDER_TYPE, Service
 from octue.definitions import LOCAL_SDK_VERSION
@@ -406,7 +406,7 @@ class MockService(Service):
         # If the originator isn't provided, assume that this service revision is the originator.
         originator = originator or self.id
 
-        attributes = EventAttributes(
+        attributes = QuestionAttributes(
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,

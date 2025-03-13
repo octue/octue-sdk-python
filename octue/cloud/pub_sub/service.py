@@ -11,7 +11,7 @@ from google.cloud import pubsub_v1
 import jsonschema
 
 from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
-from octue.cloud.events.attributes import EventAttributes
+from octue.cloud.events.attributes import QuestionAttributes, ResponseAttributes
 from octue.cloud.events.extraction import extract_and_deserialise_attributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
@@ -204,7 +204,7 @@ class Service:
             return
 
         heartbeater = None
-        response_attributes = question_attributes.make_opposite_attributes()
+        response_attributes = ResponseAttributes.from_question_attributes(question_attributes)
 
         try:
             self._send_delivery_acknowledgment(response_attributes)
@@ -545,7 +545,7 @@ class Service:
             input_manifest.use_signed_urls_for_datasets()
             question["input_manifest"] = input_manifest.to_primitive()
 
-        question_attributes = EventAttributes(
+        question_attributes = QuestionAttributes(
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,
@@ -639,7 +639,7 @@ class Service:
         )
 
         logger.info("%r parsed question %r successfully.", self, attributes["question_uuid"])
-        attributes = EventAttributes(**attributes)
+        attributes = QuestionAttributes(**attributes)
 
         if attributes.retry_count > 0:
             logger.warning("This is retry %d for question %r.", attributes.retry_count, attributes.question_uuid)

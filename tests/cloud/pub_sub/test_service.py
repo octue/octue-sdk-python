@@ -133,7 +133,7 @@ class TestService(BaseTestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with patch("octue.cloud.service_id._get_google_cloud_id_token", return_value="some-token"):
+            with patch("octue.cloud.registry._get_google_cloud_id_token", return_value="some-token"):
                 with self.assertRaises(exceptions.ServiceNotFound):
                     service.ask(
                         service_id=f"my-org/unregistered-service:{MOCK_SERVICE_REVISION_TAG}",
@@ -153,7 +153,7 @@ class TestService(BaseTestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with patch("octue.cloud.service_id._get_google_cloud_id_token", return_value="some-token"):
+            with patch("octue.cloud.registry._get_google_cloud_id_token", return_value="some-token"):
                 with self.assertRaises(exceptions.ServiceNotFound):
                     service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
 

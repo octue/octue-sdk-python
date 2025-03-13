@@ -1,4 +1,4 @@
-from octue.cloud.events.attributes import EventAttributes
+from octue.cloud.events.attributes import QuestionAttributes
 from octue.utils.dictionaries import make_minimal_dictionary
 
 
@@ -21,7 +21,7 @@ def make_question_event(
     :return dict: the question event and its attributes
     """
     if not attributes:
-        attributes = EventAttributes(
+        attributes = QuestionAttributes(
             question_uuid=question_uuid,
             sender=sender,
             recipient=recipient,

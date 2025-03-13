@@ -5,7 +5,7 @@ import uuid
 
 from octue.cloud.emulators._pub_sub import MESSAGES, MockMessage, MockService, MockSubscription
 from octue.cloud.emulators.service import ServicePatcher
-from octue.cloud.events.attributes import EventAttributes
+from octue.cloud.events.attributes import ResponseAttributes
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -31,7 +31,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
         )
 
-        cls.attributes = EventAttributes(
+        cls.attributes = ResponseAttributes(
             question_uuid=cls.question_uuid,
             originator_question_uuid=cls.question_uuid,
             parent=cls.parent.id,
