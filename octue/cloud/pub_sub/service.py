@@ -490,7 +490,7 @@ class Service:
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
-        attributes.refresh()
+        attributes.reset_uuid_and_datetime()
 
         future = self.publisher.publish(
             topic=self.services_topic.path,

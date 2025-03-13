@@ -73,7 +73,7 @@ class EventAttributes:
         self.memory = memory
         self.ephemeral_storage = ephemeral_storage
 
-    def refresh(self):
+    def reset_uuid_and_datetime(self):
         """Set a new UUID and datetime. This avoids having to create a new instance for every single event (for which
         all other attributes are the same).
 

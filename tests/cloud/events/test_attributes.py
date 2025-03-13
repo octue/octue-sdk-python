@@ -43,8 +43,8 @@ class TestEventAttributes(unittest.TestCase):
             },
         )
 
-    def test_refresh(self):
-        """Test that refreshing the attributes changes the UUID and datetime."""
+    def test_reset_uuid_and_datetime(self):
+        """Test that the `reset_uuid_and_datetime` method changes the UUID and datetime."""
         attributes = EventAttributes(
             sender=SENDER,
             sender_type=SENDER_TYPE,
@@ -55,7 +55,7 @@ class TestEventAttributes(unittest.TestCase):
         original_uuid = attributes.uuid
         original_datetime = attributes.datetime
 
-        attributes.refresh()
+        attributes.reset_uuid_and_datetime()
         self.assertNotEqual(attributes.uuid, original_uuid)
         self.assertNotEqual(attributes.datetime, original_datetime)
 
