@@ -33,7 +33,7 @@ def is_event_valid(event, attributes, recipient, parent_sdk_version, child_sdk_v
     """Check if the event and its attributes are valid according to the Octue services communication schema.
 
     :param dict event: the event to validate
-    :param dict attributes: the attributes of the event to validate
+    :param octue.cloud.events.attributes.EventAttributes attributes: the attributes of the event to validate
     :param str recipient: the SRUID of the service revision receiving and validating the event
     :param str parent_sdk_version: the semantic version of Octue SDK running on the parent
     :param str child_sdk_version: the semantic version of Octue SDK running on the child
@@ -59,7 +59,7 @@ def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, 
     """Raise an error if the event or its attributes aren't valid according to the Octue services communication schema.
 
     :param dict event: the event to validate
-    :param dict attributes: the attributes of the event to validate
+    :param octue.cloud.events.attributes.EventAttributes attributes: the attributes of the event to validate
     :param str recipient: the SRUID of the service revision receiving and validating the event
     :param str parent_sdk_version: the semantic version of Octue SDK running on the parent
     :param str child_sdk_version: the semantic version of Octue SDK running on the child
@@ -68,7 +68,7 @@ def raise_if_event_is_invalid(event, attributes, recipient, parent_sdk_version, 
     :return None:
     """
     # Transform attributes to a dictionary in the case they're a different kind of mapping.
-    data = {"event": event, "attributes": dict(attributes)}
+    data = {"event": event, "attributes": attributes.to_minimal_dict()}
 
     if schema is None:
         schema = SERVICE_COMMUNICATION_SCHEMA

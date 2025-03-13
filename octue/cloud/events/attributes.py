@@ -53,6 +53,35 @@ class EventAttributes:
         self.recipient = recipient
         self.retry_count = retry_count
 
+    @classmethod
+    def from_serialised_attributes(cls, serialised_attributes):
+        """Extract a Twined service event's attributes and deserialise them to the expected form. This function doesn't
+        assume the required attributes are present as validation hasn't happened yet.
+
+        :param dict serialised_attributes: the event container in dictionary format or direct Google Pub/Sub format
+        :return octue.cloud.events.attributes.EventAttributes: the extracted and deserialised attributes
+        """
+        serialised_attributes = dict(serialised_attributes)
+        retry_count = serialised_attributes.get("retry_count")
+
+        if retry_count:
+            serialised_attributes["retry_count"] = int(retry_count)
+
+        return cls(
+            uuid=serialised_attributes.get("uuid"),
+            datetime=serialised_attributes.get("datetime"),
+            question_uuid=serialised_attributes.get("question_uuid"),
+            parent_question_uuid=serialised_attributes.get("parent_question_uuid"),
+            originator_question_uuid=serialised_attributes.get("originator_question_uuid"),
+            sender=serialised_attributes.get("sender"),
+            parent=serialised_attributes.get("parent"),
+            originator=serialised_attributes.get("originator"),
+            sender_type=serialised_attributes.get("sender_type"),
+            sender_sdk_version=serialised_attributes.get("sender_sdk_version"),
+            recipient=serialised_attributes.get("recipient"),
+            retry_count=serialised_attributes.get("retry_count"),
+        )
+
     def reset_uuid_and_datetime(self):
         """Set a new UUID and datetime. This avoids having to create a new instance for every single event (for which
         all other attributes are the same).
@@ -171,6 +200,50 @@ class QuestionAttributes(EventAttributes):
         self.cpus = cpus
         self.memory = memory
         self.ephemeral_storage = ephemeral_storage
+
+    @classmethod
+    def from_serialised_attributes(cls, serialised_attributes):
+        """Extract and deserialise the attributes specific to a question event. This function doesn't assume these
+        attributes are present as validation hasn't happened yet.
+
+        :param dict serialised_attributes: attributes for a question event
+        :return octue.cloud.events.attributes.QuestionAttributes: the deserialised attributes
+        """
+        serialised_attributes = dict(serialised_attributes)
+        retry_count = serialised_attributes.get("retry_count")
+
+        if retry_count:
+            serialised_attributes["retry_count"] = int(retry_count)
+
+        forward_logs = serialised_attributes.get("forward_logs")
+
+        if forward_logs:
+            serialised_attributes["forward_logs"] = bool(int(forward_logs))
+
+        cpus = serialised_attributes.get("cpus")
+
+        if cpus:
+            serialised_attributes["cpus"] = int(cpus)
+
+        return cls(
+            uuid=serialised_attributes.get("uuid"),
+            datetime=serialised_attributes.get("datetime"),
+            question_uuid=serialised_attributes.get("question_uuid"),
+            parent_question_uuid=serialised_attributes.get("parent_question_uuid"),
+            originator_question_uuid=serialised_attributes.get("originator_question_uuid"),
+            sender=serialised_attributes.get("sender"),
+            parent=serialised_attributes.get("parent"),
+            originator=serialised_attributes.get("originator"),
+            sender_type=serialised_attributes.get("sender_type"),
+            sender_sdk_version=serialised_attributes.get("sender_sdk_version"),
+            recipient=serialised_attributes.get("recipient"),
+            retry_count=serialised_attributes.get("retry_count"),
+            forward_logs=serialised_attributes.get("forward_logs"),
+            save_diagnostics=serialised_attributes.get("save_diagnostics"),
+            cpus=serialised_attributes.get("cpus"),
+            memory=serialised_attributes.get("memory"),
+            ephemeral_storage=serialised_attributes.get("ephemeral_storage"),
+        )
 
     def to_minimal_dict(self):
         """Convert the attributes to a minimal dictionary containing only the attributes that have a non-`None` value.

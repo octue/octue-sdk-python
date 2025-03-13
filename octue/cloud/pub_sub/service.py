@@ -12,7 +12,6 @@ import jsonschema
 
 from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
 from octue.cloud.events.attributes import QuestionAttributes, ResponseAttributes
-from octue.cloud.events.extraction import extract_and_deserialise_attributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event
@@ -30,6 +29,7 @@ import octue.exceptions
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
+from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
 
 logger = logging.getLogger(__name__)
@@ -616,7 +616,7 @@ class Service:
         """Parse a question in dictionary format or direct Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in dictionary format or direct Google Pub/Sub format
-        :return (dict, octue.cloud.events.attributes.EventAttributes): the question's event and its attributes
+        :return (dict, octue.cloud.events.attributes.QuestionAttributes): the question's event and its attributes
         """
         logger.info("%r received a question.", self)
 
@@ -626,20 +626,18 @@ class Service:
             logger.info("Question acknowledged on Pub/Sub.")
 
         event = extract_event(question)
-        attributes = extract_and_deserialise_attributes(question)
+        attributes = QuestionAttributes.from_serialised_attributes(get_nested_attribute(question, "attributes"))
         logger.info("Extracted question event and attributes.")
 
         raise_if_event_is_invalid(
             event=copy.deepcopy(event),
             attributes=attributes,
             recipient=self.id,
-            # Don't assume the presence of specific attributes before validation.
-            parent_sdk_version=attributes.get("sender_sdk_version"),
+            parent_sdk_version=attributes.sender_sdk_version,
             child_sdk_version=LOCAL_SDK_VERSION,
         )
 
-        logger.info("%r parsed question %r successfully.", self, attributes["question_uuid"])
-        attributes = QuestionAttributes(**attributes)
+        logger.info("%r parsed question %r successfully.", self, attributes.question_uuid)
 
         if attributes.retry_count > 0:
             logger.warning("This is retry %d for question %r.", attributes.retry_count, attributes.question_uuid)

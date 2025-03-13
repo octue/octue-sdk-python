@@ -7,10 +7,11 @@ import time
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
-from octue.cloud.events.extraction import extract_and_deserialise_attributes
+from octue.cloud.events.attributes import ResponseAttributes
 from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.utils.decoders import OctueJSONDecoder
+from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
 
 logger = logging.getLogger(__name__)
@@ -246,5 +247,6 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         :return (any, dict): the event and its attributes
         """
         event = extract_event(container.message)
-        attributes = extract_and_deserialise_attributes(container.message)
+        attributes = get_nested_attribute(container.message, "attributes")
+        attributes = ResponseAttributes.from_serialised_attributes(attributes)
         return event, attributes

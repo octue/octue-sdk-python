@@ -106,30 +106,22 @@ class AbstractEventHandler:
         """
         try:
             event, attributes = self._extract_event_and_attributes(container)
-        except Exception:
+        except Exception as e:
+            logger.exception(e)
             event = None
             attributes = {}
-
-        # Don't assume the presence of specific attributes before validation.
-        recipient = attributes.get("recipient")
-        child_sdk_version = attributes.get("sender_sdk_version")
 
         if self.validate_events and not is_event_valid(
             event=event,
             attributes=attributes,
-            recipient=recipient,
+            recipient=attributes.recipient,
             parent_sdk_version=LOCAL_SDK_VERSION,
-            child_sdk_version=child_sdk_version,
+            child_sdk_version=attributes.sender_sdk_version,
             schema=self.schema,
         ):
             return (None, None)
 
-        logger.debug(
-            "%r: Received an event related to question %r.",
-            attributes.get("recipient"),
-            attributes.get("question_uuid"),
-        )
-
+        logger.debug("%r: Received an event related to question %r.", attributes.recipient, attributes.question_uuid)
         return (event, attributes)
 
     def _handle_event(self, event, attributes):
@@ -140,7 +132,7 @@ class AbstractEventHandler:
         :return dict|None: the output of the event (this should be `None` unless the event is a "result" event)
         """
         if self.record_events:
-            self.handled_events.append({"event": event, "attributes": attributes})
+            self.handled_events.append({"event": event, "attributes": attributes.to_minimal_dict()})
 
         if self.only_handle_result and event["kind"] != "result":
             return
@@ -155,7 +147,7 @@ class AbstractEventHandler:
         :param dict attributes: the event's attributes
         :return None:
         """
-        logger.info("%rs question was delivered at %s.", attributes["recipient"], attributes["datetime"])
+        logger.info("%rs question was delivered at %s.", attributes.recipient, attributes.datetime)
 
     def _handle_heartbeat(self, event, attributes):
         """Record the time the heartbeat was received.
@@ -168,9 +160,9 @@ class AbstractEventHandler:
 
         logger.info(
             "%r: Received a heartbeat from service %r for question %r.",
-            attributes["recipient"],
-            attributes["sender"],
-            attributes["question_uuid"],
+            attributes.recipient,
+            attributes.sender,
+            attributes.question_uuid,
         )
 
     def _handle_monitor_message(self, event, attributes):
@@ -182,9 +174,9 @@ class AbstractEventHandler:
         """
         logger.debug(
             "%r: Received a monitor message from service %r for question %r.",
-            attributes["recipient"],
-            attributes["sender"],
-            attributes["question_uuid"],
+            attributes.recipient,
+            attributes.sender,
+            attributes.question_uuid,
         )
 
         if self.handle_monitor_message is not None:
@@ -212,7 +204,7 @@ class AbstractEventHandler:
             # Get information about the immediate child sending the event and colour it with the first colour in the
             # colour palette.
             immediate_child_analysis_section = colourise(
-                f"[{attributes['sender']} | {attributes['question_uuid']}]",
+                f"[{attributes.sender} | {attributes.question_uuid}]",
                 text_colour=self._log_message_colours[0],
             )
 
@@ -241,7 +233,7 @@ class AbstractEventHandler:
         exception_message = "\n\n".join(
             (
                 event["exception_message"],
-                f"The following traceback was captured from the remote service {attributes['sender']!r}:",
+                f"The following traceback was captured from the remote service {attributes.sender!r}:",
                 "".join(event["exception_traceback"]),
             )
         )
@@ -262,7 +254,7 @@ class AbstractEventHandler:
         :param dict attributes: the event's attributes
         :return dict:
         """
-        logger.info("%r: Received an answer to question %r.", attributes["recipient"], attributes["question_uuid"])
+        logger.info("%r: Received an answer to question %r.", attributes.recipient, attributes.question_uuid)
 
         if event.get("output_manifest"):
             output_manifest = Manifest.deserialise(event["output_manifest"])

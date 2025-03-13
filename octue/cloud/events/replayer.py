@@ -1,5 +1,6 @@
 import logging
 
+from octue.cloud.events.attributes import ResponseAttributes
 from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 
@@ -85,7 +86,7 @@ class EventReplayer(AbstractEventHandler):
         :param dict container: the container of the event
         :return (any, dict): the event and its attributes
         """
-        return container["event"], container["attributes"]
+        return container.get("event", {}), ResponseAttributes(**container["attributes"])
 
     def _handle_question(self, event, attributes):
         """Log that the question was sent.
