@@ -4,7 +4,6 @@ from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.runner import Runner
-from octue.utils.objects import get_nested_attribute
 
 logger = logging.getLogger(__name__)
 
@@ -27,27 +26,13 @@ def answer_question(question, project_name, service_configuration, app_configura
     )
 
     service = Service(service_id=service_sruid, backend=GCPPubSubBackend(project_name=project_name))
-    question_uuid = get_nested_attribute(question, "attributes.question_uuid")
 
-    try:
-        runner = Runner.from_configuration(
-            service_configuration=service_configuration,
-            app_configuration=app_configuration,
-            project_name=project_name,
-            service_id=service_sruid,
-        )
+    runner = Runner.from_configuration(
+        service_configuration=service_configuration,
+        app_configuration=app_configuration,
+        project_name=project_name,
+        service_id=service_sruid,
+    )
 
-        service.run_function = runner.run
-        return service.answer(question)
-
-    except BaseException as error:  # noqa
-        service.send_exception(
-            question_uuid=question_uuid,
-            parent_question_uuid=get_nested_attribute(question, "attributes.parent_question_uuid"),
-            originator_question_uuid=get_nested_attribute(question, "attributes.originator_question_uuid"),
-            parent=get_nested_attribute(question, "attributes.parent"),
-            originator=get_nested_attribute(question, "attributes.originator"),
-            retry_count=get_nested_attribute(question, "attributes.retry_count"),
-        )
-
-        logger.exception(error)
+    service.run_function = runner.run
+    return service.answer(question)
