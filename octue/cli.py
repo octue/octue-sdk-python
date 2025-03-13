@@ -11,7 +11,7 @@ from google import auth
 from octue.cloud import storage
 from octue.cloud.events.answer_question import answer_question
 from octue.cloud.events.replayer import EventReplayer
-from octue.cloud.events.utils import make_question_event
+from octue.cloud.events.question import make_question_event
 from octue.cloud.events.validation import VALID_EVENT_KINDS
 from octue.cloud.pub_sub.bigquery import get_events, DEFAULT_EVENT_STORE_TABLE_ID
 from octue.cloud.pub_sub.service import Service
