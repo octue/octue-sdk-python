@@ -11,7 +11,7 @@ from google.cloud import pubsub_v1
 import jsonschema
 
 from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
-from octue.cloud.events.attributes import QuestionAttributes, ResponseAttributes
+from octue.cloud.events.attributes import CHILD_SENDER_TYPE, PARENT_SENDER_TYPE, QuestionAttributes, ResponseAttributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event
@@ -40,9 +40,6 @@ ANSWERS_NAMESPACE = "answers"
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
-
-PARENT_SENDER_TYPE = "PARENT"
-CHILD_SENDER_TYPE = "CHILD"
 
 
 class Service:

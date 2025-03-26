@@ -4,6 +4,9 @@ import uuid as uuid_library
 from octue.definitions import LOCAL_SDK_VERSION
 from octue.utils.dictionaries import make_minimal_dictionary
 
+PARENT_SENDER_TYPE = "PARENT"
+CHILD_SENDER_TYPE = "CHILD"
+
 
 class EventAttributes:
     """A data structure for holding and working with attributes for a single Octue Twined event. If originator and
@@ -175,7 +178,7 @@ class QuestionAttributes(EventAttributes):
     ):
         super().__init__(
             sender,
-            "PARENT",
+            PARENT_SENDER_TYPE,
             recipient,
             uuid,
             datetime,
@@ -281,7 +284,7 @@ class ResponseAttributes(EventAttributes):
     ):
         super().__init__(
             sender,
-            "CHILD",
+            CHILD_SENDER_TYPE,
             recipient,
             uuid,
             datetime,
