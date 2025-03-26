@@ -552,7 +552,6 @@ class Service:
             parent=self.id,
             originator=originator,
             sender=self.id,
-            sender_type=PARENT_SENDER_TYPE,
             recipient=recipient,
             retry_count=retry_count,
             forward_logs=forward_logs,

@@ -136,7 +136,6 @@ class QuestionAttributes(EventAttributes):
     information aren't provided, the attributes will correspond to an originator question event.
 
     :param str sender: the unique identifier (SRUID) of the service revision sending the question
-    :param str sender_type: the type of sender for this event; must be one of {"PARENT", "CHILD"}
     :param str recipient: the SRUID of the service revision the question is for
     :param str|None uuid: the UUID of the event; if `None`, a UUID is generated
     :param datetime.datetime|None datetime: the datetime the event was created at; defaults to the current datetime in UTC
@@ -158,7 +157,6 @@ class QuestionAttributes(EventAttributes):
     def __init__(
         self,
         sender,
-        sender_type,
         recipient,
         uuid=None,
         datetime=None,
@@ -169,15 +167,15 @@ class QuestionAttributes(EventAttributes):
         originator=None,
         sender_sdk_version=LOCAL_SDK_VERSION,
         retry_count=0,
-        forward_logs=None,
-        save_diagnostics=None,
+        forward_logs=True,
+        save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
         cpus=None,
         memory=None,
         ephemeral_storage=None,
     ):
         super().__init__(
             sender,
-            sender_type,
+            "PARENT",
             recipient,
             uuid,
             datetime,
@@ -219,7 +217,6 @@ class QuestionAttributes(EventAttributes):
             sender=serialised_attributes.get("sender"),
             parent=serialised_attributes.get("parent"),
             originator=serialised_attributes.get("originator"),
-            sender_type=serialised_attributes.get("sender_type"),
             sender_sdk_version=serialised_attributes.get("sender_sdk_version"),
             recipient=serialised_attributes.get("recipient"),
             retry_count=int(serialised_attributes.get("retry_count")),
@@ -255,7 +252,6 @@ class ResponseAttributes(EventAttributes):
     question.
 
     :param str sender: the unique identifier (SRUID) of the service revision sending the question
-    :param str sender_type: the type of sender for this event; must be one of {"PARENT", "CHILD"}
     :param str recipient: the SRUID of the service revision the question is for
     :param str|None uuid: the UUID of the event; if `None`, a UUID is generated
     :param datetime.datetime|None datetime: the datetime the event was created at; defaults to the current datetime in UTC
@@ -269,6 +265,35 @@ class ResponseAttributes(EventAttributes):
     :return None:
     """
 
+    def __init__(
+        self,
+        sender,
+        recipient,
+        uuid=None,
+        datetime=None,
+        question_uuid=None,
+        parent_question_uuid=None,
+        originator_question_uuid=None,
+        parent=None,
+        originator=None,
+        sender_sdk_version=LOCAL_SDK_VERSION,
+        retry_count=0,
+    ):
+        super().__init__(
+            sender,
+            "CHILD",
+            recipient,
+            uuid,
+            datetime,
+            question_uuid,
+            parent_question_uuid,
+            originator_question_uuid,
+            parent,
+            originator,
+            sender_sdk_version,
+            retry_count,
+        )
+
     @classmethod
     def from_question_attributes(cls, question_attributes):
         """Create corresponding response attributes from a set of question attributes.
@@ -277,7 +302,6 @@ class ResponseAttributes(EventAttributes):
         :return octue.cloud.events.attributes.ResponseEventAttributes: the event attributes for a response event of any kind
         """
         return cls(
-            sender_type="CHILD",
             sender=question_attributes.recipient,
             recipient=question_attributes.sender,
             question_uuid=question_attributes.question_uuid,
