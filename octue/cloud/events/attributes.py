@@ -62,10 +62,6 @@ class EventAttributes:
         :return octue.cloud.events.attributes.EventAttributes: the extracted and deserialised attributes
         """
         serialised_attributes = dict(serialised_attributes)
-        retry_count = serialised_attributes.get("retry_count")
-
-        if retry_count:
-            serialised_attributes["retry_count"] = int(retry_count)
 
         return cls(
             uuid=serialised_attributes.get("uuid"),
@@ -79,7 +75,7 @@ class EventAttributes:
             sender_type=serialised_attributes.get("sender_type"),
             sender_sdk_version=serialised_attributes.get("sender_sdk_version"),
             recipient=serialised_attributes.get("recipient"),
-            retry_count=serialised_attributes.get("retry_count"),
+            retry_count=int(serialised_attributes.get("retry_count")),
         )
 
     def reset_uuid_and_datetime(self):
@@ -137,8 +133,7 @@ class EventAttributes:
 
 class QuestionAttributes(EventAttributes):
     """A data structure for holding and working with attributes for a single question event. If originator and parent
-    information aren't provided, the attributes will correspond to an event of any kind related to an originator
-    question.
+    information aren't provided, the attributes will correspond to an originator question event.
 
     :param str sender: the unique identifier (SRUID) of the service revision sending the question
     :param str sender_type: the type of sender for this event; must be one of {"PARENT", "CHILD"}
@@ -210,20 +205,10 @@ class QuestionAttributes(EventAttributes):
         :return octue.cloud.events.attributes.QuestionAttributes: the deserialised attributes
         """
         serialised_attributes = dict(serialised_attributes)
-        retry_count = serialised_attributes.get("retry_count")
-
-        if retry_count:
-            serialised_attributes["retry_count"] = int(retry_count)
-
-        forward_logs = serialised_attributes.get("forward_logs")
-
-        if forward_logs:
-            serialised_attributes["forward_logs"] = bool(int(forward_logs))
-
         cpus = serialised_attributes.get("cpus")
 
         if cpus:
-            serialised_attributes["cpus"] = int(cpus)
+            cpus = int(cpus)
 
         return cls(
             uuid=serialised_attributes.get("uuid"),
@@ -237,10 +222,10 @@ class QuestionAttributes(EventAttributes):
             sender_type=serialised_attributes.get("sender_type"),
             sender_sdk_version=serialised_attributes.get("sender_sdk_version"),
             recipient=serialised_attributes.get("recipient"),
-            retry_count=serialised_attributes.get("retry_count"),
-            forward_logs=serialised_attributes.get("forward_logs"),
+            retry_count=int(serialised_attributes.get("retry_count")),
+            forward_logs=bool(int(serialised_attributes.get("forward_logs"))),
             save_diagnostics=serialised_attributes.get("save_diagnostics"),
-            cpus=serialised_attributes.get("cpus"),
+            cpus=cpus,
             memory=serialised_attributes.get("memory"),
             ephemeral_storage=serialised_attributes.get("ephemeral_storage"),
         )
@@ -266,8 +251,8 @@ class QuestionAttributes(EventAttributes):
 
 class ResponseAttributes(EventAttributes):
     """A data structure for holding and working with attributes for a single response event of any kind. If originator
-    and parent information aren't provided, the attributes will correspond to an event of any kind related to an
-    originator question.
+    and parent information aren't provided, the attributes will correspond to a response event related to an originator
+    question.
 
     :param str sender: the unique identifier (SRUID) of the service revision sending the question
     :param str sender_type: the type of sender for this event; must be one of {"PARENT", "CHILD"}
