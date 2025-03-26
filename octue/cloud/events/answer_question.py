@@ -18,13 +18,7 @@ def answer_question(question, project_name, service_configuration, app_configura
     :return dict: the result event
     """
     service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
-
-    service_sruid = create_sruid(
-        namespace=service_namespace,
-        name=service_name,
-        revision_tag=service_revision_tag,
-    )
-
+    service_sruid = create_sruid(namespace=service_namespace, name=service_name, revision_tag=service_revision_tag)
     service = Service(service_id=service_sruid, backend=GCPPubSubBackend(project_name=project_name))
 
     runner = Runner.from_configuration(
