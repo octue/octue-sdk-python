@@ -18,7 +18,6 @@ ATTRIBUTES = ResponseAttributes(
     parent="another/service:1.0.0",
     originator="another/service:1.0.0",
     sender="another/service:1.0.0",
-    sender_type="CHILD",
     recipient="another/service:1.0.0",
 )
 

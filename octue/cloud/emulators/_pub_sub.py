@@ -4,7 +4,7 @@ import logging
 
 import google.api_core
 
-from octue.cloud.events.attributes import PARENT_SENDER_TYPE, QuestionAttributes
+from octue.cloud.events.attributes import QuestionAttributes
 from octue.cloud.pub_sub import Subscription, Topic
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import LOCAL_SDK_VERSION
@@ -415,7 +415,6 @@ class MockService(Service):
             parent=self.id,
             originator=originator,
             sender=self.id,
-            sender_type=PARENT_SENDER_TYPE,
             sender_sdk_version=parent_sdk_version,
             recipient=service_id,
             retry_count=retry_count,

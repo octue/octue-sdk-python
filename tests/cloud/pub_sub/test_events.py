@@ -37,7 +37,6 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             parent=cls.parent.id,
             originator=cls.parent.id,
             sender=cls.parent.id,
-            sender_type="CHILD",
             recipient=cls.parent.id,
         )
 
