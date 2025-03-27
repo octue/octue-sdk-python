@@ -145,7 +145,7 @@ class EventAttributes:
         :return None:
         """
         if sender_type != self.SENDER_TYPE:
-            raise ValueError(f"`sender_type` must be {self.SENDER_TYPE!r} for {type(self)!r}.")
+            raise ValueError(f"`sender_type` must be {self.SENDER_TYPE!r} for {type(self).__name__!r}.")
 
 
 class QuestionAttributes(EventAttributes):
