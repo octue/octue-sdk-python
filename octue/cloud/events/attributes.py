@@ -14,8 +14,8 @@ class EventAttributes:
     question.
 
     :param str sender: the unique identifier (SRUID) of the service revision sending the question
-    :param str sender_type: the type of sender for this event; must be one of {"PARENT", "CHILD"}
     :param str recipient: the SRUID of the service revision the question is for
+    :param str|None sender_type: the type of sender for this event; must be one of {"PARENT", "CHILD"}
     :param str|None uuid: the UUID of the event; if `None`, a UUID is generated
     :param datetime.datetime|None datetime: the datetime the event was created at; defaults to the current datetime in UTC
     :param str|None question_uuid: the UUID of the question; if `None`, a UUID is generated
@@ -28,11 +28,13 @@ class EventAttributes:
     :return None:
     """
 
+    SENDER_TYPE = None
+
     def __init__(
         self,
         sender,
-        sender_type,
         recipient,
+        sender_type=None,
         uuid=None,
         datetime=None,
         question_uuid=None,
@@ -43,6 +45,8 @@ class EventAttributes:
         sender_sdk_version=LOCAL_SDK_VERSION,
         retry_count=0,
     ):
+        sender_type = sender_type or self.SENDER_TYPE
+        self._validate_sender_type(sender_type)
         self.uuid = uuid or str(uuid_library.uuid4())
         self.datetime = datetime or dt.datetime.now(tz=dt.timezone.utc)
         self.question_uuid = question_uuid or str(uuid_library.uuid4())
@@ -133,6 +137,16 @@ class EventAttributes:
 
         return serialised_attributes
 
+    def _validate_sender_type(self, sender_type):
+        """Check that the given sender type is the same as the `SENDER_TYPE` attribute.
+
+        :param str sender_type: the sender type to check
+        :raise ValueError: if the given sender type is not the same as the `SENDER_TYPE` attribute
+        :return None:
+        """
+        if sender_type != self.SENDER_TYPE:
+            raise ValueError(f"`sender_type` must be {self.SENDER_TYPE!r} for {type(self)!r}.")
+
 
 class QuestionAttributes(EventAttributes):
     """A data structure for holding and working with attributes for a single question event. If originator and parent
@@ -140,6 +154,7 @@ class QuestionAttributes(EventAttributes):
 
     :param str sender: the unique identifier (SRUID) of the service revision sending the question
     :param str recipient: the SRUID of the service revision the question is for
+    :param str|None sender_type: the type of sender for this event; if provided, it must be "PARENT"
     :param str|None uuid: the UUID of the event; if `None`, a UUID is generated
     :param datetime.datetime|None datetime: the datetime the event was created at; defaults to the current datetime in UTC
     :param str|None question_uuid: the UUID of the question; if `None`, a UUID is generated
@@ -157,10 +172,13 @@ class QuestionAttributes(EventAttributes):
     :return None:
     """
 
+    SENDER_TYPE = PARENT_SENDER_TYPE
+
     def __init__(
         self,
         sender,
         recipient,
+        sender_type=None,
         uuid=None,
         datetime=None,
         question_uuid=None,
@@ -177,18 +195,18 @@ class QuestionAttributes(EventAttributes):
         ephemeral_storage=None,
     ):
         super().__init__(
-            sender,
-            PARENT_SENDER_TYPE,
-            recipient,
-            uuid,
-            datetime,
-            question_uuid,
-            parent_question_uuid,
-            originator_question_uuid,
-            parent,
-            originator,
-            sender_sdk_version,
-            retry_count,
+            sender=sender,
+            recipient=recipient,
+            sender_type=sender_type,
+            uuid=uuid,
+            datetime=datetime,
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
+            parent=parent,
+            originator=originator,
+            sender_sdk_version=sender_sdk_version,
+            retry_count=retry_count,
         )
 
         self.forward_logs = forward_logs
@@ -218,6 +236,7 @@ class QuestionAttributes(EventAttributes):
             parent_question_uuid=serialised_attributes.get("parent_question_uuid"),
             originator_question_uuid=serialised_attributes.get("originator_question_uuid"),
             sender=serialised_attributes.get("sender"),
+            sender_type=serialised_attributes.get("sender_type"),
             parent=serialised_attributes.get("parent"),
             originator=serialised_attributes.get("originator"),
             sender_sdk_version=serialised_attributes.get("sender_sdk_version"),
@@ -256,6 +275,7 @@ class ResponseAttributes(EventAttributes):
 
     :param str sender: the unique identifier (SRUID) of the service revision sending the question
     :param str recipient: the SRUID of the service revision the question is for
+    :param str|None sender_type: the type of sender for this event; if provided, it must be "CHILD"
     :param str|None uuid: the UUID of the event; if `None`, a UUID is generated
     :param datetime.datetime|None datetime: the datetime the event was created at; defaults to the current datetime in UTC
     :param str|None question_uuid: the UUID of the question; if `None`, a UUID is generated
@@ -268,34 +288,7 @@ class ResponseAttributes(EventAttributes):
     :return None:
     """
 
-    def __init__(
-        self,
-        sender,
-        recipient,
-        uuid=None,
-        datetime=None,
-        question_uuid=None,
-        parent_question_uuid=None,
-        originator_question_uuid=None,
-        parent=None,
-        originator=None,
-        sender_sdk_version=LOCAL_SDK_VERSION,
-        retry_count=0,
-    ):
-        super().__init__(
-            sender,
-            CHILD_SENDER_TYPE,
-            recipient,
-            uuid,
-            datetime,
-            question_uuid,
-            parent_question_uuid,
-            originator_question_uuid,
-            parent,
-            originator,
-            sender_sdk_version,
-            retry_count,
-        )
+    SENDER_TYPE = CHILD_SENDER_TYPE
 
     @classmethod
     def from_question_attributes(cls, question_attributes):
