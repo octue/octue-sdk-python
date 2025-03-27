@@ -1,5 +1,5 @@
-import google.auth
-import google.oauth2
+import google.auth.transport.requests
+import google.oauth2.id_token
 import requests
 
 from octue.cloud.service_id import create_sruid, logger, split_service_id
