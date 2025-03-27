@@ -21,9 +21,13 @@ def make_question_event(
     :return dict: the question event and its attributes
     """
     if not attributes:
-        attributes = QuestionAttributes(question_uuid=question_uuid, sender=sender, recipient=recipient)
+        attributes = QuestionAttributes(
+            question_uuid=question_uuid,
+            sender=sender,
+            recipient=recipient,
+        ).to_minimal_dict()
 
     return {
         "event": make_minimal_dictionary(input_values=input_values, input_manifest=input_manifest, kind="question"),
-        "attributes": attributes.to_minimal_dict(),
+        "attributes": attributes,
     }
