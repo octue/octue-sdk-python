@@ -5,13 +5,11 @@ import os
 import random
 import tempfile
 import time
-from unittest import mock
 from unittest.mock import patch
 
 import google.api_core.exceptions
 import requests
 
-import twined.exceptions
 from octue import Runner, exceptions
 from octue.cloud.emulators._pub_sub import (
     DifferentMockAnalysis,
@@ -29,7 +27,7 @@ from octue.resources import Analysis, Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_NAME
 from tests.base import BaseTestCase
-
+import twined.exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -122,13 +120,6 @@ class TestService(BaseTestCase):
             with self.assertRaises(exceptions.ServiceNotFound):
                 service.services_topic
 
-    def test_error_raised_if_service_revision_not_found_when_not_using_service_registry(self):
-        """Test that an error is raised if a service revision isn't found when not using a service registry."""
-        service = MockService(backend=BACKEND)
-
-        with self.assertRaises(exceptions.ServiceNotFound):
-            service.ask("non/existent:service")
-
     def test_ask_unregistered_service_revision_when_service_registries_specified_results_in_error(self):
         """Test that an error is raised if attempting to ask an unregistered service a question when service registries
         are being used.
@@ -142,11 +133,12 @@ class TestService(BaseTestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with self.assertRaises(exceptions.ServiceNotFound):
-                service.ask(
-                    service_id=f"my-org/unregistered-service:{MOCK_SERVICE_REVISION_TAG}",
-                    input_values=[1, 2, 3, 4],
-                )
+            with patch("octue.cloud.registry._get_google_cloud_id_token", return_value="some-token"):
+                with self.assertRaises(exceptions.ServiceNotFound):
+                    service.ask(
+                        service_id=f"my-org/unregistered-service:{MOCK_SERVICE_REVISION_TAG}",
+                        input_values=[1, 2, 3, 4],
+                    )
 
     def test_ask_unregistered_service_with_no_revision_tag_when_service_registries_specified_results_in_error(self):
         """Test that an error is raised when attempting to ask a question to an unregistered service without including
@@ -161,8 +153,9 @@ class TestService(BaseTestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with self.assertRaises(exceptions.ServiceNotFound):
-                service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
+            with patch("octue.cloud.registry._get_google_cloud_id_token", return_value="some-token"):
+                with self.assertRaises(exceptions.ServiceNotFound):
+                    service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
 
     def test_ask_service_with_no_revision_tag_when_service_registries_not_specified_results_in_error(self):
         """Test that an error is raised when attempting to ask a question to a service without including a revision tag
@@ -765,38 +758,6 @@ class TestService(BaseTestCase):
             datetime.timedelta(seconds=expected_interval),
             delta=datetime.timedelta(0.05),
         )
-
-    def test_runtime_timeout_warning_logged_if_running_on_cloud_run(self):
-        """Test that a warning is logged when the runtime timeout warning time is reached if the service is running on
-        Cloud Run.
-        """
-
-        def run_function(*args, **kwargs):
-            time.sleep(0.3)
-            return MockAnalysis()
-
-        child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function())
-        parent = MockService(backend=BACKEND, children={child.id: child})
-        child.serve()
-
-        # Trigger the heartbeat check straight away.
-        with patch(
-            "octue.cloud.emulators._pub_sub.MockService.answer",
-            functools.partial(child.answer, heartbeat_interval=0.1),
-        ):
-            with patch(
-                "octue.cloud.pub_sub.service.Service._send_heartbeat_and_check_runtime",
-                functools.partial(child._send_heartbeat_and_check_runtime, runtime_timeout_warning_time=0),
-            ):
-                with mock.patch.dict(os.environ, COMPUTE_PROVIDER="GOOGLE_CLOUD_RUN"):
-                    with self.assertLogs(level=logging.WARNING) as logging_context:
-                        subscription, _ = parent.ask(service_id=child.id, input_values={})
-                        parent.wait_for_answer(subscription)
-
-            self.assertIn(
-                "This analysis will reach the maximum runtime and be stopped soon.",
-                logging_context.output[0],
-            )
 
     def test_send_monitor_messages_periodically(self):
         """Test that monitor messages are sent periodically if set up in the run function and that the periodic monitor

@@ -7,7 +7,7 @@ from octue.resources import Manifest
 
 
 def load_test_fixture_from_diagnostics(path):
-    """Load a test fixture from service diagnostics downloaded using the `octue get-diagnostics` CLI
+    """Load a test fixture from service diagnostics downloaded using the `octue question diagnostics` CLI
     command. The configuration values, configuration manifest, input values, and input manifest are returned if
     available. A tuple of child emulators is returned if the service has children and asked questions to any of them.
     Each child emulator corresponds to one question asked to a child. The child emulators are in the same order as the

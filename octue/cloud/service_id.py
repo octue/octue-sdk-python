@@ -1,12 +1,11 @@
 import logging
 import os
 import re
+import uuid
 
 import coolname
-import requests
 
 import octue.exceptions
-
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +17,8 @@ COMPILED_REVISION_TAG_PATTERN = re.compile(REVISION_TAG_PATTERN)
 
 SRUID_PATTERN = rf"^{SERVICE_NAMESPACE_AND_NAME_PATTERN}\/{SERVICE_NAMESPACE_AND_NAME_PATTERN}:{REVISION_TAG_PATTERN}$"
 COMPILED_SRUID_PATTERN = re.compile(SRUID_PATTERN)
+
+DEFAULT_NAMESPACE = "default"
 
 
 def get_sruid_parts(service_configuration):
@@ -61,16 +62,16 @@ def get_sruid_parts(service_configuration):
     return service_namespace, service_name, service_revision_tag
 
 
-def create_sruid(namespace, name, revision_tag=None):
-    """Create and validate a service revision unique identifier (SRUID) from a namespace, name, and revision tag. If no
-    revision tag is given, a "cool name" revision tag is generated.
+def create_sruid(namespace=DEFAULT_NAMESPACE, name=None, revision_tag=None):
+    """Create and validate a service revision unique identifier (SRUID) from a namespace, name, and revision tag.
 
     :param str namespace: the name of the group to which the service belongs
-    :param str name: the name of the service
-    :param str|None revision_tag: a tag that uniquely identifies a particular revision of the service
+    :param str|None name: the name of the service; if not provided, a UUID is generated
+    :param str|None revision_tag: a tag that uniquely identifies a particular revision of the service; if not provided, a "cool name" is generated
     :raise octue.exceptions.InvalidServiceID: if any of the namespace, name, or revision tag are invalid
     :return str: the valid SRUID comprising the namespace, name, and revision tag
     """
+    name = name or str(uuid.uuid4())
     revision_tag = revision_tag or coolname.generate_slug(2)
     validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
     return f"{namespace}/{name}:{revision_tag}"
@@ -240,52 +241,3 @@ def split_service_id(service_id, require_revision_tag=False):
         validate_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
     return namespace, name, revision_tag
-
-
-def get_default_sruid(namespace, name, service_registries):
-    """Get the SRUID of the default revision of the service `<namespace>/<name>` if it exists in one of the specified
-    service registries. The registries should be provided in priority order so that, if more than one registry contains
-    a matching service, the revision that's returned is taken from the highest priority (first) registry.
-
-    :param str namespace: the namespace of the service
-    :param str name: the name of the service
-    :param iter(dict) service_registries: the registries to look for the service in; the registries should be in priority order in case more than one has a service with the given namespace and name
-    :raise octue.exceptions.ServiceNotFound: if a revision can't be found for the service in the service registries
-    :return str: the SRUID of the default revision of the service
-    """
-    service_id = f"{namespace}/{name}"
-
-    for registry in service_registries:
-        response = requests.get(f"{registry['endpoint']}/{service_id}")
-
-        if response.ok:
-            revision_tag = response.json()["revision_tag"]
-            logger.info("Found service revision '%s:%s' in %r registry.", service_id, revision_tag, registry["name"])
-            return create_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
-
-    raise octue.exceptions.ServiceNotFound(
-        f"No revisions for the service {service_id!r} were found in any of the specified service registries: "
-        f"{service_registries!r}"
-    )
-
-
-def raise_if_revision_not_registered(sruid, service_registries):
-    """Raise an error if the service revision isn't registered in the given service registries.
-
-    :param str sruid: the SRUID of the service revision
-    :param iter(dict) service_registries: the registries to look for the service revision in
-    :raise octue.exceptions.ServiceNotFound: if the service revision isn't registered in any of the service registries
-    :return None:
-    """
-    namespace, name, revision_tag = split_service_id(sruid, require_revision_tag=True)
-
-    for registry in service_registries:
-        response = requests.get(f"{registry['endpoint']}/{namespace}/{name}?revision_tag={revision_tag}")
-
-        if response.ok:
-            logger.info("Found service revision %r in %r registry.", sruid, registry["name"])
-            return
-
-    raise octue.exceptions.ServiceNotFound(
-        f"Service revision {sruid!r} was not found in any of the specified service registries: {service_registries!r}"
-    )

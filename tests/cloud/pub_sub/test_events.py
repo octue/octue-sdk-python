@@ -1,10 +1,11 @@
 import datetime
 import os
-import uuid
 from unittest.mock import patch
+import uuid
 
 from octue.cloud.emulators._pub_sub import MESSAGES, MockMessage, MockService, MockSubscription
 from octue.cloud.emulators.service import ServicePatcher
+from octue.cloud.events.attributes import ResponseAttributes
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_NAME
@@ -28,6 +29,15 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         cls.parent = MockService(
             service_id="my-org/my-service:1.0.0",
             backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
+        )
+
+        cls.attributes = ResponseAttributes(
+            question_uuid=cls.question_uuid,
+            originator_question_uuid=cls.question_uuid,
+            parent=cls.parent.id,
+            originator=cls.parent.id,
+            sender=cls.parent.id,
+            recipient=cls.parent.id,
         )
 
     @classmethod
@@ -68,36 +78,14 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         events = [
-            {
-                "event": {"kind": "test", "order": 0},
-                "attributes": {"sender_type": "CHILD"},
-            },
-            {
-                "event": {"kind": "test", "order": 1},
-                "attributes": {"sender_type": "CHILD"},
-            },
-            {
-                "event": {"kind": "test", "order": 2},
-                "attributes": {"sender_type": "CHILD"},
-            },
-            {
-                "event": {"kind": "finish-test", "order": 3},
-                "attributes": {"sender_type": "CHILD"},
-            },
+            {"event": {"kind": "test", "order": 0}},
+            {"event": {"kind": "test", "order": 1}},
+            {"event": {"kind": "test", "order": 2}},
+            {"event": {"kind": "finish-test", "order": 3}},
         ]
 
         for event in events:
-            child._emit_event(
-                event=event["event"],
-                question_uuid=self.question_uuid,
-                parent_question_uuid=None,
-                originator_question_uuid=self.question_uuid,
-                attributes=event["attributes"],
-                parent=self.parent.id,
-                originator=self.parent.id,
-                recipient=self.parent.id,
-                retry_count=0,
-            )
+            child._emit_event(event=event["event"], attributes=self.attributes)
 
         result = event_handler.handle_events()
         self.assertEqual(result, "This is the result.")
@@ -126,32 +114,13 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         events = [
-            {
-                "event": {"kind": "test", "order": 0},
-                "attributes": {"sender_type": "CHILD"},
-            },
-            {
-                "event": {"kind": "test", "order": 1},
-                "attributes": {"sender_type": "CHILD"},
-            },
-            {
-                "event": {"kind": "finish-test", "order": 2},
-                "attributes": {"sender_type": "CHILD"},
-            },
+            {"event": {"kind": "test", "order": 0}},
+            {"event": {"kind": "test", "order": 1}},
+            {"event": {"kind": "finish-test", "order": 2}},
         ]
 
         for event in events:
-            child._emit_event(
-                event=event["event"],
-                question_uuid=self.question_uuid,
-                parent_question_uuid=None,
-                originator_question_uuid=self.question_uuid,
-                attributes=event["attributes"],
-                parent=self.parent.id,
-                originator=self.parent.id,
-                recipient=self.parent.id,
-                retry_count=0,
-            )
+            child._emit_event(event=event["event"], attributes=self.attributes)
 
         result = event_handler.handle_events(timeout=None)
 
@@ -167,27 +136,14 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
 
         events = [
-            {
-                "event": {"kind": "delivery_acknowledgement", "order": 0},
-                "attributes": {"sender_type": "CHILD"},
-            },
-            {
-                "event": {"kind": "result", "order": 1},
-                "attributes": {"sender_type": "CHILD"},
-            },
+            {"event": {"kind": "delivery_acknowledgement", "order": 0}},
+            {"event": {"kind": "result", "order": 1}},
         ]
 
         for event in events:
             child._emit_event(
                 event=event["event"],
-                question_uuid=self.question_uuid,
-                parent_question_uuid=None,
-                originator_question_uuid=self.question_uuid,
-                attributes=event["attributes"],
-                parent=self.parent.id,
-                originator=self.parent.id,
-                recipient=self.parent.id,
-                retry_count=0,
+                attributes=self.attributes,
             )
 
         result = event_handler.handle_events()
@@ -220,28 +176,12 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         event_handler._last_heartbeat = datetime.datetime.now()
 
         events = [
-            {
-                "event": {"kind": "delivery_acknowledgement", "order": 0},
-                "attributes": {"sender_type": "CHILD"},
-            },
-            {
-                "event": {"kind": "result", "order": 1},
-                "attributes": {"sender_type": "CHILD"},
-            },
+            {"event": {"kind": "delivery_acknowledgement", "order": 0}},
+            {"event": {"kind": "result", "order": 1}},
         ]
 
         for event in events:
-            child._emit_event(
-                event=event["event"],
-                question_uuid=self.question_uuid,
-                parent_question_uuid=None,
-                originator_question_uuid=self.question_uuid,
-                attributes=event["attributes"],
-                parent=self.parent.id,
-                originator=self.parent.id,
-                recipient=self.parent.id,
-                retry_count=0,
-            )
+            child._emit_event(event=event["event"], attributes=self.attributes)
 
         with patch(
             "octue.cloud.pub_sub.events.GoogleCloudPubSubEventHandler._time_since_last_heartbeat",
@@ -313,6 +253,7 @@ class TestPullAvailableEvents(BaseTestCase):
                     "sender_type": "CHILD",
                     "sender_sdk_version": "0.50.0",
                     "recipient": "my-org/my-service:1.0.0",
+                    "retry_count": "0",
                 },
             )
         ]

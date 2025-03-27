@@ -2,16 +2,16 @@
 Octue SDK (Python)
 ==================
 
-The python SDK for `Octue <https://octue.com>`_ data services, digital twins, and applications - get faster data
+The python SDK for `Octue <https://octue.com>`_ Twined scientific data services and digital twins - get faster data
 groundwork so you have more time for the science!
 
 .. _service_definition:
 
 .. admonition:: Definition
 
-    Octue service
-        An Octue data service, digital twin, or application that can be asked questions, process them, and return
-        answers. Octue services can communicate with each other with minimal extra setup.
+    Octue Twined service
+        A data service or digital twin built on the ``octue`` SDK that can be asked questions, process them, and return
+        answers. Twined services can communicate with each other with minimal extra setup.
 
 
 Key features
@@ -40,7 +40,7 @@ Key features
 **Create, run, and deploy your apps as services**
 
 - No need to change your app - just wrap it
-- Use the ``octue`` CLI to run your service locally or deploy it to Google Cloud Run
+- Use the ``octue`` CLI to run your service locally or deploy it to Google Kubernetes Engine (GKE)
 - Create JSON-schema interfaces to explicitly define the form of configuration, input, and output data
 - Ask other services questions as part of your app (i.e. build trees of services)
 - Automatically display readable, colourised logs, or use your own log handler
@@ -96,4 +96,3 @@ We use `GitHub Issues <https://github.com/octue/octue-sdk-python/issues>`_ [#]_ 
    api
    license
    version_history
-   bibliography

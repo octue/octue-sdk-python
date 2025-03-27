@@ -4,7 +4,7 @@
 Testing services
 ================
 We recommend writing automated tests for your service so anyone who wants to use it can have confidence in its quality
-and reliability at a glance. `Here's an example test <https://github.com/octue/example-service-cloud-run/blob/main/tests/test_app.py>`_
+and reliability at a glance. `Here's an example test <https://github.com/octue/example-service-kueue/blob/main/tests/test_app.py>`_
 for our example service.
 
 

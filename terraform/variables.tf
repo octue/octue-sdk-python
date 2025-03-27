@@ -1,39 +1,28 @@
-variable "organization" {
+variable "google_cloud_project_id" {
   type = string
-  default = "octue"
-}
-
-variable "project" {
-  type    = string
   default = "octue-sdk-python"
 }
 
-variable "project_number" {
+
+variable "google_cloud_region" {
   type = string
-  default = "437801218871"
+  default = "europe-west9"
 }
 
-variable "region" {
-  type = string
-  default = "europe-west1"
-}
 
-variable "github_organisation" {
-  type    = string
+variable "github_account" {
+  type = string
   default = "octue"
 }
 
-variable "credentials_file" {
-  type    = string
-  default = "gcp-credentials.json"
+
+variable "maintainer_service_account_names" {
+  type = set(string)
+  default = ["cortadocodes", "thclark"]
 }
 
-variable "service_namespace" {
-  type    = string
-  default = "octue"
-}
 
-variable "service_name" {
-  type    = string
-  default = "example-service-cloud-run"
+variable "deletion_protection" {
+  type    = bool
+  default = false
 }

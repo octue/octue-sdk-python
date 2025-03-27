@@ -1,53 +1,45 @@
 import concurrent.futures
 import copy
-import datetime
 import functools
-import importlib.metadata
 import json
 import logging
-import os
-import time
 import uuid
 
-import google.api_core.exceptions
-import jsonschema
 from google.api_core import retry
+import google.api_core.exceptions
 from google.cloud import pubsub_v1
+import jsonschema
 
-import octue.exceptions
-from octue.cloud.events import OCTUE_SERVICES_PREFIX
+from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
+from octue.cloud.events.attributes import CHILD_SENDER_TYPE, PARENT_SENDER_TYPE, QuestionAttributes, ResponseAttributes
 from octue.cloud.events.validation import raise_if_event_is_invalid
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event_and_attributes_from_pub_sub_message
+from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event
 from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
+from octue.cloud.registry import get_default_sruid, raise_if_revision_not_registered
 from octue.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
-    get_default_sruid,
-    raise_if_revision_not_registered,
     split_service_id,
     validate_sruid,
 )
 from octue.compatibility import warn_if_incompatible
+from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL, LOCAL_SDK_VERSION
+import octue.exceptions
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
+from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
-
 
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_NAMESPACE = "default"
 ANSWERS_NAMESPACE = "answers"
-OCTUE_SERVICE_REGISTRY_ENDPOINT = "services.registry.octue.com"
 
 # Switch message batching off by setting `max_messages` to 1. This minimises latency and is recommended for
 # microservices publishing single messages in a request-response sequence.
 BATCH_SETTINGS = pubsub_v1.types.BatchSettings(max_bytes=10 * 1000 * 1000, max_latency=0.01, max_messages=1)
-
-PARENT_SENDER_TYPE = "PARENT"
-CHILD_SENDER_TYPE = "CHILD"
 
 
 class Service:
@@ -63,14 +55,13 @@ class Service:
     :param octue.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
     :param str|None service_id: a unique ID to give to the service (any string); a UUID is generated if none is given
     :param callable|None run_function: the function the service should run when it is called
-    :param str|None name: an optional name to use for the service to override its ID in its string representation
     :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve service revisions when asking questions; these should be in priority order (highest priority first)
     :return None:
     """
 
     def __init__(self, backend, service_id=None, run_function=None, service_registries=None):
         if service_id is None:
-            self.id = create_sruid(namespace=DEFAULT_NAMESPACE, name=str(uuid.uuid4()))
+            self.id = create_sruid()
 
         # Raise an error if the service ID is some kind of falsey object that isn't `None`.
         elif not service_id:
@@ -85,7 +76,6 @@ class Service:
         self.service_registries = service_registries
 
         self._pub_sub_id = convert_service_id_to_pub_sub_form(self.id)
-        self._local_sdk_version = importlib.metadata.version("octue")
         self._event_handler = None
 
     def __repr__(self):
@@ -117,7 +107,7 @@ class Service:
         :raise octue.exceptions.ServiceNotFound: if the topic doesn't exist in the project
         :return octue.cloud.pub_sub.topic.Topic: the Octue services topic for the project
         """
-        topic = Topic(name=OCTUE_SERVICES_PREFIX, project_name=self.backend.project_name)
+        topic = Topic(name=OCTUE_SERVICES_TOPIC_NAME, project_name=self.backend.project_name)
 
         if not topic.exists():
             raise octue.exceptions.ServiceNotFound(
@@ -203,93 +193,65 @@ class Service:
         :param int|float heartbeat_interval: the time interval, in seconds, at which to send heartbeats
         :param float|None timeout: time in seconds to keep retrying sending of the answer once it has been calculated
         :raise Exception: if any exception arises during running analysis and sending its results
-        :return None:
+        :return dict: the result event
         """
         try:
-            (
-                question,
-                question_uuid,
-                parent_question_uuid,
-                originator_question_uuid,
-                forward_logs,
-                parent_sdk_version,
-                save_diagnostics,
-                parent,
-                originator,
-                retry_count,
-            ) = self._parse_question(question)
+            question, question_attributes = self._parse_question(question)
         except jsonschema.ValidationError:
             return
 
         heartbeater = None
-
-        routing_metadata = {
-            "question_uuid": question_uuid,
-            "parent_question_uuid": parent_question_uuid,
-            "originator_question_uuid": originator_question_uuid,
-            "parent": parent,
-            "originator": originator,
-            "retry_count": retry_count,
-        }
+        response_attributes = ResponseAttributes.from_question_attributes(question_attributes)
 
         try:
-            self._send_delivery_acknowledgment(**routing_metadata)
-            start_time = time.perf_counter()
+            self._send_delivery_acknowledgment(response_attributes)
 
             heartbeater = RepeatingTimer(
                 interval=heartbeat_interval,
-                function=self._send_heartbeat_and_check_runtime,
-                kwargs={"start_time": start_time, **routing_metadata},
+                function=self._send_heartbeat,
+                kwargs={"attributes": response_attributes},
             )
 
             heartbeater.daemon = True
             heartbeater.start()
 
-            if forward_logs:
+            if question_attributes.forward_logs:
                 analysis_log_handler = GoogleCloudPubSubHandler(
                     event_emitter=self._emit_event,
-                    recipient=parent,
-                    **routing_metadata,
+                    attributes=response_attributes,
                 )
             else:
                 analysis_log_handler = None
 
-            handle_monitor_message = functools.partial(self._send_monitor_message, **routing_metadata)
+            handle_monitor_message = functools.partial(self._send_monitor_message, attributes=response_attributes)
 
             analysis = self.run_function(
-                analysis_id=question_uuid,
+                analysis_id=question_attributes.question_uuid,
                 input_values=question.get("input_values"),
                 input_manifest=question.get("input_manifest"),
                 children=question.get("children"),
                 analysis_log_handler=analysis_log_handler,
                 handle_monitor_message=handle_monitor_message,
-                save_diagnostics=save_diagnostics,
-                originator_question_uuid=originator_question_uuid,
-                originator=originator,
+                save_diagnostics=question_attributes.save_diagnostics,
+                originator_question_uuid=question_attributes.originator_question_uuid,
+                originator=question_attributes.originator,
             )
 
-            result = make_minimal_dictionary(kind="result", output_values=analysis.output_values)
-
-            if analysis.output_manifest is not None:
-                result["output_manifest"] = analysis.output_manifest.to_primitive()
-
-            self._emit_event(
-                event=result,
-                recipient=parent,
-                attributes={"sender_type": CHILD_SENDER_TYPE},
-                timeout=timeout,
-                **routing_metadata,
-            )
-
+            result = self._send_result(analysis, response_attributes)
             heartbeater.cancel()
-            logger.info("%r answered question %r.", self, question_uuid)
+            logger.info("%r answered question %r.", self, question_attributes.question_uuid)
+            return result
 
         except BaseException as error:  # noqa
             if heartbeater is not None:
                 heartbeater.cancel()
 
-            warn_if_incompatible(child_sdk_version=self._local_sdk_version, parent_sdk_version=parent_sdk_version)
-            self.send_exception(timeout=timeout, **routing_metadata)
+            warn_if_incompatible(
+                recipient_sdk_version=LOCAL_SDK_VERSION,
+                sender_sdk_version=question_attributes.sender_sdk_version,
+            )
+
+            self.send_exception(attributes=response_attributes, timeout=timeout)
             raise error
 
     def ask(
@@ -308,6 +270,9 @@ class Service:
         push_endpoint=None,
         asynchronous=False,
         retry_count=0,
+        cpus=None,
+        memory=None,
+        ephemeral_storage=None,
         timeout=86400,
     ):
         """Ask a child a question (i.e. send it input values for it to analyse and produce output values for) and return
@@ -316,7 +281,7 @@ class Service:
 
         :param str service_id: the ID of the child to ask the question to
         :param any|None input_values: any input values for the question
-        :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
+        :param dict|octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
         :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
@@ -328,6 +293,9 @@ class Service:
         :param str|None push_endpoint: if answers to the question should be pushed to an endpoint, provide its URL here (the returned subscription will be a push subscription); if not, leave this as `None`
         :param bool asynchronous: if `True` and not using a push endpoint, don't create an answer subscription
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
+        :param int|None cpus: the number of CPUs to request for the question; defaults to the number set by the child service
+        :param str|None memory: the amount of memory to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
+        :param str|None ephemeral_storage: the amount of ephemeral storage to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
         :param float|None timeout: time in seconds to keep retrying sending the question
         :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
         """
@@ -345,17 +313,7 @@ class Service:
                     service_registries=self.service_registries,
                 )
 
-        # If not using a service registry, check that the service revision exists by checking for its subscription.
-        elif service_revision_tag:
-            service_revision_subscription = Subscription(
-                name=convert_service_id_to_pub_sub_form(service_id),
-                topic=self.services_topic,
-            )
-
-            if not service_revision_subscription.exists():
-                raise octue.exceptions.ServiceNotFound(f"Service revision {service_id!r} not found.")
-
-        else:
+        elif not service_revision_tag:
             raise octue.exceptions.InvalidServiceID(
                 f"A service revision tag for {service_id!r} must be provided if service registries aren't being used."
             )
@@ -408,6 +366,9 @@ class Service:
             originator_question_uuid=originator_question_uuid,
             originator=originator,
             recipient=service_id,
+            cpus=cpus,
+            memory=memory,
+            ephemeral_storage=ephemeral_storage,
             retry_count=retry_count,
         )
 
@@ -419,7 +380,7 @@ class Service:
         handle_monitor_message=None,
         record_events=True,
         timeout=60,
-        maximum_heartbeat_interval=300,
+        maximum_heartbeat_interval=DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
@@ -453,24 +414,40 @@ class Service:
         finally:
             subscription.delete()
 
-    def send_exception(
-        self,
-        question_uuid,
-        parent_question_uuid,
-        originator_question_uuid,
-        parent,
-        originator,
-        retry_count,
-        timeout=30,
-    ):
+    # def cancel(self, question_uuid, event_store_table_id, timeout=30):
+    #     """Request cancellation of a running question.
+    #
+    #     :param str question_uuid: the question UUID of the question to cancel
+    #     :param str event_store_table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
+    #     :param float timeout: time to wait for the cancellation to send before raising a timeout error [s]
+    #     :raise ValueError: if no question or more than one question is found for the given question UUID
+    #     :return None:
+    #     """
+    #     questions = get_events(table_id=event_store_table_id, question_uuid=question_uuid, kinds=["question"])
+    #
+    #     if len(questions) == 0:
+    #         raise ValueError(f"No question found with question UUID {question_uuid!r}.")
+    #
+    #     if len(questions) > 1:
+    #         raise ValueError(f"Multiple questions found with same question UUID {question_uuid!r}.")
+    #
+    #     question_finished = get_events(
+    #         table_id=event_store_table_id,
+    #         question_uuid=question_uuid,
+    #         kinds=["result", "exception"],
+    #     )
+    #
+    #     if question_finished:
+    #         logger.warning("Cannot cancel question %r - it has already finished.", question_uuid)
+    #
+    #     question_attributes = EventAttributes(**questions[0]["attributes"])
+    #     self._emit_event({"kind": "cancellation"}, attributes=question_attributes, timeout=timeout)
+    #     logger.info("Cancellation of question %r requested.", question_uuid)
+
+    def send_exception(self, attributes, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
-        :param str question_uuid: the UUID of the question this event relates to
-        :param str|None parent_question_uuid: the UUID of the question that triggered this question
-        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
-        :param str parent: the SRUID of the parent that asked the question this event is related to
-        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
-        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
+        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the exception event
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -484,30 +461,11 @@ class Service:
                 "exception_message": exception_message,
                 "exception_traceback": exception["traceback"],
             },
-            question_uuid=question_uuid,
-            parent_question_uuid=parent_question_uuid,
-            originator_question_uuid=originator_question_uuid,
-            parent=parent,
-            originator=originator,
-            recipient=parent,
-            retry_count=retry_count,
-            attributes={"sender_type": CHILD_SENDER_TYPE},
+            attributes=attributes,
             timeout=timeout,
         )
 
-    def _emit_event(
-        self,
-        event,
-        question_uuid,
-        parent_question_uuid,
-        originator_question_uuid,
-        parent,
-        originator,
-        recipient,
-        retry_count,
-        attributes=None,
-        timeout=30,
-    ):
+    def _emit_event(self, event, attributes, wait=True, timeout=30):
         """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes.
         Extra attributes can be added to an event via the `attributes` argument but the following attributes are always
         included:
@@ -524,54 +482,23 @@ class Service:
         - `datetime`
 
         :param dict event: JSON-serialisable data to emit as an event
-        :param str question_uuid:
-        :param str|None parent_question_uuid: the UUID of the question that triggered this question
-        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
-        :param str parent: the SRUID of the parent that asked the question this event is related to
-        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
-        :param str recipient: the SRUID of the service the event is intended for
-        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
-        :param dict|None attributes: key-value pairs to attach to the event - the values must be strings or bytes
+        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the event
+        :param bool wait: if `True`, wait for the result of the publishing future before continuing execution (this is important if the python process ends promptly after the event is emitted instead of being part of a prolonged stream as the publishing may not complete and the event won't actually be emitted)
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
         """
-        attributes = attributes or {}
-
-        attributes.update(
-            {
-                "uuid": str(uuid.uuid4()),
-                "datetime": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
-                "question_uuid": question_uuid,
-                "parent_question_uuid": parent_question_uuid,
-                "originator_question_uuid": originator_question_uuid,
-                "parent": parent,
-                "originator": originator,
-                "sender": self.id,
-                "sender_sdk_version": self._local_sdk_version,
-                "recipient": recipient,
-                "retry_count": retry_count,
-            }
-        )
-
-        converted_attributes = {}
-
-        for key, value in attributes.items():
-            if isinstance(value, bool):
-                value = str(int(value))
-            elif isinstance(value, (int, float)):
-                value = str(value)
-            elif value is None:
-                value = json.dumps(value)
-
-            converted_attributes[key] = value
+        attributes.reset_uuid_and_datetime()
 
         future = self.publisher.publish(
             topic=self.services_topic.path,
             data=json.dumps(event, cls=OctueJSONEncoder).encode(),
-            ordering_key=question_uuid,
+            ordering_key=attributes.question_uuid,
             retry=retry.Retry(deadline=timeout),
-            **converted_attributes,
+            **attributes.to_serialised_attributes(),
         )
+
+        if wait:
+            future.result()
 
         return future
 
@@ -588,6 +515,9 @@ class Service:
         originator,
         recipient,
         retry_count,
+        cpus,
+        memory,
+        ephemeral_storage,
         timeout=30,
     ):
         """Send a question to a child service.
@@ -612,186 +542,93 @@ class Service:
             input_manifest.use_signed_urls_for_datasets()
             question["input_manifest"] = input_manifest.to_primitive()
 
-        future = self._emit_event(
-            event=question,
+        question_attributes = QuestionAttributes(
             question_uuid=question_uuid,
             parent_question_uuid=parent_question_uuid,
             originator_question_uuid=originator_question_uuid,
             parent=self.id,
             originator=originator,
+            sender=self.id,
             recipient=recipient,
             retry_count=retry_count,
-            attributes={
-                "forward_logs": forward_logs,
-                "save_diagnostics": save_diagnostics,
-                "sender_type": PARENT_SENDER_TYPE,
-            },
-            timeout=timeout,
+            forward_logs=forward_logs,
+            save_diagnostics=save_diagnostics,
+            cpus=cpus,
+            memory=memory,
+            ephemeral_storage=ephemeral_storage,
         )
 
-        # Await successful publishing of the question.
-        future.result()
+        self._emit_event(event=question, attributes=question_attributes, timeout=timeout)
         logger.info("%r asked a question %r to service %r.", self, question_uuid, recipient)
 
-    def _send_delivery_acknowledgment(
-        self,
-        question_uuid,
-        parent_question_uuid,
-        originator_question_uuid,
-        parent,
-        originator,
-        retry_count,
-        timeout=30,
-    ):
+    def _send_delivery_acknowledgment(self, attributes, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
-        :param str question_uuid: the UUID of the question this event relates to
-        :param str|None parent_question_uuid: the UUID of the question that triggered this question
-        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
-        :param str parent: the SRUID of the service that asked the question this event is related to
-        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
-        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
+        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the delivery acknowledgement event
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        self._emit_event(
-            {"kind": "delivery_acknowledgement"},
-            question_uuid=question_uuid,
-            parent_question_uuid=parent_question_uuid,
-            originator_question_uuid=originator_question_uuid,
-            timeout=timeout,
-            parent=parent,
-            originator=originator,
-            recipient=parent,
-            retry_count=retry_count,
-            attributes={"sender_type": CHILD_SENDER_TYPE},
-        )
+        self._emit_event({"kind": "delivery_acknowledgement"}, attributes=attributes, timeout=timeout, wait=False)
+        logger.info("%r acknowledged receipt of question %r.", self, attributes.question_uuid)
 
-        logger.info("%r acknowledged receipt of question %r.", self, question_uuid)
+    def _send_heartbeat(self, attributes, timeout=30):
+        """Send a heartbeat to the parent, indicating that the service is alive.
 
-    def _send_heartbeat_and_check_runtime(
-        self,
-        question_uuid,
-        parent_question_uuid,
-        originator_question_uuid,
-        parent,
-        originator,
-        retry_count,
-        start_time,
-        runtime_timeout_warning_time=3480,  # This is 58 minutes in seconds.
-        timeout=30,
-    ):
-        """Send a heartbeat to the parent, indicating that the service is alive. If it's running on Cloud Run and it's
-        been running for longer than the runtime timeout warning time, log a warning that it will be stopped soon.
-
-        :param str question_uuid: the UUID of the question this event relates to
-        :param str|None parent_question_uuid: the UUID of the question that triggered this question
-        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
-        :param str parent: the SRUID of the parent that asked the question this event is related to
-        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
-        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
-        :param int|float start_time: the `time.perf_counter` time that the analysis was started [s]
-        :param int|float runtime_timeout_warning_time: the amount of time after which to warn that the runtime timeout is approaching [s]
+        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the heartbeat event
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
-        self._emit_event(
-            {"kind": "heartbeat"},
-            question_uuid=question_uuid,
-            parent_question_uuid=parent_question_uuid,
-            originator_question_uuid=originator_question_uuid,
-            parent=parent,
-            originator=originator,
-            recipient=parent,
-            retry_count=retry_count,
-            attributes={"sender_type": CHILD_SENDER_TYPE},
-            timeout=timeout,
-        )
-
-        if (
-            os.environ.get("COMPUTE_PROVIDER") == "GOOGLE_CLOUD_RUN"
-            and time.perf_counter() - start_time > runtime_timeout_warning_time
-        ):
-            logger.warning("This analysis will reach the maximum runtime and be stopped soon.")
-
+        self._emit_event({"kind": "heartbeat"}, attributes=attributes, timeout=timeout, wait=False)
         logger.debug("Heartbeat sent by %r.", self)
 
-    def _send_monitor_message(
-        self,
-        data,
-        question_uuid,
-        parent_question_uuid,
-        originator_question_uuid,
-        parent,
-        originator,
-        retry_count,
-        timeout=30,
-    ):
+    def _send_monitor_message(self, data, attributes, timeout=30):
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
-        :param str question_uuid: the UUID of the question this event relates to
-        :param str|None parent_question_uuid: the UUID of the question that triggered this question
-        :param str|None originator_question_uuid: the UUID of the question that triggered all ancestor questions of this question
-        :param str parent: the SRUID of the service that asked the question this event is related to
-        :param str originator: the SRUID of the service revision that triggered all ancestor questions of this question
-        :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
+        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the monitor message event
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
-        self._emit_event(
-            {"kind": "monitor_message", "data": data},
-            question_uuid=question_uuid,
-            parent_question_uuid=parent_question_uuid,
-            originator_question_uuid=originator_question_uuid,
-            parent=parent,
-            originator=originator,
-            recipient=parent,
-            retry_count=retry_count,
-            timeout=timeout,
-            attributes={"sender_type": CHILD_SENDER_TYPE},
-        )
-
+        self._emit_event({"kind": "monitor_message", "data": data}, attributes=attributes, timeout=timeout, wait=False)
         logger.debug("Monitor message sent by %r.", self)
 
-    def _parse_question(self, question):
-        """Parse a question in the Google Cloud Run or Google Pub/Sub format.
+    def _send_result(self, analysis, attributes, timeout=30):
+        """Send the result to the parent.
 
-        :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in Google Cloud Run or Google Pub/Sub format
-        :return (dict, str, str, str, bool, str, str, str, str, int): the question's event and its attributes (question UUID, parent question UUID, originator question UUID, whether to forward logs, the Octue SDK version of the parent, whether to save diagnostics, the SRUID of the parent that asked the question, the SRUID of the service revision that triggered all ancestor questions of this question, and the retry count)
+        :param octue.resources.analysis.Analysis analysis: the analysis object containing the output values and/or output manifest
+        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the result event
+        :param float timeout: time in seconds to retry sending the message
+        :return dict: the result
+        """
+        result = make_minimal_dictionary(kind="result", output_values=analysis.output_values)
+
+        if analysis.output_manifest is not None:
+            result["output_manifest"] = analysis.output_manifest.to_primitive()
+
+        self._emit_event(event=result, attributes=attributes, timeout=timeout)
+        return result
+
+    def _parse_question(self, question):
+        """Parse a question in dictionary format or direct Google Pub/Sub format.
+
+        :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in dictionary format or direct Google Pub/Sub format
+        :return (dict, octue.cloud.events.attributes.QuestionAttributes): the question's event and its attributes
         """
         logger.info("%r received a question.", self)
 
         # Acknowledge the question if it's directly from Pub/Sub.
         if hasattr(question, "ack"):
             question.ack()
+            logger.info("Question acknowledged on Pub/Sub.")
 
-        event, attributes = extract_event_and_attributes_from_pub_sub_message(question)
-        event_for_validation = copy.deepcopy(event)
+        event = extract_event(question)
+        attributes = QuestionAttributes.from_serialised_attributes(get_nested_attribute(question, "attributes"))
+        logger.info("Extracted question event and attributes.")
 
-        raise_if_event_is_invalid(
-            event=event_for_validation,
-            attributes=attributes,
-            recipient=self.id,
-            # Don't assume the presence of specific attributes before validation.
-            parent_sdk_version=attributes.get("sender_sdk_version"),
-            child_sdk_version=importlib.metadata.version("octue"),
-        )
+        raise_if_event_is_invalid(event=copy.deepcopy(event), attributes=attributes, recipient=self.id)
+        logger.info("%r parsed question %r successfully.", self, attributes.question_uuid)
 
-        logger.info("%r parsed question %r successfully.", self, attributes["question_uuid"])
+        if attributes.retry_count > 0:
+            logger.warning("This is retry %d for question %r.", attributes.retry_count, attributes.question_uuid)
 
-        if attributes["retry_count"] > 0:
-            logger.warning("This is retry %d for question %r.", attributes["retry_count"], attributes["question_uuid"])
-
-        return (
-            event,
-            attributes["question_uuid"],
-            attributes["parent_question_uuid"],
-            attributes["originator_question_uuid"],
-            attributes["forward_logs"],
-            attributes["sender_sdk_version"],
-            attributes["save_diagnostics"],
-            attributes["parent"],
-            attributes["originator"],
-            attributes["retry_count"],
-        )
+        return event, attributes

@@ -1,7 +1,10 @@
+import logging
+
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
 from octue.cloud.events.validation import VALID_EVENT_KINDS
 
+logger = logging.getLogger(__name__)
 
 DEFAULT_FIELDS = (
     "`originator_question_uuid`",
@@ -20,11 +23,13 @@ DEFAULT_FIELDS = (
     "`other_attributes`",
 )
 
+DEFAULT_EVENT_STORE_TABLE_ID = "octue_twined.service-events"
+
 BACKEND_METADATA_FIELDS = ("`backend`", "`backend_metadata`")
 
 
 def get_events(
-    table_id,
+    table_id=DEFAULT_EVENT_STORE_TABLE_ID,
     question_uuid=None,
     parent_question_uuid=None,
     originator_question_uuid=None,
@@ -44,7 +49,7 @@ def get_events(
     When the limit is smaller than the total number of events, the default behaviour is to return the "tail" of the
     event stream for the question (the most recent n events for the question).
 
-    :param str table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-project.your-dataset.your-table"
+    :param str table_id: the full ID of the Google BigQuery table used as the event store e.g. "your-dataset.your-table"
     :param str|None question_uuid: the UUID of a question to get events for
     :param str|None parent_question_uuid: the UUID of a parent question to get the sub-question events for
     :param str|None originator_question_uuid: the UUID of an originator question get the full tree of events for
@@ -120,6 +125,7 @@ def get_events(
     result = query_job.result()
 
     if result.total_rows == 0:
+        logger.warning("No events were found for this question.")
         return []
 
     events = [_deserialise_event(event) for event in result]

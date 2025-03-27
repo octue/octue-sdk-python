@@ -1,16 +1,16 @@
-import importlib.metadata
+from collections import defaultdict
 import json
 import logging
-from collections import defaultdict
 
 import google.api_core
 
+from octue.cloud.events.attributes import QuestionAttributes
 from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import PARENT_SENDER_TYPE, Service
+from octue.cloud.pub_sub.service import Service
+from octue.definitions import LOCAL_SDK_VERSION
 from octue.resources import Manifest
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
-
 
 logger = logging.getLogger(__name__)
 
@@ -338,8 +338,11 @@ class MockService(Service):
         push_endpoint=None,
         asynchronous=False,
         retry_count=0,
+        cpus=None,
+        memory=None,
+        ephemeral_storage=None,
         timeout=86400,
-        parent_sdk_version=importlib.metadata.version("octue"),
+        parent_sdk_version=LOCAL_SDK_VERSION,
     ):
         """Put the question into the messages register, register the existence of the corresponding response topic, add
         the response to the register, and return a MockFuture containing the answer subscription path.
@@ -358,6 +361,9 @@ class MockService(Service):
         :param str|None push_endpoint:
         :param bool asynchronous:
         :param int retry_count: the retry count of the question (this is zero if it's the first attempt at the question)
+        :param int|None cpus:
+        :param str|None memory:
+        :param str|None ephemeral_storage:
         :param float|None timeout:
         :param str parent_sdk_version:
         :return MockFuture, str:
@@ -377,6 +383,9 @@ class MockService(Service):
             push_endpoint=push_endpoint,
             asynchronous=asynchronous,
             retry_count=retry_count,
+            cpus=cpus,
+            memory=memory,
+            ephemeral_storage=ephemeral_storage,
             timeout=timeout,
         )
 
@@ -397,27 +406,26 @@ class MockService(Service):
         # If the originator isn't provided, assume that this service revision is the originator.
         originator = originator or self.id
 
+        attributes = QuestionAttributes(
+            question_uuid=question_uuid,
+            parent_question_uuid=parent_question_uuid,
+            originator_question_uuid=originator_question_uuid,
+            forward_logs=subscribe_to_logs,
+            save_diagnostics=save_diagnostics,
+            parent=self.id,
+            originator=originator,
+            sender=self.id,
+            sender_sdk_version=parent_sdk_version,
+            recipient=service_id,
+            retry_count=retry_count,
+            cpus=cpus,
+            memory=memory,
+            ephemeral_storage=ephemeral_storage,
+        )
+
         try:
             self.children[service_id].answer(
-                MockMessage.from_primitive(
-                    data=question,
-                    attributes={
-                        "datetime": "2024-04-11T10:46:48.236064",
-                        "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
-                        "question_uuid": question_uuid,
-                        "parent_question_uuid": parent_question_uuid,
-                        "originator_question_uuid": originator_question_uuid,
-                        "forward_logs": subscribe_to_logs,
-                        "save_diagnostics": save_diagnostics,
-                        "parent": self.id,
-                        "originator": originator,
-                        "sender": self.id,
-                        "sender_type": PARENT_SENDER_TYPE,
-                        "sender_sdk_version": parent_sdk_version,
-                        "recipient": service_id,
-                        "retry_count": retry_count,
-                    },
-                )
+                MockMessage.from_primitive(data=question, attributes=attributes.to_serialised_attributes())
             )
         except Exception as e:  # noqa
             logger.exception(e)

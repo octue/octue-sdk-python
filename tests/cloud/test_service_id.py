@@ -1,18 +1,14 @@
-import json
 import logging
 import os
 import unittest
 from unittest.mock import patch
 
-import requests
-
-import octue.exceptions
 from octue.cloud.service_id import (
+    DEFAULT_NAMESPACE,
     convert_service_id_to_pub_sub_form,
-    get_default_sruid,
+    create_sruid,
     get_sruid_from_pub_sub_resource_name,
     get_sruid_parts,
-    raise_if_revision_not_registered,
     split_service_id,
     validate_sruid,
 )
@@ -74,6 +70,34 @@ class TestGetSRUIDParts(unittest.TestCase):
         self.assertEqual(revision_tag, "this-is-a-tag")
 
 
+class TestCreateSRUID(unittest.TestCase):
+    def test_error_raised_for_invalid_arguments(self):
+        """Test that an error is raised when trying to create an SRUID from invalid components."""
+        for namespace, name, revision_tag in (
+            ("MY-NAMESPACE", "my-name", "my-tag"),
+            ("my-namespace", "MY-NAME", "my-tag"),
+            ("my-namespace", "my-name", "@"),
+        ):
+            with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
+                with self.assertRaises(InvalidServiceID):
+                    create_sruid(namespace, name, revision_tag)
+
+    def test_default(self):
+        """Test that a valid SRUID is created when no arguments are provided and that a different SRUID is created each
+        time.
+        """
+        sruid = create_sruid()
+        validate_sruid(sruid)
+        self.assertTrue(sruid.startswith(DEFAULT_NAMESPACE))
+        self.assertNotEqual(sruid, create_sruid())
+
+    def test_with_arguments(self):
+        """Test that a valid SRUID is created from valid arguments."""
+        sruid = create_sruid("my-namespace", "my-name", "my-tag")
+        validate_sruid(sruid)
+        self.assertEqual(sruid, "my-namespace/my-name:my-tag")
+
+
 class TestConvertServiceIDToPubSubForm(unittest.TestCase):
     def test_convert_service_id_to_pub_sub_form(self):
         """Test that service IDs containing organisations, revision tags, and the services namespace are all converted
@@ -94,8 +118,8 @@ class TestConvertServiceIDToPubSubForm(unittest.TestCase):
 class TestGetSRUIDFromPubSubResourceName(unittest.TestCase):
     def test_get_sruid_from_pub_sub_resource_name(self):
         """Test that an SRUID can be extracted from a Pub/Sub resource name."""
-        sruid = get_sruid_from_pub_sub_resource_name("octue.example-service-cloud-run.0-3-2")
-        self.assertEqual(sruid, "octue/example-service-cloud-run:0.3.2")
+        sruid = get_sruid_from_pub_sub_resource_name("octue.example-service.0-3-2")
+        self.assertEqual(sruid, "octue/example-service:0.3.2")
 
 
 class TestValidateSRUID(unittest.TestCase):
@@ -117,7 +141,7 @@ class TestValidateSRUID(unittest.TestCase):
             "MY-ORG/my-service:1.9.4",
             "my-org/MY-SERVICE:1.9.4",
             "my-org/MY-SERVICE:@",
-            f"my-org/my-service:{'1'*129}",
+            f"my-org/my-service:{'1' * 129}",
             "/my-service",
             "/my-service:",
         ):
@@ -165,7 +189,7 @@ class TestValidateSRUID(unittest.TestCase):
             ("MY-ORG", "my-service", "1.9.4"),
             ("my-org", "MY-SERVICE", "1.9.4"),
             ("my-org", "my-service", "@"),
-            ("my-org", "my-service", f"{'1'*129}"),
+            ("my-org", "my-service", f"{'1' * 129}"),
         ):
             with self.subTest(namespace=namespace, name=name, revision_tag=revision_tag):
                 with self.assertRaises(InvalidServiceID):
@@ -200,82 +224,3 @@ class TestSplitServiceID(unittest.TestCase):
         self.assertEqual(namespace, "octue")
         self.assertEqual(name, "my-service")
         self.assertIsNone(revision_tag)
-
-
-class TestGetLatestSRUID(unittest.TestCase):
-    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "https://blah.com/services"}]
-
-    def test_error_raised_if_revision_not_found(self):
-        """Test that an error is raised if no revision is found for the service in the given registries."""
-        mock_response = requests.Response()
-        mock_response.status_code = 404
-
-        with patch("requests.get", return_value=mock_response):
-            with self.assertRaises(octue.exceptions.ServiceNotFound):
-                get_default_sruid(
-                    namespace="my-org",
-                    name="my-service",
-                    service_registries=self.SERVICE_REGISTRIES,
-                )
-
-    def test_get_latest_sruid(self):
-        """Test that the latest SRUID for a service can be found."""
-        mock_response = requests.Response()
-        mock_response.status_code = 200
-        mock_response._content = json.dumps({"revision_tag": "1.3.9"}).encode()
-
-        with patch("requests.get", return_value=mock_response):
-            latest_sruid = get_default_sruid(
-                namespace="my-org",
-                name="my-service",
-                service_registries=self.SERVICE_REGISTRIES,
-            )
-
-        self.assertEqual(latest_sruid, "my-org/my-service:1.3.9")
-
-    def test_get_latest_sruid_when_not_in_first_registry(self):
-        """Test that the latest SRUID for a service can be found when the service isn't in the first registry."""
-        mock_failure_response = requests.Response()
-        mock_failure_response.status_code = 404
-
-        mock_success_response = requests.Response()
-        mock_success_response.status_code = 200
-        mock_success_response._content = json.dumps({"revision_tag": "1.3.9"}).encode()
-
-        with patch("requests.get", side_effect=[mock_failure_response, mock_success_response]):
-            latest_sruid = get_default_sruid(
-                namespace="my-org",
-                name="my-service",
-                service_registries=self.SERVICE_REGISTRIES
-                + [{"name": "Another Registry", "endpoint": "cats.com/services"}],
-            )
-
-        self.assertEqual(latest_sruid, "my-org/my-service:1.3.9")
-
-
-class TestRaiseIfRevisionNotRegistered(unittest.TestCase):
-    SERVICE_REGISTRIES = [{"name": "Octue Registry", "endpoint": "https://blah.com/services"}]
-
-    def test_error_raised_if_revision_not_found(self):
-        """Test that an error is raised if no revision is found for the service in the given registries."""
-        mock_response = requests.Response()
-        mock_response.status_code = 404
-
-        with patch("requests.get", return_value=mock_response):
-            with self.assertRaises(octue.exceptions.ServiceNotFound):
-                raise_if_revision_not_registered(
-                    sruid="my-org/my-service:1.0.0",
-                    service_registries=self.SERVICE_REGISTRIES,
-                )
-
-    def test_no_error_raised_if_service_revision_registered(self):
-        """Test that no error is raised if a revision is found for the service in the given registries."""
-        mock_response = requests.Response()
-        mock_response.status_code = 200
-        mock_response._content = json.dumps({"revision_tag": "1.0.0"}).encode()
-
-        with patch("requests.get", return_value=mock_response):
-            raise_if_revision_not_registered(
-                sruid="my-org/my-service:1.0.0",
-                service_registries=self.SERVICE_REGISTRIES,
-            )

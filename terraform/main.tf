@@ -1,100 +1,50 @@
 terraform {
+  required_version = ">= 1.8.0"
+
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "4.53.1"
+      version = "~>6.12"
     }
   }
+
   cloud {
     organization = "octue"
     workspaces {
-      name = "octue-sdk-python"
+      project = "octue-twined"
+      tags = ["testing"]
     }
   }
-}
-
-
-resource "google_project_service" "pub_sub" {
-  project = var.project
-  service = "pubsub.googleapis.com"
-
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
-}
-
-
-resource "google_project_service" "cloud_resource_manager" {
-  project = var.project
-  service = "cloudresourcemanager.googleapis.com"
-
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
-}
-
-
-resource "google_project_service" "iam" {
-  project = var.project
-  service = "iam.googleapis.com"
-
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
-}
-
-
-resource "google_project_service" "artifact_registry" {
-  project = var.project
-  service = "artifactregistry.googleapis.com"
-
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
-}
-
-
-resource "google_project_service" "cloud_run" {
-  project = var.project
-  service = "run.googleapis.com"
-
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
-}
-
-
-resource "google_project_service" "cloud_functions" {
-  project = var.project
-  service = "cloudfunctions.googleapis.com"
-}
-
-
-resource "google_project_service" "eventarc" {
-  project = var.project
-  service = "eventarc.googleapis.com"
-}
-
-
-resource "google_project_service" "cloud_build" {
-  project = var.project
-  service = "cloudbuild.googleapis.com"
-}
-
-
-resource "google_project_service" "bigquery" {
-  project = var.project
-  service = "bigquery.googleapis.com"
 }
 
 
 provider "google" {
-  credentials = file(var.credentials_file)
-  project     = var.project
-  region      = var.region
+  project     = var.google_cloud_project_id
+  region      = var.google_cloud_region
+}
+
+
+data "google_client_config" "default" {}
+
+
+module "octue_twined_core" {
+  source = "git::github.com/octue/terraform-octue-twined-core.git?ref=0.1.1"
+  google_cloud_project_id = var.google_cloud_project_id
+  google_cloud_region = var.google_cloud_region
+  github_account = var.github_account
+  maintainer_service_account_names = var.maintainer_service_account_names
+  deletion_protection = var.deletion_protection
+}
+
+
+resource "google_project_service" "pub_sub" {
+  service                    = "pubsub.googleapis.com"
+  disable_dependent_services = true
+  project                    = var.google_cloud_project_id
+}
+
+
+resource "google_pubsub_topic" "services_topic" {
+  name       = "main.octue.services"
+  depends_on = [google_project_service.pub_sub]
 }

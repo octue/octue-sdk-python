@@ -1,26 +1,25 @@
 .. _services:
 
-==============
-Octue services
-==============
+=====================
+Octue Twined services
+=====================
 
-There's a growing range of live :ref:`services <service_definition>` in the Octue ecosystem that you can ask questions
-to and get answers from. Currently, all of them are related to wind energy. Here's a quick glossary of terms before we
-tell you more:
+There's a growing range of live :ref:`services <service_definition>` in the Octue ecosystem that you can query, mostly
+related to wind energy and other renewables. Here's a quick glossary of terms before we tell you more:
 
 .. admonition:: Definitions
 
-    Octue service
+    Twined service
         See :ref:`here <service_definition>`.
 
     Child
-        An Octue service that can be asked a question. This name reflects the tree structure of services (specifically,
+        A Twined service that can be asked a question. This name reflects the tree structure of services (specifically,
         `a DAG <https://en.wikipedia.org/wiki/Directed_acyclic_graph>`_) formed by the service asking the question (the
         parent), the child it asks the question to, any children that the child asks questions to as part of forming
         its answer, and so on.
 
     Parent
-        An Octue service that asks a question to another Octue service (a child).
+        A Twined service that asks a question to another Twined service (a child).
 
     Asking a question
         Sending data (input values and/or an input manifest) to a child for processing/analysis.
@@ -28,7 +27,7 @@ tell you more:
     Receiving an answer
        Receiving data (output values and/or an output manifest) from a child you asked a question to.
 
-    Octue ecosystem
+    Twined ecosystem
        The set of services running the Octue SDK as their backend. These services guarantee:
 
        - Defined input/output JSON schemas and validation
@@ -48,7 +47,7 @@ They look like ``namespace/name:tag`` where the tag is often a semantic version 
 .. admonition:: Definitions
 
     Service revision
-        A specific instance of an Octue service that can be individually addressed. The revision could correspond to a
+        A specific instance of a Twined service that can be individually addressed. The revision could correspond to a
         version of the service, a dynamic development branch for it, or a deliberate duplication or variation of it.
 
     .. _sruid_definition:
@@ -93,7 +92,7 @@ They look like ``namespace/name:tag`` where the tag is often a semantic version 
 Service communication standard
 ==============================
 
-Octue services communicate according to the service communication standard. The JSON schema defining this can be found
+Twined services communicate according to the service communication standard. The JSON schema defining this can be found
 `here <https://strands.octue.com/octue/service-communication>`_. Messages received by services are validated against it
 and invalid messages are rejected. The schema is in beta, so (rare) breaking changes are reflected in the minor version
 number.

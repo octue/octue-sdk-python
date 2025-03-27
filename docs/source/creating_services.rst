@@ -9,9 +9,9 @@ return answers. They can run locally on any machine or be deployed to the cloud.
 - The language of the entrypoint must by ``python3`` (you can call processes using other languages within this though)
 
 
-Anatomy of an Octue service
+Anatomy of a Twined service
 ===========================
-An Octue service is defined by the following files (located in the repository root by default).
+A Twined service is defined by the following files (located in the repository root by default).
 
 app.py
 ------
@@ -52,7 +52,6 @@ octue.yaml
 
         - ``app_source_path: <path>`` - if your ``app.py`` file is not in the repository root
         - ``app_configuration_path: <path>`` - if your app needs an app configuration file that isn't in the repository root
-        - ``dockerfile_path: <path>`` - if your app needs a ``Dockerfile`` that isn't in the repository root
 
         All paths should be relative to the repository root. Other valid entries can be found in the
         :mod:`ServiceConfiguration <octue.configuration.ServiceConfiguration>` constructor.
@@ -71,7 +70,7 @@ App configuration file (optional)
 
             ----
 
-        If your app needs any configuration, asks questions to any other Octue services, or produces output
+        If your app needs any configuration, asks questions to any other Twined services, or produces output
         datafiles/datasets, you will need to provide an app configuration. Currently, this must take the form of a JSON
         file. It can contain the following keys:
 
@@ -93,10 +92,10 @@ Dockerfile (optional)
 
             ----
 
-        Octue services run in a Docker container if they are deployed. They can also run this way locally. The SDK
+        Twined services run in a Docker container if they are deployed. They can also run this way locally. The SDK
         provides a default ``Dockerfile`` for these purposes that will work for most cases:
 
-        - For deploying to `Google Cloud Run <https://github.com/octue/octue-sdk-python/blob/main/octue/cloud/deployment/google/cloud_run/Dockerfile>`_
+        - For deploying to `Kubernetes <https://github.com/octue/octue-sdk-python/blob/main/octue/cloud/deployment/dockerfiles/Dockerfile-python311>`_
 
         However, you may need to write and provide your own ``Dockerfile`` if your app requires:
 
@@ -106,10 +105,11 @@ Dockerfile (optional)
 
         Here are two examples of a custom ``Dockerfile`` that use different base images:
 
-        - `A TurbSim service <https://github.com/aerosense-ai/turbsim-service/blob/main/Dockerfile>`_
-        - `An OpenFAST service <https://github.com/aerosense-ai/openfast-service/blob/main/Dockerfile>`_
+        - `A TurbSim service <https://github.com/octue/turbsim-service/blob/main/Dockerfile>`_
+        - `An OpenFAST service <https://github.com/octue/openfast-service/blob/main/Dockerfile>`_
 
-        If you do provide one, you must specify its path in ``octue.yaml`` under the ``dockerfile_path`` key.
+        If you do provide one, you must provide its path relative to your repository to the `build-twined-services`
+        GitHub Actions `workflow <https://github.com/octue/workflows/blob/main/.github/workflows/build-twined-service.yml>`_.
 
         As always, if you need help with this, feel free to drop us a message or raise an issue!
 
@@ -149,7 +149,7 @@ Template apps
 We've created some template apps for you to look at and play around with. We recommend going through them in this order:
 
 1. The `fractal app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-fractal>`_ -
-   introduces a basic Octue service that returns output values to its parent.
+   introduces a basic Twined service that returns output values to its parent.
 2. The `using-manifests app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-using-manifests>`_ -
    introduces using a manifest of output datasets to return output files to its parent.
 3. The `child-services app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-child-services>`_ -
@@ -160,14 +160,11 @@ Deploying services automatically
 ================================
 Automated deployment with Octue means:
 
-- Your service runs in Google Cloud, ready to accept questions from and return answers to other services.
+- Your service runs in Google Kubernetes Engine (GKE), ready to accept questions from and return answers to other services.
 - You don't need to do anything to update your deployed service with new code changes - the service simply gets rebuilt
   and re-deployed each time you push a commit to your ``main`` branch, or merge a pull request into it (other branches
   and deployment strategies are available, but this is the default).
 - Serverless is the default - your service only runs when questions from other services are sent to it, meaning there
-  is no cost to having it deployed but not in use.
+  are minimal costs to having it deployed but not in use.
 
-To enable automated deployments, contact us so we can create a Google Cloud Build trigger linked to your git repository.
-This requires no work from you apart from authorising the connection to GitHub (or another git provider).
-
-If you want to deploy services yourself, see :doc:`here <deploying_services>`.
+If you'd like help deploying services, contact us. To do it yourself, see :doc:`here <deploying_services>`.

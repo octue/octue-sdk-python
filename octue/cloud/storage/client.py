@@ -6,21 +6,23 @@ import logging
 import os
 import warnings
 
-import google.api_core.exceptions
-import google.auth.exceptions
 from google import auth
+import google.api_core.exceptions
 from google.auth import compute_engine
+import google.auth.exceptions
 from google.auth.transport import requests as google_requests
 from google.cloud.storage import Client
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
-from google_crc32c import Checksum
 
 from octue.cloud import storage
 from octue.exceptions import CloudStorageBucketNotFound
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=RuntimeWarning, module="google_crc32c")
+    from google_crc32c import Checksum
 
 logger = logging.getLogger(__name__)
 
@@ -317,8 +319,8 @@ class GoogleCloudStorageClient:
         blob = self._blob(cloud_path)
 
         try:
-            # Use compute engine credentials if running on e.g. Google Cloud Run, performing a refresh request to get
-            # the access token of the credentials (otherwise it's `None`).
+            # Use compute engine credentials if running in Google Cloud, performing a refresh request to get the access
+            # token of the credentials (otherwise it's `None`).
             credentials, _ = google.auth.default()
             request = google_requests.Request()
             credentials.refresh(request)

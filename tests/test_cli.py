@@ -9,18 +9,22 @@ from click.testing import CliRunner
 
 from octue.cli import octue_cli
 from octue.cloud import storage
-from octue.cloud.emulators._pub_sub import MockService, MockSubscription, MockTopic
+from octue.cloud.emulators._pub_sub import MockService
 from octue.cloud.emulators.service import ServicePatcher
-from octue.cloud.events import OCTUE_SERVICES_PREFIX
-from octue.cloud.pub_sub import Topic
 from octue.configuration import AppConfiguration, ServiceConfiguration
-from octue.resources import Dataset
+from octue.resources import Dataset, Manifest
 from octue.utils.patches import MultiPatcher
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 
-
 TWINE_FILE_PATH = os.path.join(TESTS_DIR, "data", "twines", "valid_schema_twine.json")
+
+MOCK_CONFIGURATIONS = (
+    ServiceConfiguration(name="test-app", namespace="testing"),
+    AppConfiguration(configuration_values={"n_iterations": 5}),
+)
+
+RESULT = {"output_values": {"some": "data"}}
 
 
 class TestCLI(BaseTestCase):
@@ -38,128 +42,561 @@ class TestCLI(BaseTestCase):
         self.assertEqual(help_result.output, h_result.output)
 
 
-class TestRunCommand(BaseTestCase):
-    MOCK_CONFIGURATIONS = (
-        ServiceConfiguration(
-            name="test-app",
-            namespace="testing",
-            app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module"),
-            twine_path=TWINE_FILE_PATH,
-            app_configuration_path="blah.json",
-        ),
-        AppConfiguration(configuration_values={"n_iterations": 5}),
-    )
+class TestQuestionAskRemoteCommand(BaseTestCase):
+    SRUID = "my-org/my-service:1.0.0"
+    QUESTION_UUID = "81f35b28-068b-4314-9eeb-e55e60d0fe8a"
 
-    def test_run(self):
-        """Test that the `run` CLI command runs the given service and outputs the output values."""
-        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+    def test_with_input_values(self):
+        """Test that the `octue question ask remote` CLI command works with just input values."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.Child.ask", return_value=(RESULT, self.QUESTION_UUID)) as mock_ask:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "remote",
+                        self.SRUID,
+                        '--input-values={"height": 3}',
+                    ],
+                )
+
+        mock_ask.assert_called_with(input_values={"height": 3}, input_manifest=None, asynchronous=False)
+        self.assertIn(json.dumps(RESULT), result.output)
+
+    def test_with_input_manifest(self):
+        """Test that the `octue question ask remote` CLI command works with just an input manifest."""
+        input_manifest = self.create_valid_manifest()
+
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.Child.ask", return_value=(RESULT, self.QUESTION_UUID)) as mock_ask:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "remote",
+                        self.SRUID,
+                        f"--input-manifest={input_manifest.serialise()}",
+                    ],
+                )
+
+        self.assertEqual(mock_ask.call_args.kwargs["input_manifest"].id, input_manifest.id)
+        self.assertIn(json.dumps(RESULT), result.output)
+
+    def test_with_input_values_and_manifest(self):
+        """Test that the `octue question ask remote` CLI command works with input values and input manifest."""
+        input_values = {"height": 3}
+        input_manifest = self.create_valid_manifest()
+
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.Child.ask", return_value=(RESULT, self.QUESTION_UUID)) as mock_ask:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "remote",
+                        self.SRUID,
+                        f"--input-values={json.dumps(input_values)}",
+                        f"--input-manifest={input_manifest.serialise()}",
+                    ],
+                )
+
+        self.assertEqual(mock_ask.call_args.kwargs["input_values"], input_values)
+        self.assertEqual(mock_ask.call_args.kwargs["input_manifest"].id, input_manifest.id)
+        self.assertIn(json.dumps(RESULT), result.output)
+
+    def test_with_output_manifest(self):
+        """Test that the `octue question ask remote` CLI command returns output manifests in a useful form."""
+        result = {"output_values": {"some": "data"}, "output_manifest": self.create_valid_manifest()}
+
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.Child.ask", return_value=(result, self.QUESTION_UUID)):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "remote",
+                        self.SRUID,
+                        f"--input-values={json.dumps({'height': 3})}",
+                    ],
+                )
+
+        output = json.loads(result.output)
+        self.assertEqual(output["output_values"], {"some": "data"})
+        self.assertEqual(len(output["output_manifest"]["datasets"]), 2)
+
+    def test_asynchronous(self):
+        """Test that the `octue question ask remote` CLI command works with the `--asynchronous` option and returns the
+        question UUID.
+        """
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.Child.ask", return_value=(RESULT, self.QUESTION_UUID)) as mock_ask:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "remote",
+                        self.SRUID,
+                        '--input-values={"height": 3}',
+                        "--asynchronous",
+                    ],
+                )
+
+        mock_ask.assert_called_with(input_values={"height": 3}, input_manifest=None, asynchronous=True)
+        self.assertIn(self.QUESTION_UUID, result.output)
+
+    def test_with_no_service_configuration(self):
+        """Test that the command works when no service configuration is provided."""
+        with mock.patch("octue.cli.Child.ask", return_value=(RESULT, self.QUESTION_UUID)) as mock_ask:
             result = CliRunner().invoke(
                 octue_cli,
                 [
-                    "run",
-                    f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
+                    "question",
+                    "ask",
+                    "remote",
+                    self.SRUID,
+                    '--input-values={"height": 3}',
                 ],
             )
 
-        self.assertIn(json.dumps({"width": 3}), result.output)
+        mock_ask.assert_called_with(input_values={"height": 3}, input_manifest=None, asynchronous=False)
+        self.assertIn(json.dumps(RESULT), result.output)
 
-    def test_run_with_output_values_file(self):
-        """Test that the `run` CLI command runs the given service and stores the output values in a file if the `-o`
-        option is given.
+
+class TestQuestionAskLocalCommand(BaseTestCase):
+    def test_with_input_values(self):
+        """Test that the `octue question ask local` CLI command works with just input values and sends an originator
+        question.
         """
-        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.answer_question", return_value=RESULT) as mock_answer_question:
                 result = CliRunner().invoke(
                     octue_cli,
                     [
-                        "run",
-                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
-                        "-o",
-                        temporary_file.name,
+                        "question",
+                        "ask",
+                        "local",
+                        '--input-values={"height": 3}',
                     ],
                 )
 
-            with open(temporary_file.name) as f:
-                self.assertEqual(json.load(f), {"width": 3})
+        # Check service and app configuration.
+        mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
+        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
 
-        self.assertIn(json.dumps({"width": 3}), result.output)
+        # Check question event.
+        question = mock_answer_question_kwargs["question"]
+        self.assertEqual(question["event"], {"kind": "question", "input_values": {"height": 3}})
 
-    def test_run_with_output_manifest(self):
-        """Test that the `run` CLI command runs the given service and stores the output manifest in a file."""
-        with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json") as temporary_twine:
-            temporary_twine.write(
-                json.dumps({"input_values_schema": {}, "output_manifest": {"datasets": {}}, "output_values_schema": {}})
-            )
+        # Check question attributes.
+        self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
+        # The question should be an originator question.
+        self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["sender"])
+        self.assertNotIn("parent_question_uuid", question["attributes"])
 
-        mock_configurations = (
-            ServiceConfiguration(
-                name="test-app",
-                namespace="testing",
-                app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_module_with_output_manifest"),
-                twine_path=temporary_twine.name,
-            ),
-            AppConfiguration(),
+        # Check the result is in the output.
+        self.assertIn(json.dumps(RESULT), result.output)
+
+    def test_with_input_manifest(self):
+        """Test that the `octue question ask local` CLI command works with just an input manifest and sends an
+        originator question.
+        """
+        input_manifest = self.create_valid_manifest()
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.answer_question", return_value=RESULT) as mock_answer_question:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "local",
+                        f"--input-manifest={input_manifest.serialise()}",
+                    ],
+                )
+
+        # Check service and app configuration.
+        mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
+        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+
+        # Check question event.
+        question = mock_answer_question_kwargs["question"]
+        self.assertEqual(Manifest.deserialise(question["event"]["input_manifest"]).id, input_manifest.id)
+
+        # Check question attributes.
+        self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
+        # The question should be an originator question.
+        self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["sender"])
+        self.assertNotIn("parent_question_uuid", question["attributes"])
+
+        # Check the result is in the output.
+        self.assertIn(json.dumps(RESULT), result.output)
+
+    def test_with_input_values_and_manifest(self):
+        """Test that the `octue question ask local` CLI command works with input values and input manifest and sends an
+        originator question.
+        """
+        input_values = {"height": 3}
+        input_manifest = self.create_valid_manifest()
+
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.answer_question", return_value=RESULT) as mock_answer_question:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "local",
+                        f"--input-values={json.dumps(input_values)}",
+                        f"--input-manifest={input_manifest.serialise()}",
+                    ],
+                )
+
+        # Check service and app configuration.
+        mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
+        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+
+        # Check question event.
+        question = mock_answer_question_kwargs["question"]
+        self.assertEqual(question["event"]["input_values"], input_values)
+        self.assertEqual(Manifest.deserialise(question["event"]["input_manifest"]).id, input_manifest.id)
+
+        # Check question attributes.
+        self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
+        # The question should be an originator question.
+        self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
+        self.assertEqual(question["attributes"]["parent"], question["attributes"]["sender"])
+        self.assertNotIn("parent_question_uuid", question["attributes"])
+
+        # Check the result is in the output.
+        self.assertIn(json.dumps(RESULT), result.output)
+
+    def test_with_output_manifest(self):
+        """Test that the `octue question ask local` CLI command returns output manifests in a useful form."""
+        result = {"output_values": {"some": "data"}, "output_manifest": self.create_valid_manifest()}
+
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.answer_question", return_value=result):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "local",
+                        f"--input-values={json.dumps({'height': 3})}",
+                    ],
+                )
+
+        output = json.loads(result.output)
+        self.assertEqual(output["output_values"], {"some": "data"})
+        self.assertEqual(len(output["output_manifest"]["datasets"]), 2)
+
+    def test_with_attributes(self):
+        """Test that the `octue question ask remote` CLI command can be passed question attributes which are passed
+        along to the answering `Service` instance.
+        """
+        original_attributes = {
+            "datetime": "2024-04-11T10:46:48.236064",
+            "uuid": "a9de11b1-e88f-43fa-b3a4-40a590c3443f",
+            "question_uuid": "d45c7e99-d610-413b-8130-dd6eef46dda6",
+            "parent_question_uuid": "5776ad74-52a6-46f7-a526-90421d91b8b2",
+            "originator_question_uuid": "86dc55b2-4282-42bd-92d0-bd4991ae7356",
+            "parent": "octue/the-parent:1.0.0",
+            "originator": "octue/the-originator:1.0.5",
+            "sender": "octue/the-sender:2.0.0",
+            "sender_type": "CHILD",
+            "sender_sdk_version": "0.51.0",
+            "recipient": "octue/the-recipient:0.3.2",
+            "retry_count": 1,
+            "forward_logs": True,
+            "save_diagnostics": "SAVE_DIAGNOSTICS_OFF",
+            "cpus": 3,
+            "memory": "10Gi",
+            "ephemeral_storage": "500Mi",
+        }
+
+        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=MOCK_CONFIGURATIONS):
+            with mock.patch("octue.cli.answer_question", return_value=RESULT) as mock_answer_question:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "ask",
+                        "local",
+                        '--input-values={"height": 3}',
+                        f"--attributes={json.dumps(original_attributes)}",
+                    ],
+                )
+
+        # Check service and app configuration.
+        mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
+        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+
+        # Check question event and attributes.
+        question = mock_answer_question_kwargs["question"]
+        self.assertEqual(question["event"], {"kind": "question", "input_values": {"height": 3}})
+        self.assertEqual(question["attributes"], original_attributes)
+
+        # Check the result is in the output.
+        self.assertIn(json.dumps(RESULT), result.output)
+
+
+class TestQuestionEventsGetCommand(BaseTestCase):
+    QUESTION_UUID = "3ffc192c-7db0-4941-9b66-328a9fc02b62"
+
+    with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
+        EVENTS = json.load(f)
+
+    def test_warning_logged_if_no_events_found(self):
+        """Test that a warning is logged if no events are found for a question."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=[]):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "get",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                    ],
+                )
+
+        self.assertTrue(result.output.endswith("[]\n"))
+
+    def test_with_question_uuid_types(self):
+        """Test that each of the question UUID types is valid as an argument by themselves."""
+        for question_uuid_arg in (
+            "--question-uuid",
+            "--parent-question-uuid",
+            "--originator-question-uuid",
+        ):
+            with self.subTest(question_uuid_arg=question_uuid_arg):
+                with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+                    with mock.patch("octue.cli.get_events", return_value=self.EVENTS):
+                        result = CliRunner().invoke(
+                            octue_cli,
+                            [
+                                "question",
+                                "events",
+                                "get",
+                                question_uuid_arg,
+                                self.QUESTION_UUID,
+                            ],
+                        )
+
+                self.assertEqual(json.loads(result.output), self.EVENTS)
+
+    def test_with_kinds(self):
+        """Test that the `--kinds` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[-2:-1]) as mock_get_events:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "get",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--kinds",
+                        "result",
+                    ],
+                )
+
+        self.assertEqual(mock_get_events.call_args.kwargs["kinds"], ["result"])
+        self.assertIsNone(mock_get_events.call_args.kwargs["exclude_kinds"])
+        self.assertEqual(json.loads(result.output), self.EVENTS[-2:-1])
+
+    def test_with_exclude_kinds(self):
+        """Test that the `--exclude-kinds` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "get",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--exclude-kinds",
+                        "log_record,result,heartbeat",
+                    ],
+                )
+
+        self.assertIsNone(mock_get_events.call_args.kwargs["kinds"])
+        self.assertEqual(mock_get_events.call_args.kwargs["exclude_kinds"], ["log_record", "result", "heartbeat"])
+        self.assertEqual(json.loads(result.output), self.EVENTS[:1])
+
+    def test_with_limit(self):
+        """Test that the `--limit` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "get",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--limit",
+                        "1",
+                    ],
+                )
+
+        self.assertEqual(mock_get_events.call_args.kwargs["limit"], 1)
+        self.assertEqual(json.loads(result.output), self.EVENTS[:1])
+
+
+class TestQuestionEventsReplayCommand(BaseTestCase):
+    QUESTION_UUID = "3ffc192c-7db0-4941-9b66-328a9fc02b62"
+
+    with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
+        EVENTS = json.load(f)
+
+    maxDiff = None
+
+    def test_with_no_events_found(self):
+        """Test that an empty list is passed to `stdout` if no events are found for a question."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=[]):
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "replay",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                    ],
+                )
+
+        self.assertEqual(result.output, "")
+
+    def test_with_question_uuid_types_and_validate_events(self):
+        """Test that each of the question UUID types is valid as an argument by themselves and that replaying still
+        works with the `--validate-events` option.
+        """
+        for options in (
+            ["--question-uuid"],
+            ["--parent-question-uuid"],
+            ["--originator-question-uuid"],
+            ["--validate-events", "--question-uuid"],
+        ):
+            with self.subTest(question_uuid_arg=options):
+                with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+                    with mock.patch("octue.cli.get_events", return_value=self.EVENTS):
+                        with self.assertLogs() as logging_context:
+                            result = CliRunner().invoke(
+                                octue_cli,
+                                [
+                                    "question",
+                                    "events",
+                                    "replay",
+                                    *options,
+                                    self.QUESTION_UUID,
+                                ],
+                            )
+
+                replayed_log_messages = "\n".join(logging_context.output)
+                log_record_events = [event for event in self.EVENTS if event["event"]["kind"] == "log_record"]
+
+                # Check logs messages were replayed.
+                for event in log_record_events:
+                    self.assertIn(event["event"]["log_record"]["msg"], replayed_log_messages)
+
+                # Check result is correct.
+                self.assertEqual(
+                    json.loads(result.output.splitlines()[-1])["output_values"],
+                    self.EVENTS[-2]["event"]["output_values"],
+                )
+
+    def test_with_kinds(self):
+        """Test that the `--kinds` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[-2:-1]) as mock_get_events:
+                result = CliRunner().invoke(
+                    octue_cli,
+                    [
+                        "question",
+                        "events",
+                        "replay",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--kinds",
+                        "result",
+                    ],
+                )
+
+        # Check result is correct.
+        self.assertEqual(
+            json.loads(result.output.splitlines()[-1])["output_values"],
+            self.EVENTS[-2]["event"]["output_values"],
         )
 
-        with tempfile.NamedTemporaryFile(delete=False) as temporary_manifest:
-            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=mock_configurations):
+        self.assertEqual(mock_get_events.call_args.kwargs["kinds"], ["result"])
+        self.assertIsNone(mock_get_events.call_args.kwargs["exclude_kinds"])
+
+    def test_with_exclude_kinds(self):
+        """Test that the `--exclude-kinds` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
                 result = CliRunner().invoke(
                     octue_cli,
                     [
-                        "run",
-                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
-                        f"--output-manifest-file={temporary_manifest.name}",
+                        "question",
+                        "events",
+                        "replay",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--exclude-kinds",
+                        "log_record,result,heartbeat",
                     ],
                 )
 
-            with open(temporary_manifest.name) as f:
-                self.assertIn("datasets", json.load(f))
+        # Check result isn't replayed.
+        self.assertTrue(result.output.splitlines()[-1].endswith("No result was found for this question."))
+        self.assertIsNone(mock_get_events.call_args.kwargs["kinds"])
+        self.assertEqual(mock_get_events.call_args.kwargs["exclude_kinds"], ["log_record", "result", "heartbeat"])
 
-        self.assertIn(json.dumps({"width": 3}), result.output)
-
-    def test_run_with_monitor_messages_sent_to_file(self):
-        """Test that, when the `--monitor-messages-file` is provided, any monitor messages are written to it."""
-        mock_configurations = (
-            ServiceConfiguration(
-                name="test-app",
-                namespace="testing",
-                app_source_path=os.path.join(TESTS_DIR, "test_app_modules", "app_with_monitor_message"),
-                twine_path=TWINE_FILE_PATH,
-                app_configuration_path="blah.json",
-            ),
-            AppConfiguration(configuration_values={"n_iterations": 5}),
-        )
-
-        with tempfile.NamedTemporaryFile(delete=False) as monitor_messages_file:
-            with mock.patch("octue.cli.load_service_and_app_configuration", return_value=mock_configurations):
+    def test_with_limit(self):
+        """Test that the `--limit` option is respected."""
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+            with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
                 result = CliRunner().invoke(
                     octue_cli,
                     [
-                        "run",
-                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
-                        f"--monitor-messages-file={monitor_messages_file.name}",
+                        "question",
+                        "events",
+                        "replay",
+                        "--question-uuid",
+                        self.QUESTION_UUID,
+                        "--limit",
+                        "1",
                     ],
                 )
 
-            with open(monitor_messages_file.name) as f:
-                self.assertEqual(json.load(f), [{"status": "hello"}])
-
-        self.assertIn(json.dumps({"width": 3}), result.output)
-
-    def test_remote_logger_uri_can_be_set(self):
-        """Test that remote logger URI can be set via the CLI and that this is logged locally."""
-        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=self.MOCK_CONFIGURATIONS):
-            with mock.patch("logging.StreamHandler.emit") as mock_local_logger_emit:
-                CliRunner().invoke(
-                    octue_cli,
-                    [
-                        "--logger-uri=wss://0.0.0.1:3000",
-                        "run",
-                        f'--input-dir={os.path.join(TESTS_DIR, "data", "data_dir_with_no_manifests", "input")}',
-                    ],
-                )
-
-        mock_local_logger_emit.assert_called()
+        # Check result isn't replayed.
+        self.assertTrue(result.output.splitlines()[-1].endswith("No result was found for this question."))
+        self.assertEqual(mock_get_events.call_args.kwargs["limit"], 1)
 
 
 class TestStartCommand(BaseTestCase):
@@ -247,13 +684,13 @@ class TestStartCommand(BaseTestCase):
         self.assertEqual(result.exit_code, 0)
 
 
-class TestGetDiagnosticsCommand(BaseTestCase):
+class TestQuestionDiagnosticsCommand(BaseTestCase):
     DIAGNOSTICS_CLOUD_PATH = storage.path.generate_gs_path(TEST_BUCKET_NAME, "diagnostics")
     ANALYSIS_ID = "dc1f09ca-7037-484f-a394-8bd04866f924"
 
     @classmethod
     def setUpClass(cls):
-        """Upload the test diagnostics data to the cloud storage emulator so the `octue get-diagnostics` CLI command can
+        """Upload the test diagnostics data to the cloud storage emulator so the `octue question diagnostics` CLI command can
         be tested.
 
         :return None:
@@ -268,13 +705,33 @@ class TestGetDiagnosticsCommand(BaseTestCase):
 
         diagnostics.upload(storage.path.join(cls.DIAGNOSTICS_CLOUD_PATH, cls.ANALYSIS_ID))
 
+    def test_old_get_diagnostics_command_deprecated(self):
+        """Test that the old `octue get-diagnostics` command is deprecated and just calls the new one."""
+        cloud_path = storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID)
+        local_path = "some-local-path"
+
+        with patch("octue.cli.diagnostics") as mock_diagnostics:
+            result = CliRunner().invoke(
+                octue_cli,
+                [
+                    "get-diagnostics",
+                    cloud_path,
+                    "--local-path",
+                    local_path,
+                ],
+            )
+
+        mock_diagnostics.assert_called_with(cloud_path, local_path, False)
+        self.assertEqual(result.output, "DeprecationWarning: The command 'get-diagnostics' is deprecated.\n")
+
     def test_warning_logged_if_no_diagnostics_found(self):
         """Test that a warning about there being no diagnostics is logged if the diagnostics cloud path is empty."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
                 octue_cli,
                 [
-                    "get-diagnostics",
+                    "question",
+                    "diagnostics",
                     storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, "9f4ccee3-15b0-4a03-b5ac-c19e1d66a709"),
                     "--local-path",
                     temporary_directory,
@@ -297,13 +754,14 @@ class TestGetDiagnosticsCommand(BaseTestCase):
 
     def test_get_diagnostics(self):
         """Test that only the values files, manifests, and questions file are downloaded when using the
-        `get-diagnostics` CLI command.
+        `question diagnostics` CLI command.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
                 octue_cli,
                 [
-                    "get-diagnostics",
+                    "question",
+                    "diagnostics",
                     storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
                     "--local-path",
                     temporary_directory,
@@ -349,13 +807,14 @@ class TestGetDiagnosticsCommand(BaseTestCase):
 
     def test_get_diagnostics_with_datasets(self):
         """Test that datasets are downloaded as well as the values files, manifests, and questions file when the
-        `get-diagnostics` CLI command is run with the `--download-datasets` flag.
+        `question diagnostics` CLI command is run with the `--download-datasets` flag.
         """
         with tempfile.TemporaryDirectory() as temporary_directory:
             result = CliRunner().invoke(
                 octue_cli,
                 [
-                    "get-diagnostics",
+                    "question",
+                    "diagnostics",
                     storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
                     "--local-path",
                     temporary_directory,
@@ -413,75 +872,3 @@ class TestGetDiagnosticsCommand(BaseTestCase):
                     {"kind": "result", "output_values": [1, 2, 3, 4, 5]},
                 ],
             )
-
-
-class TestDeployCommand(BaseTestCase):
-    def test_deploy_command_group(self):
-        """Test that the `create-push-subscription` command is a subcommand of the `deploy` command."""
-        result = CliRunner().invoke(octue_cli, ["deploy", "--help"])
-        self.assertIn("create-push-subscription ", result.output)
-
-    def test_create_push_subscription(self):
-        """Test that a push subscription can be created using the `octue deploy create-push-subscription` command and
-        that its expiry time is correct.
-        """
-        for expiration_time_option, expected_expiration_time in (
-            ([], None),
-            (["--expiration-time="], None),
-            (["--expiration-time=100"], 100),
-        ):
-            with self.subTest(expiration_time_option=expiration_time_option):
-                with patch("octue.cloud.pub_sub.Topic", new=MockTopic):
-                    with patch("octue.cloud.pub_sub.Subscription") as subscription:
-                        result = CliRunner().invoke(
-                            octue_cli,
-                            [
-                                "deploy",
-                                "create-push-subscription",
-                                "my-project",
-                                "octue",
-                                "example-service",
-                                "https://example.com/endpoint",
-                                *expiration_time_option,
-                                "--revision-tag=3.5.0",
-                            ],
-                        )
-
-                    self.assertIsNone(result.exception)
-                    self.assertEqual(result.exit_code, 0)
-                    self.assertEqual(subscription.call_args.kwargs["name"], "octue.example-service.3-5-0")
-                    self.assertEqual(subscription.call_args.kwargs["push_endpoint"], "https://example.com/endpoint")
-                    self.assertEqual(subscription.call_args.kwargs["expiration_time"], expected_expiration_time)
-                    self.assertEqual(result.output, "Subscription for 'octue/example-service:3.5.0' created.\n")
-
-    def test_create_push_subscription_when_already_exists(self):
-        """Test attempting to create a push subscription for a service revision when one already exists for it."""
-        sruid = "octue.example-service.3-5-0"
-        push_endpoint = "https://example.com/endpoint"
-
-        with patch("octue.cloud.pub_sub.Topic", new=MockTopic):
-            with patch("octue.cloud.pub_sub.Subscription", new=MockSubscription):
-                subscription = MockSubscription(
-                    name=sruid,
-                    topic=Topic(name=OCTUE_SERVICES_PREFIX, project_name="my-project"),
-                    push_endpoint=push_endpoint,
-                )
-
-                subscription.create()
-
-                result = CliRunner().invoke(
-                    octue_cli,
-                    [
-                        "deploy",
-                        "create-push-subscription",
-                        "my-project",
-                        "octue",
-                        "example-service",
-                        push_endpoint,
-                        "--revision-tag=3.5.0",
-                    ],
-                )
-
-            self.assertIsNone(result.exception)
-            self.assertEqual(result.exit_code, 0)
-            self.assertEqual(result.output, "Subscription for 'octue/example-service:3.5.0' already exists.\n")

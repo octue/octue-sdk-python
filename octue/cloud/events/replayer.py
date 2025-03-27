@@ -1,8 +1,8 @@
 import logging
 
+from octue.cloud.events.attributes import ResponseAttributes
 from octue.cloud.events.handler import AbstractEventHandler
 from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
-
 
 logger = logging.getLogger(__name__)
 
@@ -78,13 +78,15 @@ class EventReplayer(AbstractEventHandler):
             if result:
                 return result
 
+        logger.warning("No result was found for this question.")
+
     def _extract_event_and_attributes(self, container):
         """Extract an event and its attributes from the event container.
 
         :param dict container: the container of the event
         :return (any, dict): the event and its attributes
         """
-        return container["event"], container["attributes"]
+        return container.get("event", {}), ResponseAttributes(**container["attributes"])
 
     def _handle_question(self, event, attributes):
         """Log that the question was sent.

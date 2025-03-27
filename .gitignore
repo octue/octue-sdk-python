@@ -98,7 +98,7 @@ ENV/
 # See: https://github.com/google-github-actions/auth/issues/123
 google_credentials.json
 gha-creds-*.json
-gcp-creds-*.json
+gcp-cred*
 terraform/gcp-credentials.json
 .terraform
 
