@@ -254,6 +254,7 @@ class TestPullAvailableEvents(BaseTestCase):
                     "sender_type": "CHILD",
                     "sender_sdk_version": "0.50.0",
                     "recipient": "my-org/my-service:1.0.0",
+                    "retry_count": "0",
                 },
             )
         ]
