@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from octue.cloud.events.attributes import QuestionAttributes, ResponseAttributes
@@ -104,6 +105,7 @@ class TestQuestionAttributes(unittest.TestCase):
             },
         )
 
+    @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
     def test_reset_uuid_and_datetime(self):
         """Test that the `reset_uuid_and_datetime` method changes the UUID and datetime."""
         attributes = QuestionAttributes(sender=SENDER, recipient=RECIPIENT, question_uuid=QUESTION_UUID)
@@ -189,6 +191,7 @@ class TestResponseAttributes(unittest.TestCase):
             },
         )
 
+    @unittest.skipIf(condition=os.name == "nt", reason="See issue https://github.com/octue/octue-sdk-python/issues/229")
     def test_reset_uuid_and_datetime(self):
         """Test that the `reset_uuid_and_datetime` method changes the UUID and datetime."""
         attributes = ResponseAttributes(sender=SENDER, recipient=RECIPIENT, question_uuid=QUESTION_UUID)
