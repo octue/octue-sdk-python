@@ -36,6 +36,7 @@ twined = "0.6.0"
 packaging = ">=20.4"
 google-cloud-bigquery = "^3.18.0"
 pydash = "^8.0.4"
+grpcio = "^1.71.0"
 
 [tool.poetry.extras]
 hdf5 = ["h5py"]
