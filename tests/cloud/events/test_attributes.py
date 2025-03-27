@@ -8,6 +8,11 @@ RECIPIENT = "my-org/my-child:2.0.0"
 
 
 class TestQuestionAttributes(unittest.TestCase):
+    def test_error_raised_if_sender_type_is_not_parent(self):
+        """Test that an error is raised if the sender type is not "PARENT"."""
+        with self.assertRaises(ValueError):
+            QuestionAttributes(sender=SENDER, recipient=RECIPIENT, question_uuid=QUESTION_UUID, sender_type="CHILD")
+
     def test_defaults(self):
         """Test that the defaults are correct."""
         attributes = QuestionAttributes(sender=SENDER, recipient=RECIPIENT, question_uuid=QUESTION_UUID)
@@ -111,6 +116,11 @@ class TestQuestionAttributes(unittest.TestCase):
 
 
 class TestResponseAttributes(unittest.TestCase):
+    def test_error_raised_if_sender_type_is_not_child(self):
+        """Test that an error is raised if the sender type is not "CHILD"."""
+        with self.assertRaises(ValueError):
+            ResponseAttributes(sender=SENDER, recipient=RECIPIENT, question_uuid=QUESTION_UUID, sender_type="PARENT")
+
     def test_defaults(self):
         """Test that the defaults are correct."""
         attributes = ResponseAttributes(sender=SENDER, recipient=RECIPIENT, question_uuid=QUESTION_UUID)
