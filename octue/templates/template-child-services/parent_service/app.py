@@ -14,7 +14,7 @@ def run(analysis):
     """
     logger.info("Hello! The child services template app is running!")
 
-    # Send input data to children specified in `app_configuration.json` and receive output data. The output comes as a
+    # Send input data to children specified in service configuration and receive output data. The output comes as a
     # dictionary with an `output_values` key and an `output_manifest` key.
     elevations = analysis.children["elevation"].ask(input_values=analysis.input_values, timeout=60)[0]["output_values"]
 

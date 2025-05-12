@@ -17,7 +17,7 @@ from octue.cloud.pub_sub.bigquery import get_events, DEFAULT_EVENT_STORE_TABLE_I
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.configuration import ServiceConfiguration, load_service_and_app_configuration
+from octue.configuration import ServiceConfiguration
 from octue.definitions import LOCAL_SDK_VERSION, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
@@ -215,7 +215,7 @@ def local(input_values, input_manifest, attributes, service_config):
     if input_manifest:
         input_manifest = json.loads(input_manifest, cls=OctueJSONDecoder)
 
-    service_configuration, app_configuration = load_service_and_app_configuration(service_config)
+    service_configuration = ServiceConfiguration.from_file(service_config)
 
     if attributes:
         attributes = json.loads(attributes, cls=OctueJSONDecoder)
@@ -231,7 +231,7 @@ def local(input_values, input_manifest, attributes, service_config):
             recipient=recipient,
         )
 
-    backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
+    backend_configuration_values = (service_configuration.configuration_values or {}).get("backend")
 
     if backend_configuration_values:
         backend_configuration_values = copy.deepcopy(backend_configuration_values)
@@ -245,7 +245,6 @@ def local(input_values, input_manifest, attributes, service_config):
         question=question,
         project_name=backend.project_name,
         service_configuration=service_configuration,
-        app_configuration=app_configuration,
     )
 
     click.echo(json.dumps(answer, cls=OctueJSONEncoder))
@@ -642,7 +641,7 @@ def start(service_config, revision_tag, timeout, no_rm):
     The service's pub/sub topic and subscription are deleted on exit.
     """
     service_revision_tag_override = revision_tag
-    service_configuration, app_configuration = load_service_and_app_configuration(service_config)
+    service_configuration = ServiceConfiguration.from_file(service_config)
     service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
 
     if service_revision_tag_override and service_revision_tag:
@@ -659,11 +658,7 @@ def start(service_config, revision_tag, timeout, no_rm):
         revision_tag=service_revision_tag_override or service_revision_tag,
     )
 
-    runner = Runner.from_configuration(
-        service_configuration=service_configuration,
-        app_configuration=app_configuration,
-        service_id=service_sruid,
-    )
+    runner = Runner.from_configuration(service_configuration=service_configuration, service_id=service_sruid)
 
     run_function = functools.partial(
         runner.run,
@@ -671,7 +666,7 @@ def start(service_config, revision_tag, timeout, no_rm):
         analysis_log_handler=global_cli_context["log_handler"],
     )
 
-    backend_configuration_values = (app_configuration.configuration_values or {}).get("backend")
+    backend_configuration_values = (service_configuration.configuration_values or {}).get("backend")
 
     if backend_configuration_values:
         backend_configuration_values = copy.deepcopy(backend_configuration_values)

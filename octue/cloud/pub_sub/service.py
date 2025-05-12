@@ -282,7 +282,7 @@ class Service:
         :param str service_id: the ID of the child to ask the question to
         :param any|None input_values: any input values for the question
         :param dict|octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
-        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
+        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's service configuration file and have the same keys.
         :param bool subscribe_to_logs: if `True`, subscribe to the child's logs and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will be able to access these local files
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
@@ -524,7 +524,7 @@ class Service:
 
         :param any|None input_values: any input values for the question
         :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question
-        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
+        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's service configuration file and have the same keys.
         :param bool forward_logs: whether to request the child to forward its logs
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved by the child either all the time or just if it fails while processing them
         :param str question_uuid: the UUID of the question being sent

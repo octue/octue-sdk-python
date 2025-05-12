@@ -223,14 +223,14 @@ Asking a question within a service
 ==================================
 If you have :doc:`created your own Twined service <creating_services>` and want to ask children questions, you can do
 this more easily than above. Children are accessible from the ``analysis`` object by the keys you give them in the
-:ref:`app configuration <app_configuration>` file. For example, you can ask an ``elevation`` service a question like
+:ref:`service configuration <service_configuration>` file. For example, you can ask an ``elevation`` service a question like
 this:
 
 .. code-block:: python
 
     answer, question_uuid = analysis.children["elevation"].ask(input_values={"longitude": 0, "latitude": 1})
 
-if your app configuration file is:
+if these values are in your service configuration file:
 
 .. code-block:: json
 
@@ -272,7 +272,7 @@ and your ``twine.json`` file includes the child keys in its ``children`` field:
         ]
     }
 
-See the parent service's `app configuration <https://github.com/octue/octue-sdk-python/blob/main/octue/templates/template-child-services/parent_service/app_configuration.json>`_
+See the parent service's `service configuration <https://github.com/octue/octue-sdk-python/blob/main/octue/templates/template-child-services/parent_service/octue.yaml>`_
 and `app.py file <https://github.com/octue/octue-sdk-python/blob/main/octue/templates/template-child-services/parent_service/app.py>`_
 in the  `child-services app template <https://github.com/octue/octue-sdk-python/tree/main/octue/templates/template-child-services>`_
 to see this in action.
@@ -285,14 +285,14 @@ If the child you're asking a question to has its own children (static children),
 IDs of the children you want it to use (dynamic children) to the :mod:`Child.ask <octue.resources.child.Child.ask>`
 method. Questions that would have gone to the static children will instead go to the dynamic children. Note that:
 
-- You must provide the children in the same format as they're provided in the :ref:`app configuration <app_configuration>`
+- You must provide the children in the same format as they're provided in the :ref:`service configuration <service_configuration>`
 - If you override one static child, you must override others, too
 - The dynamic children must have the same keys as the static children (so the child knows which service to ask which
   questions)
 - You should ensure the dynamic children you provide are compatible with and appropriate for questions from the child
   service
 
-For example, if the child requires these children in its app configuration:
+For example, if the child requires these children in its service configuration:
 
 .. code-block:: json
 

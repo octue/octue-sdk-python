@@ -801,7 +801,7 @@ class TestService(BaseTestCase):
 
     def test_providing_dynamic_children(self):
         """Test that, if children are provided to the `ask` method while asking a question, the child being asked uses
-        those children instead of the children it has defined in its app configuration.
+        those children instead of the children it has defined in its service configuration.
         """
 
         def mock_child_app(analysis):

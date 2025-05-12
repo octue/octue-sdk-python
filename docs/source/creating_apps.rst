@@ -156,7 +156,7 @@ When the analysis has finished, it is automatically finalised. This means:
 .. note::
 
     You can manually call :mod:`analysis.finalise <octue.resources.analysis.Analysis.finalise>` if you want to upload
-    any output datasets to a different location to the one specified in the app configuration. If you do this, the
+    any output datasets to a different location to the one specified in the service configuration. If you do this, the
     analysis will not be finalised again - make sure you only call it when your output data is ready. Note that the
-    ``output_location`` and ``use_signed_urls_for_output_datasets`` settings in the app configuration are ignored if you
-    call it manually.
+    ``output_location`` and ``use_signed_urls_for_output_datasets`` settings in the service configuration are ignored if
+    you call it manually.

@@ -158,7 +158,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
             logger.info("The analysis produced an output manifest.")
 
             if not (self.output_location or upload_output_datasets_to):
-                logger.info("No output location was set in the app configuration - can't upload output datasets.")
+                logger.info("No output location was set in the service configuration - can't upload output datasets.")
 
             serialised_strands["output_manifest"] = self.output_manifest.serialise()
 

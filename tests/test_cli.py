@@ -11,7 +11,7 @@ from octue.cli import octue_cli
 from octue.cloud import storage
 from octue.cloud.emulators._pub_sub import MockService
 from octue.cloud.emulators.service import ServicePatcher
-from octue.configuration import AppConfiguration, ServiceConfiguration
+from octue.configuration import ServiceConfiguration
 from octue.resources import Dataset, Manifest
 from octue.utils.patches import MultiPatcher
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
@@ -19,10 +19,7 @@ from tests.base import BaseTestCase
 
 TWINE_FILE_PATH = os.path.join(TESTS_DIR, "data", "twines", "valid_schema_twine.json")
 
-MOCK_CONFIGURATIONS = (
-    ServiceConfiguration(name="test-app", namespace="testing"),
-    AppConfiguration(configuration_values={"n_iterations": 5}),
-)
+MOCK_CONFIGURATION = ServiceConfiguration(name="test-app", namespace="testing", configuration_values={"n_iterations": 5})
 
 RESULT = {"output_values": {"some": "data"}}
 
@@ -48,7 +45,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
 
     def test_with_input_values(self):
         """Test that the `octue question ask remote` CLI command works with just input values."""
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.Child.ask", return_value=(RESULT, self.QUESTION_UUID)) as mock_ask:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -68,7 +65,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
         """Test that the `octue question ask remote` CLI command works with just an input manifest."""
         input_manifest = self.create_valid_manifest()
 
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.Child.ask", return_value=(RESULT, self.QUESTION_UUID)) as mock_ask:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -89,7 +86,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
         input_values = {"height": 3}
         input_manifest = self.create_valid_manifest()
 
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.Child.ask", return_value=(RESULT, self.QUESTION_UUID)) as mock_ask:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -111,7 +108,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
         """Test that the `octue question ask remote` CLI command returns output manifests in a useful form."""
         result = {"output_values": {"some": "data"}, "output_manifest": self.create_valid_manifest()}
 
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.Child.ask", return_value=(result, self.QUESTION_UUID)):
                 result = CliRunner().invoke(
                     octue_cli,
@@ -132,7 +129,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
         """Test that the `octue question ask remote` CLI command works with the `--asynchronous` option and returns the
         question UUID.
         """
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.Child.ask", return_value=(RESULT, self.QUESTION_UUID)) as mock_ask:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -172,7 +169,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         """Test that the `octue question ask local` CLI command works with just input values and sends an originator
         question.
         """
-        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=MOCK_CONFIGURATIONS):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.answer_question", return_value=RESULT) as mock_answer_question:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -184,11 +181,11 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     ],
                 )
 
-        # Check service and app configuration.
+        # Check service configuration.
         mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
         self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
         self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
-        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].configuration_values, {"n_iterations": 5})
 
         # Check question event.
         question = mock_answer_question_kwargs["question"]
@@ -210,7 +207,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         originator question.
         """
         input_manifest = self.create_valid_manifest()
-        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=MOCK_CONFIGURATIONS):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.answer_question", return_value=RESULT) as mock_answer_question:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -222,11 +219,11 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     ],
                 )
 
-        # Check service and app configuration.
+        # Check service configuration.
         mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
         self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
         self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
-        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].configuration_values, {"n_iterations": 5})
 
         # Check question event.
         question = mock_answer_question_kwargs["question"]
@@ -250,7 +247,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         input_values = {"height": 3}
         input_manifest = self.create_valid_manifest()
 
-        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=MOCK_CONFIGURATIONS):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.answer_question", return_value=RESULT) as mock_answer_question:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -263,11 +260,11 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     ],
                 )
 
-        # Check service and app configuration.
+        # Check service configuration.
         mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
         self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
         self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
-        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].configuration_values, {"n_iterations": 5})
 
         # Check question event.
         question = mock_answer_question_kwargs["question"]
@@ -289,7 +286,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         """Test that the `octue question ask local` CLI command returns output manifests in a useful form."""
         result = {"output_values": {"some": "data"}, "output_manifest": self.create_valid_manifest()}
 
-        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=MOCK_CONFIGURATIONS):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.answer_question", return_value=result):
                 result = CliRunner().invoke(
                     octue_cli,
@@ -329,7 +326,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
             "ephemeral_storage": "500Mi",
         }
 
-        with mock.patch("octue.cli.load_service_and_app_configuration", return_value=MOCK_CONFIGURATIONS):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.answer_question", return_value=RESULT) as mock_answer_question:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -342,11 +339,11 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     ],
                 )
 
-        # Check service and app configuration.
+        # Check service configuration.
         mock_answer_question_kwargs = mock_answer_question.call_args.kwargs
         self.assertEqual(mock_answer_question_kwargs["service_configuration"].namespace, "testing")
         self.assertEqual(mock_answer_question_kwargs["service_configuration"].name, "test-app")
-        self.assertEqual(mock_answer_question_kwargs["app_configuration"].configuration_values, {"n_iterations": 5})
+        self.assertEqual(mock_answer_question_kwargs["service_configuration"].configuration_values, {"n_iterations": 5})
 
         # Check question event and attributes.
         question = mock_answer_question_kwargs["question"]
@@ -365,7 +362,7 @@ class TestQuestionEventsGetCommand(BaseTestCase):
 
     def test_warning_logged_if_no_events_found(self):
         """Test that a warning is logged if no events are found for a question."""
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.get_events", return_value=[]):
                 result = CliRunner().invoke(
                     octue_cli,
@@ -388,7 +385,7 @@ class TestQuestionEventsGetCommand(BaseTestCase):
             "--originator-question-uuid",
         ):
             with self.subTest(question_uuid_arg=question_uuid_arg):
-                with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+                with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
                     with mock.patch("octue.cli.get_events", return_value=self.EVENTS):
                         result = CliRunner().invoke(
                             octue_cli,
@@ -405,7 +402,7 @@ class TestQuestionEventsGetCommand(BaseTestCase):
 
     def test_with_kinds(self):
         """Test that the `--kinds` option is respected."""
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.get_events", return_value=self.EVENTS[-2:-1]) as mock_get_events:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -426,7 +423,7 @@ class TestQuestionEventsGetCommand(BaseTestCase):
 
     def test_with_exclude_kinds(self):
         """Test that the `--exclude-kinds` option is respected."""
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -447,7 +444,7 @@ class TestQuestionEventsGetCommand(BaseTestCase):
 
     def test_with_limit(self):
         """Test that the `--limit` option is respected."""
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -476,7 +473,7 @@ class TestQuestionEventsReplayCommand(BaseTestCase):
 
     def test_with_no_events_found(self):
         """Test that an empty list is passed to `stdout` if no events are found for a question."""
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.get_events", return_value=[]):
                 result = CliRunner().invoke(
                     octue_cli,
@@ -502,7 +499,7 @@ class TestQuestionEventsReplayCommand(BaseTestCase):
             ["--validate-events", "--question-uuid"],
         ):
             with self.subTest(question_uuid_arg=options):
-                with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+                with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
                     with mock.patch("octue.cli.get_events", return_value=self.EVENTS):
                         with self.assertLogs() as logging_context:
                             result = CliRunner().invoke(
@@ -531,7 +528,7 @@ class TestQuestionEventsReplayCommand(BaseTestCase):
 
     def test_with_kinds(self):
         """Test that the `--kinds` option is respected."""
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.get_events", return_value=self.EVENTS[-2:-1]) as mock_get_events:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -557,7 +554,7 @@ class TestQuestionEventsReplayCommand(BaseTestCase):
 
     def test_with_exclude_kinds(self):
         """Test that the `--exclude-kinds` option is respected."""
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -579,7 +576,7 @@ class TestQuestionEventsReplayCommand(BaseTestCase):
 
     def test_with_limit(self):
         """Test that the `--limit` option is respected."""
-        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATIONS[0]):
+        with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.get_events", return_value=self.EVENTS[:1]) as mock_get_events:
                 result = CliRunner().invoke(
                     octue_cli,
@@ -614,10 +611,6 @@ class TestStartCommand(BaseTestCase):
             namespace="testing",
             app_source_path=cls.python_fractal_service_path,
             twine_path=os.path.join(cls.python_fractal_service_path, "twine.json"),
-            app_configuration_path="app_configuration.json",
-        )
-
-        cls.app_configuration = AppConfiguration(
             configuration_values={
                 "width": 600,
                 "height": 600,
@@ -639,10 +632,7 @@ class TestStartCommand(BaseTestCase):
         """
         with MultiPatcher(
             patches=[
-                mock.patch(
-                    "octue.cli.load_service_and_app_configuration",
-                    return_value=(self.service_configuration, self.app_configuration),
-                ),
+                mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=self.service_configuration),
                 mock.patch("octue.cli.Service", MockService),
                 patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "goodbye"}),
             ]
@@ -661,10 +651,7 @@ class TestStartCommand(BaseTestCase):
         """
         with MultiPatcher(
             patches=[
-                mock.patch(
-                    "octue.cli.load_service_and_app_configuration",
-                    return_value=(self.service_configuration, self.app_configuration),
-                ),
+                mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=self.service_configuration),
                 mock.patch("octue.cli.Service", MockService),
                 patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "goodbye"}),
             ]

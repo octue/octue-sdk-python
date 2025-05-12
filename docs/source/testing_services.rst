@@ -145,7 +145,7 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
     app_directory_path = "path/to/directory_containing_app"
 
     # You can explicitly specify your children here as shown or
-    # read the same information in from your app configuration file.
+    # read the same information in from your service configuration file.
     children = [
         {
             "key": "my_child",
