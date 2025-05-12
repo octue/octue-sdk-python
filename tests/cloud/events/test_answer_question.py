@@ -55,7 +55,7 @@ class TestAnswerQuestion(TestCase):
                             "retry_count": 0,
                         },
                     },
-                    project_name="a-project-name",
+                    project_id="a-project-id",
                     service_configuration=service_config,
                 )
 
@@ -79,5 +79,5 @@ class TestAnswerQuestion(TestCase):
         self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].children)
         self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].output_location)
 
-        self.assertEqual(mock_constructor.call_args.kwargs["project_name"], "a-project-name")
+        self.assertEqual(mock_constructor.call_args.kwargs["project_id"], "a-project-id")
         self.assertEqual(mock_constructor.call_args.kwargs["service_id"], "testing/test-service:blah")

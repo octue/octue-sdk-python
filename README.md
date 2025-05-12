@@ -86,7 +86,7 @@ Then run the tests to check everything's working.
 These environment variables need to be set to run the tests:
 
 - `GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service/account/file.json`
-- `TEST_PROJECT_NAME=<name-of-google-cloud-project-to-run-pub-sub-tests-on>`
+- `TEST_PROJECT_ID=<id-of-google-cloud-project-to-run-pub-sub-tests-on>`
 
 Then, from the repository root, run
 

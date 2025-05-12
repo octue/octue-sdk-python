@@ -8,7 +8,7 @@ from octue.cloud.emulators.service import ServicePatcher
 from octue.cloud.events.attributes import ResponseAttributes
 from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
 from octue.resources.service_backends import GCPPubSubBackend
-from tests import TEST_PROJECT_NAME
+from tests import TEST_PROJECT_ID
 from tests.base import BaseTestCase
 
 
@@ -28,7 +28,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
 
         cls.parent = MockService(
             service_id="my-org/my-service:1.0.0",
-            backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
+            backend=GCPPubSubBackend(project_id=TEST_PROJECT_ID),
         )
 
         cls.attributes = ResponseAttributes(
@@ -75,7 +75,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             schema={},
         )
 
-        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_id=TEST_PROJECT_ID))
 
         events = [
             {"event": {"kind": "test", "order": 0}},
@@ -111,7 +111,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             schema={},
         )
 
-        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_id=TEST_PROJECT_ID))
 
         events = [
             {"event": {"kind": "test", "order": 0}},
@@ -133,7 +133,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
     def test_delivery_acknowledgement(self):
         """Test that a delivery acknowledgement event is handled correctly."""
         event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription)
-        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_id=TEST_PROJECT_ID))
 
         events = [
             {"event": {"kind": "delivery_acknowledgement", "order": 0}},
@@ -172,7 +172,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
     def test_error_not_raised_if_heartbeat_has_been_received_in_maximum_allowed_interval(self):
         """Test that an error is not raised if a heartbeat has been received in the maximum allowed interval."""
         event_handler = GoogleCloudPubSubEventHandler(subscription=self.subscription)
-        child = MockService(backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME))
+        child = MockService(backend=GCPPubSubBackend(project_id=TEST_PROJECT_ID))
         event_handler._last_heartbeat = datetime.datetime.now()
 
         events = [
@@ -218,7 +218,7 @@ class TestPullAvailableEvents(BaseTestCase):
 
         cls.parent = MockService(
             service_id="my-org/my-service:1.0.0",
-            backend=GCPPubSubBackend(project_name=TEST_PROJECT_NAME),
+            backend=GCPPubSubBackend(project_id=TEST_PROJECT_ID),
         )
 
     @classmethod

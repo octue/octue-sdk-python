@@ -14,12 +14,12 @@
 						"type": "string",
 						"pattern": "^(GCPPubSubBackend)$"
 					},
-					"project_name": {
-						"description": "Name of the Google Cloud Platform (GCP) project the service should exist in.",
+					"project_id": {
+						"description": "ID of the Google Cloud Platform (GCP) project the service should exist in.",
 						"type": "string"
 					}
 				},
-				"required": ["name", "project_name"]
+				"required": ["name", "project_id"]
 			}
 		}
 	},

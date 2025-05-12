@@ -25,14 +25,14 @@ from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Analysis, Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
-from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_NAME
+from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_ID
 from tests.base import BaseTestCase
 import twined.exceptions
 
 logger = logging.getLogger(__name__)
 
 
-BACKEND = GCPPubSubBackend(project_name=TEST_PROJECT_NAME)
+BACKEND = GCPPubSubBackend(project_id=TEST_PROJECT_ID)
 
 
 class TestService(BaseTestCase):
@@ -172,7 +172,7 @@ class TestService(BaseTestCase):
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
         """Test that a TimeoutError is raised if no messages are received while waiting."""
-        mock_topic = MockTopic(name="amazing.service.9-9-9", project_name=TEST_PROJECT_NAME)
+        mock_topic = MockTopic(name="amazing.service.9-9-9", project_id=TEST_PROJECT_ID)
         mock_subscription = MockSubscription(name="amazing.service.9-9-9", topic=mock_topic)
 
         service = Service(backend=BACKEND)
@@ -186,7 +186,7 @@ class TestService(BaseTestCase):
 
         subscription = MockSubscription(
             name="world",
-            topic=MockTopic(name="world", project_name=TEST_PROJECT_NAME),
+            topic=MockTopic(name="world", project_id=TEST_PROJECT_ID),
             push_endpoint="https://example.com/endpoint",
         )
 
@@ -814,7 +814,7 @@ class TestService(BaseTestCase):
             {
                 "key": "expected_child",
                 "id": f"octue/static-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-                "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
+                "backend": {"name": "GCPPubSubBackend", "project_id": "my-project"},
             },
         ]
 
@@ -865,7 +865,7 @@ class TestService(BaseTestCase):
             {
                 "key": "expected_child",
                 "id": f"octue/dynamic-child-of-child:{MOCK_SERVICE_REVISION_TAG}",
-                "backend": {"name": "GCPPubSubBackend", "project_name": "my-project"},
+                "backend": {"name": "GCPPubSubBackend", "project_id": "my-project"},
             },
         ]
 

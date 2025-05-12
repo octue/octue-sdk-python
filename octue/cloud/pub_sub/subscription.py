@@ -24,9 +24,9 @@ class Subscription:
     """A candidate subscription to use with Google Pub/Sub. The subscription represented by an instance of this class
     does not necessarily already exist on the Google Pub/Sub servers.
 
-    :param str name: the name of the subscription excluding "projects/<project_name>/subscriptions/<namespace>"
+    :param str name: the name of the subscription excluding "projects/<project_id>/subscriptions/<namespace>"
     :param octue.cloud.pub_sub.topic.Topic topic: the topic the subscription is attached to
-    :param str|None project_name: the name of the Google Cloud project that the subscription belongs to; if `None`, the project name of the topic is used
+    :param str|None project_id: the ID of the Google Cloud project that the subscription belongs to; if `None`, the project ID of the topic is used
     :param str|None filter: if provided, only receive messages matching the filter (see here for filter syntax: https://cloud.google.com/pubsub/docs/subscription-message-filter#filtering_syntax)
     :param int ack_deadline: the time in seconds after which, if the subscriber hasn't acknowledged a message, to retry sending it to the subscription
     :param int message_retention_duration: unacknowledged message retention time in seconds
@@ -42,7 +42,7 @@ class Subscription:
         self,
         name,
         topic,
-        project_name=None,
+        project_id=None,
         filter=None,
         ack_deadline=600,
         message_retention_duration=600,
@@ -55,7 +55,7 @@ class Subscription:
         self.name = name
         self.topic = topic
         self.filter = filter
-        self.path = self.generate_subscription_path(project_name or self.topic.project_name, self.name)
+        self.path = self.generate_subscription_path(project_id or self.topic.project_id, self.name)
         self.ack_deadline = ack_deadline
         self.message_retention_duration = Duration(seconds=message_retention_duration)
 
@@ -182,14 +182,14 @@ class Subscription:
             return False
 
     @staticmethod
-    def generate_subscription_path(project_name, subscription_name):
-        """Generate a full subscription path in the format `projects/<project_name>/subscriptions/<subscription_name>`.
+    def generate_subscription_path(project_id, subscription_name):
+        """Generate a full subscription path in the format `projects/<project_id>/subscriptions/<subscription_name>`.
 
-        :param str project_name:
+        :param str project_id:
         :param str subscription_name:
         :return str:
         """
-        return f"projects/{project_name}/subscriptions/{subscription_name}"
+        return f"projects/{project_id}/subscriptions/{subscription_name}"
 
     def _create_proto_message_subscription(self):
         """Create a Proto message subscription from the instance to be sent to the Pub/Sub API.

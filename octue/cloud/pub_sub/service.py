@@ -107,7 +107,7 @@ class Service:
         :raise octue.exceptions.ServiceNotFound: if the topic doesn't exist in the project
         :return octue.cloud.pub_sub.topic.Topic: the Octue services topic for the project
         """
-        topic = Topic(name=OCTUE_SERVICES_TOPIC_NAME, project_name=self.backend.project_name)
+        topic = Topic(name=OCTUE_SERVICES_TOPIC_NAME, project_id=self.backend.project_id)
 
         if not topic.exists():
             raise octue.exceptions.ServiceNotFound(

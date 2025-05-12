@@ -62,8 +62,8 @@ jobs:
 
       - name: Run tests
         env:
-          TEST_PROJECT_NAME: ${{ secrets.TEST_PROJECT_NAME }}
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.TEST_PROJECT_NAME }}
+          TEST_PROJECT_ID: ${{ secrets.TEST_PROJECT_ID }}
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.TEST_PROJECT_ID }}
         run: tox -vv -e py
 
       - name: Upload coverage to Codecov

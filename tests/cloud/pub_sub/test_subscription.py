@@ -6,12 +6,12 @@ import google.api_core.exceptions
 from octue.cloud.emulators._pub_sub import MockSubscriber, MockSubscriptionCreationResponse
 from octue.cloud.pub_sub.subscription import THIRTY_ONE_DAYS, Subscription
 from octue.cloud.pub_sub.topic import Topic
-from tests import TEST_PROJECT_NAME
+from tests import TEST_PROJECT_ID
 from tests.base import BaseTestCase
 
 
 class TestSubscription(BaseTestCase):
-    topic = Topic(name="world", project_name=TEST_PROJECT_NAME)
+    topic = Topic(name="world", project_id=TEST_PROJECT_ID)
     subscription = Subscription(name="world", topic=topic)
 
     def test_repr(self):
@@ -60,8 +60,7 @@ class TestSubscription(BaseTestCase):
         """Test that creating a pull subscription works properly and that its creation is marked as having been
         triggered locally.
         """
-        project_name = os.environ["TEST_PROJECT_NAME"]
-        topic = Topic(name="my-topic", project_name=project_name)
+        topic = Topic(name="my-topic", project_id=TEST_PROJECT_ID)
         subscription = Subscription(name="world", topic=topic, filter='attributes.question_uuid = "abc"')
 
         for allow_existing in (True, False):

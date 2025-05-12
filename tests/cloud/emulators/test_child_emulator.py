@@ -111,7 +111,7 @@ class TestChildEmulatorAsk(BaseTestCase):
         """Test that events recorded from a real child can be used as emulated events in a child emulator (i.e. test
         that the event format is unified between `Service` and `ChildEmulator`).
         """
-        backend = GCPPubSubBackend(project_name="my-project")
+        backend = GCPPubSubBackend(project_id="my-project")
 
         def error_run_function(*args, **kwargs):
             raise OSError("Oh no. Some error has been raised for testing.")

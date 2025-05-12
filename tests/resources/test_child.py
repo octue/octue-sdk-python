@@ -60,7 +60,7 @@ class TestChild(BaseTestCase):
             repr(
                 Child(
                     id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
-                    backend={"name": "GCPPubSubBackend", "project_name": "blah"},
+                    backend={"name": "GCPPubSubBackend", "project_id": "blah"},
                 )
             ),
             f"<Child('octue/my-child:{MOCK_SERVICE_REVISION_TAG}')>",
@@ -71,7 +71,7 @@ class TestChild(BaseTestCase):
         with patch.dict(os.environ, clear=True):
             Child(
                 id=f"octue/my-child:{MOCK_SERVICE_REVISION_TAG}",
-                backend={"name": "GCPPubSubBackend", "project_name": "blah"},
+                backend={"name": "GCPPubSubBackend", "project_id": "blah"},
             )
 
     def test_child_can_be_asked_multiple_questions_in_serial(self):
@@ -80,11 +80,11 @@ class TestChild(BaseTestCase):
         def mock_run_function(analysis_id, input_values, *args, **kwargs):
             return MockAnalysis(output_values=input_values)
 
-        responding_service = MockService(backend=GCPPubSubBackend(project_name="blah"), run_function=mock_run_function)
+        responding_service = MockService(backend=GCPPubSubBackend(project_id="blah"), run_function=mock_run_function)
 
         with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
-            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service
@@ -94,14 +94,14 @@ class TestChild(BaseTestCase):
     def test_error_raised_if_question_fails_when_raise_errors_is_true(self):
         """Test that an error is raised if the question fails when `raise_errors` is `True`."""
         responding_service = MockService(
-            backend=GCPPubSubBackend(project_name="blah"),
+            backend=GCPPubSubBackend(project_id="blah"),
             run_function=mock_run_function_that_fails,
         )
 
         with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
 
-            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service
@@ -112,14 +112,14 @@ class TestChild(BaseTestCase):
     def test_error_not_raised_if_question_fails_when_raise_errors_is_false(self):
         """Test that an error is not raised if the question fails when `raise_errors` is `False`."""
         responding_service = MockService(
-            backend=GCPPubSubBackend(project_name="blah"),
+            backend=GCPPubSubBackend(project_id="blah"),
             run_function=mock_run_function_that_fails,
         )
 
         with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
 
-            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service
@@ -131,13 +131,13 @@ class TestChild(BaseTestCase):
     def test_with_failed_question_retry(self):
         """Test that a failed question can be automatically retried."""
         responding_service = MockService(
-            backend=GCPPubSubBackend(project_name="blah"),
+            backend=GCPPubSubBackend(project_id="blah"),
             run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
         with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
-            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service
@@ -149,13 +149,13 @@ class TestChild(BaseTestCase):
     def test_errors_logged_when_not_raised(self):
         """Test that errors from a question still failing after retries are exhausted are logged by default."""
         responding_service = MockService(
-            backend=GCPPubSubBackend(project_name="blah"),
+            backend=GCPPubSubBackend(project_id="blah"),
             run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
         with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
-            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service
@@ -169,14 +169,14 @@ class TestChild(BaseTestCase):
     def test_with_prevented_retries(self):
         """Test that retries can be prevented for specified exception types."""
         responding_service = MockService(
-            backend=GCPPubSubBackend(project_name="blah"),
+            backend=GCPPubSubBackend(project_id="blah"),
             run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
         with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
 
-            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service
@@ -220,12 +220,12 @@ class TestAskMultiple(BaseTestCase):
             time.sleep(random.randint(0, 2))
             return MockAnalysis(output_values=input_values)
 
-        responding_service = MockService(backend=GCPPubSubBackend(project_name="blah"), run_function=mock_run_function)
+        responding_service = MockService(backend=GCPPubSubBackend(project_id="blah"), run_function=mock_run_function)
 
         with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
 
-            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service
@@ -256,14 +256,14 @@ class TestAskMultiple(BaseTestCase):
         7. Fourth question is retried again and succeeds
         """
         responding_service = MockService(
-            backend=GCPPubSubBackend(project_name="blah"),
+            backend=GCPPubSubBackend(project_id="blah"),
             run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
         with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
 
-            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_name": "blah"})
+            child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
             # Make sure the child's underlying mock service knows how to access the mock responding service.
             child._service.children[responding_service.id] = responding_service

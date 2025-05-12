@@ -4,4 +4,4 @@ services:
     configuration_values:
       backend:
         name: "GCPPubSubBackend"
-        project_name: "octue-sdk-python"
+        project_id: "octue-sdk-python"
