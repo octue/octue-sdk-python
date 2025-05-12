@@ -17,7 +17,7 @@ finish processing a question successfully if diagnostics are permanently turned 
 .. important::
 
     For this feature to be enabled, the child must have the ``diagnostics_cloud_path`` field in its service
-    configuration (:ref:`octue.yaml <octue_yaml>` file) set to a Google Cloud Storage path.
+    configuration (:ref:`octue.yaml <service_configuration>` file) set to a Google Cloud Storage path.
 
 
 Accessing diagnostics
@@ -76,7 +76,7 @@ your service to fail.
      ) = load_test_fixture_from_diagnostics(path="path/to/downloaded/diagnostics")
 
     # You can explicitly specify your children here as shown or
-    # read the same information in from your app configuration file.
+    # read the same information in from your service configuration file.
     children = [
         {
             "key": "my_child",

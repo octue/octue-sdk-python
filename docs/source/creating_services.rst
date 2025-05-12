@@ -31,7 +31,7 @@ a `requirements.txt file <https://learnpython.com/blog/python-requirements-file/
 `pyproject.toml file <https://python-poetry.org/docs/pyproject/>`_ listing all the python packages your app depends on
 and the version ranges that are supported.
 
-.. _octue_yaml:
+.. _service_configuration:
 
 octue.yaml
 ----------
@@ -51,7 +51,6 @@ octue.yaml
         It may also need the following key-value pairs:
 
         - ``app_source_path: <path>`` - if your ``app.py`` file is not in the repository root
-        - ``app_configuration_path: <path>`` - if your app needs an app configuration file that isn't in the repository root
 
         All paths should be relative to the repository root. Other valid entries can be found in the
         :mod:`ServiceConfiguration <octue.configuration.ServiceConfiguration>` constructor.
@@ -61,18 +60,8 @@ octue.yaml
             Currently, only one service can be defined per repository, but it must still appear as a list item of the
             "services" key. At some point, it will be possible to define multiple services in one repository.
 
-.. _app_configuration:
-
-App configuration file (optional)
----------------------------------
-
-    .. collapse:: An optional app configuration JSON file specifying, for example, any children your app depends on - read more...
-
-            ----
-
-        If your app needs any configuration, asks questions to any other Twined services, or produces output
-        datafiles/datasets, you will need to provide an app configuration. Currently, this must take the form of a JSON
-        file. It can contain the following keys:
+        If a service's app needs any configuration, asks questions to any other Twined services, or produces output
+        datafiles/datasets, you will need to provide some or all of the following values for that service:
 
         - ``configuration_values``
         - ``configuration_manifest``
@@ -80,10 +69,6 @@ App configuration file (optional)
         - ``output_location``
         - ``use_signed_urls_for_output_datasets``
 
-        If an app configuration file is provided, its path must be specified in ``octue.yaml`` under the
-        "app_configuration_path" key.
-
-        See the :mod:`AppConfiguration <octue.configuration.AppConfiguration>` constructor for more information.
 
 Dockerfile (optional)
 ---------------------

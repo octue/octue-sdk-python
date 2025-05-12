@@ -58,15 +58,10 @@ FilterDict
 
 Configuration
 =============
-.. autofunction:: octue.configuration.load_service_and_app_configuration
 
 Service configuration
 ---------------------
 .. autoclass:: octue.configuration.ServiceConfiguration
-
-App configuration
------------------
-.. autoclass:: octue.configuration.AppConfiguration
 
 
 Runner

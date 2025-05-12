@@ -18,7 +18,7 @@ Running a service once
 
 Via the CLI
 -----------
-1. Ensure you've created a valid :ref:`octue.yaml <octue_yaml>` file for your service
+1. Ensure you've created a valid :ref:`octue.yaml <service_configuration>` file for your service
 
 2. Run:
 
@@ -56,7 +56,7 @@ Starting a service as a child
 Via the CLI
 -----------
 
-1. Ensure you've created a valid :ref:`octue.yaml <octue_yaml>` file for your service
+1. Ensure you've created a valid :ref:`octue.yaml <service_configuration>` file for your service
 2. Run:
 
     .. code-block:: shell
