@@ -1,4 +1,14 @@
 services:
   - name: parent-service
     namespace: template-child-services
-    app_configuration_path: app_configuration.json
+    children:
+      - key: "wind_speed"
+        id: "template-child-services/wind-speed-service"
+        backend:
+          name: "GCPPubSubBackend"
+          project_name: "octue-sdk-python"
+      - key: "elevation"
+        id: "template-child-services/elevation-service"
+        backend:
+          name: "GCPPubSubBackend"
+          project_name: "octue-sdk-python"

@@ -87,7 +87,7 @@ class Child:
 
         :param any|None input_values: any input values for the question, conforming with the schema in the child's twine
         :param octue.resources.manifest.Manifest|None input_manifest: an input manifest of any datasets needed for the question, conforming with the schema in the child's twine
-        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's app configuration file and have the same keys.
+        :param list(dict)|None children: a list of children for the child to use instead of its default children (if it uses children). These should be in the same format as in an app's service configuration file and have the same keys.
         :param bool subscribe_to_logs: if `True`, subscribe to logs from the child and handle them with the local log handlers
         :param bool allow_local_files: if `True`, allow the input manifest to contain references to local files - this should only be set to `True` if the child will have access to these local files
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)

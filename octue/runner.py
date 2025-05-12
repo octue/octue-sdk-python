@@ -108,31 +108,23 @@ class Runner:
         self._project_name = project_name
 
     @classmethod
-    def from_configuration(
-        cls,
-        service_configuration,
-        app_configuration,
-        project_name=None,
-        service_id=None,
-        **overrides,
-    ):
-        """Instantiate a runner from a service and app configuration.
+    def from_configuration(cls, service_configuration, project_name=None, service_id=None, **overrides):
+        """Instantiate a runner from a service configuration.
 
         :param octue.configuration.ServiceConfiguration service_configuration:
-        :param octue.configuration.AppConfiguration app_configuration:
         :param str|None project_name: name of Google Cloud project to get credentials from
         :param str|None service_id: the ID of the service being run
-        :param overrides: optional keyword arguments to override the `Runner` instantiation parameters extracted from the service and app configuration
-        :return octue.runner.Runner: a runner configured with the given service and app configuration
+        :param overrides: optional keyword arguments to override the `Runner` instantiation parameters extracted from the service configuration
+        :return octue.runner.Runner: a runner configured with the given service configuration
         """
         inputs = {
             "app_src": service_configuration.app_source_path,
             "twine": service_configuration.twine_path,
-            "configuration_values": app_configuration.configuration_values,
-            "configuration_manifest": app_configuration.configuration_manifest,
-            "children": app_configuration.children,
-            "output_location": app_configuration.output_location,
-            "use_signed_urls_for_output_datasets": app_configuration.use_signed_urls_for_output_datasets,
+            "configuration_values": service_configuration.configuration_values,
+            "configuration_manifest": service_configuration.configuration_manifest,
+            "children": service_configuration.children,
+            "output_location": service_configuration.output_location,
+            "use_signed_urls_for_output_datasets": service_configuration.use_signed_urls_for_output_datasets,
             "diagnostics_cloud_path": service_configuration.diagnostics_cloud_path,
             "project_name": project_name,
             "service_id": service_id,
@@ -169,7 +161,7 @@ class Runner:
         :param str|None analysis_id: UUID of analysis
         :param str|dict|None input_values: the input_values strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
         :param str|dict|octue.resources.manifest.Manifest|None input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
-        :param list(dict)|None children: a list of children to use instead of the children provided at instantiation. These should be in the same format as in an app's app configuration file and have the same keys.
+        :param list(dict)|None children: a list of children to use instead of the children provided at instantiation. These should be in the same format as in an app's service configuration file and have the same keys.
         :param str analysis_log_level: the level below which to ignore log messages
         :param logging.Handler|None analysis_log_handler: the logging.Handler instance which will be used to handle logs for this analysis run. Handlers can be created as per the logging cookbook https://docs.python.org/3/howto/logging-cookbook.html but should use the format defined above in LOG_FORMAT.
         :param callable|None handle_monitor_message: a function that sends monitor messages to the parent that requested the analysis
@@ -351,7 +343,7 @@ class Runner:
                     raise twined.exceptions.invalid_contents_map[manifest_kind](message)
 
     def _instantiate_children(self, serialised_children, parent_question_uuid, originator_question_uuid, originator):
-        """Instantiate children from their serialised form (e.g. as given in the app configuration) so they are ready
+        """Instantiate children from their serialised form (e.g. as given in the service configuration) so they are ready
         to be asked questions. Two sets of modifications are made to each child's `ask` method:
 
         1. The parent question UUID is set to the current analysis ID, and the originator question UUID and originator
@@ -360,7 +352,7 @@ class Runner:
         2. For diagnostics, the `ask` method is wrapped so the runner can record the questions asked by the app, the
            responses received to each question, and the order the questions are asked in.
 
-        :param list(dict) serialised_children: serialised children from e.g. the app configuration file
+        :param list(dict) serialised_children: serialised children from e.g. the service configuration file
         :param str|None parent_question_uuid: the UUID of the question that triggered this analysis
         :param str originator_question_uuid: the UUID of the question that triggered all ancestor questions of this analysis
         :param str originator: the SRUID of the service revision that triggered the tree of questions this analysis is related to

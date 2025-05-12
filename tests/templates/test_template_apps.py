@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 import subprocess
@@ -7,6 +6,8 @@ import time
 import unittest
 import uuid
 from unittest.mock import patch
+
+import yaml
 
 from octue import REPOSITORY_ROOT, Runner
 from octue.cloud.emulators import ChildEmulator
@@ -101,8 +102,8 @@ class TemplateAppsTestCase(BaseTestCase):
         parent_service_path = os.path.join(self.template_path, "parent_service")
         namespace = "template-child-services"
 
-        with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
-            children = json.load(f)["children"]
+        with open(os.path.join(parent_service_path, "octue.yaml")) as f:
+            children = yaml.safe_load(f)["services"][0]["children"]
 
             children[0]["id"] = create_sruid(
                 namespace=namespace,
@@ -137,8 +138,8 @@ class TemplateAppsTestCase(BaseTestCase):
         self.set_template("template-child-services")
         parent_service_path = os.path.join(self.template_path, "parent_service")
 
-        with open(os.path.join(parent_service_path, "app_configuration.json")) as f:
-            children = json.load(f)["children"]
+        with open(os.path.join(parent_service_path, "octue.yaml")) as f:
+            children = yaml.safe_load(f)["services"][0]["children"]
 
         runner = Runner(
             app_src=parent_service_path,

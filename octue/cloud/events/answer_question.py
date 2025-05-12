@@ -8,13 +8,12 @@ from octue.runner import Runner
 logger = logging.getLogger(__name__)
 
 
-def answer_question(question, project_name, service_configuration, app_configuration):
+def answer_question(question, project_name, service_configuration):
     """Answer a question received by a service.
 
     :param dict question: a question event and its attributes
     :param str project_name: the name of the project the service is running on
     :param octue.configuration.ServiceConfiguration service_configuration:
-    :param octue.configuration.AppConfiguration app_configuration:
     :return dict: the result event
     """
     service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
@@ -23,7 +22,6 @@ def answer_question(question, project_name, service_configuration, app_configura
 
     runner = Runner.from_configuration(
         service_configuration=service_configuration,
-        app_configuration=app_configuration,
         project_name=project_name,
         service_id=service_sruid,
     )

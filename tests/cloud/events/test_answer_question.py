@@ -1,4 +1,3 @@
-import json
 import os
 from unittest import TestCase, mock
 from unittest.mock import patch
@@ -7,14 +6,14 @@ import yaml
 
 from octue.cloud.emulators._pub_sub import MockTopic
 from octue.cloud.events.answer_question import answer_question
-from octue.configuration import load_service_and_app_configuration
+from octue.configuration import ServiceConfiguration
 from octue.utils.patches import MultiPatcher
 from tests.mocks import MockOpen
 
 
 class TestAnswerQuestion(TestCase):
     def test_answer_question(self):
-        """Test that the `answer_question` function uses the values in the service and app configurations correctly."""
+        """Test that the `answer_question` function uses the values in the service configuration correctly."""
 
         class MockOpenForConfigurationFiles(MockOpen):
             path_to_contents_mapping = {
@@ -26,12 +25,11 @@ class TestAnswerQuestion(TestCase):
                                 "namespace": "testing",
                                 "app_source_path": "/path/to/app_dir",
                                 "twine_path": "path/to/twine.json",
-                                "app_configuration_path": "app_configuration.json",
+                                "configuration_values": {"hello": "configuration"},
                             }
-                        ]
+                        ],
                     }
                 ),
-                "app_configuration.json": json.dumps({"configuration_values": {"hello": "configuration"}}),
             }
 
         with patch("octue.cloud.events.answer_question.Runner.from_configuration") as mock_constructor:
@@ -43,7 +41,7 @@ class TestAnswerQuestion(TestCase):
                     patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),
                 ]
             ):
-                service_config, app_config = load_service_and_app_configuration()
+                service_config = ServiceConfiguration.from_file()
 
                 answer_question(
                     question={
@@ -59,7 +57,6 @@ class TestAnswerQuestion(TestCase):
                     },
                     project_name="a-project-name",
                     service_configuration=service_config,
-                    app_configuration=app_config,
                 )
 
         self.assertTrue(
@@ -74,12 +71,13 @@ class TestAnswerQuestion(TestCase):
         self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].service_registries)
 
         self.assertEqual(
-            mock_constructor.call_args.kwargs["app_configuration"].configuration_values, {"hello": "configuration"}
+            mock_constructor.call_args.kwargs["service_configuration"].configuration_values,
+            {"hello": "configuration"},
         )
 
-        self.assertIsNone(mock_constructor.call_args.kwargs["app_configuration"].configuration_manifest)
-        self.assertIsNone(mock_constructor.call_args.kwargs["app_configuration"].children)
-        self.assertIsNone(mock_constructor.call_args.kwargs["app_configuration"].output_location)
+        self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].configuration_manifest)
+        self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].children)
+        self.assertIsNone(mock_constructor.call_args.kwargs["service_configuration"].output_location)
 
         self.assertEqual(mock_constructor.call_args.kwargs["project_name"], "a-project-name")
         self.assertEqual(mock_constructor.call_args.kwargs["service_id"], "testing/test-service:blah")

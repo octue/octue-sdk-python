@@ -1,4 +1,7 @@
 services:
   - name: elevation-service
     namespace: template-child-services
-    app_configuration_path: app_configuration.json
+    configuration_values:
+      backend:
+        name: "GCPPubSubBackend"
+        project_name: "octue-sdk-python"
