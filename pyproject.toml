@@ -32,7 +32,7 @@ google-crc32c = "^1.1"
 python-dateutil = "^2.8"
 pyyaml = "^6"
 h5py = { version = "^3.6", optional = true }
-twined = "0.6.0"
+twined = "^0.7.0"
 packaging = ">=20.4"
 google-cloud-bigquery = "^3.18.0"
 pydash = "^8.0.4"
