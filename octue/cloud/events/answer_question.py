@@ -12,7 +12,7 @@ def answer_question(question, project_id, service_configuration):
     """Answer a question received by a service.
 
     :param dict question: a question event and its attributes
-    :param str project_id: the name of the project the service is running on
+    :param str project_id: the ID of the project the service is running on
     :param octue.configuration.ServiceConfiguration service_configuration:
     :return dict: the result event
     """

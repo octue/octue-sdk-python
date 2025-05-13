@@ -39,7 +39,7 @@ class ServiceBackend(ABC):
 class GCPPubSubBackend(ServiceBackend):
     """A dataclass containing the details needed to use Google Cloud Pub/Sub as a Service backend.
 
-    :param str project_id: the name of the project to use for Pub/Sub
+    :param str project_id: the ID of the project to use for Pub/Sub
     :return None:
     """
 
