@@ -93,12 +93,6 @@ Then, from the repository root, run
 python3 -m unittest
 ```
 
-or
-
-```shell
-tox
-```
-
 ## Contributing
 
 Take a look at our [contributing](/docs/contributing.md) page.
