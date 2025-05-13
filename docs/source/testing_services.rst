@@ -152,7 +152,7 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
             "id": "octue/my-child-service:2.1.0",
             "backend": {
                 "name": "GCPPubSubBackend",
-                "project_name": "my-project"
+                "project_id": "my-project"
             }
         },
     ]
@@ -232,7 +232,7 @@ child.
 
     child = Child(
         id="octue/my-child:2.1.0",
-        backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
+        backend={"name": "GCPPubSubBackend", "project_id": "my-project"},
     )
 
     result, question_uuid = child.ask(input_values=[1, 2, 3, 4])

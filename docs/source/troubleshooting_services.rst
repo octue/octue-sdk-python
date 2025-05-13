@@ -83,7 +83,7 @@ your service to fail.
             "id": "octue/my-child-service:2.1.0",
             "backend": {
                 "name": "GCPPubSubBackend",
-                "project_name": "my-project",
+                "project_id": "my-project",
             }
         },
         {
@@ -91,7 +91,7 @@ your service to fail.
             "id": "octue/another-child-service:2.1.0",
             "backend": {
                 "name": "GCPPubSubBackend",
-                "project_name": "my-project",
+                "project_id": "my-project",
             }
         }
     ]
@@ -119,7 +119,7 @@ For example:
 
     child = Child(
         id="my-organisation/my-service:2.1.0",
-        backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
+        backend={"name": "GCPPubSubBackend", "project_id": "my-project"},
     )
 
     answer, question_uuid = child.ask(
