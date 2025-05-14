@@ -49,7 +49,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
     def test_emit(self):
         """Test the log message is published when `GoogleCloudPubSubHandler.emit` is called."""
         log_record = makeLogRecord({"msg": "Starting analysis."})
-        service = MockService(backend=GCPPubSubBackend(project_name="blah"))
+        service = MockService(backend=GCPPubSubBackend(project_id="blah"))
 
         GoogleCloudPubSubHandler(event_emitter=service._emit_event, attributes=ATTRIBUTES).emit(log_record)
 
@@ -72,7 +72,7 @@ class TestGoogleCloudPubSubHandler(BaseTestCase):
             {"msg": "%r is not JSON-serialisable but can go into a log message", "args": (non_json_serialisable_thing,)}
         )
 
-        service = MockService(backend=GCPPubSubBackend(project_name="blah"))
+        service = MockService(backend=GCPPubSubBackend(project_id="blah"))
 
         with patch("octue.cloud.emulators._pub_sub.MockPublisher.publish") as mock_publish:
             GoogleCloudPubSubHandler(event_emitter=service._emit_event, attributes=ATTRIBUTES).emit(record)

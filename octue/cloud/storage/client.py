@@ -42,11 +42,11 @@ class GoogleCloudStorageClient:
         warnings.simplefilter("ignore", category=ResourceWarning)
 
         if credentials == OCTUE_MANAGED_CREDENTIALS:
-            self.credentials, self.project_name = auth.default()
+            self.credentials, self.project_id = auth.default()
         else:
             self.credentials = credentials
 
-        self.client = Client(project=self.project_name, credentials=self.credentials)
+        self.client = Client(project=self.project_id, credentials=self.credentials)
 
     def create_bucket(self, name, location=None, allow_existing=False, timeout=_DEFAULT_TIMEOUT):
         """Create a new bucket. If the bucket already exists, and `allow_existing` is `True`, do nothing; if it is

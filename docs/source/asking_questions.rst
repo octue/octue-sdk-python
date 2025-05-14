@@ -20,7 +20,7 @@ can be:
       `django-twined <https://django-twined.readthedocs.io/en/latest/>`_ or custom logic in your own webserver.
 
 Questions are always asked to a *revision* of a service. You can ask a service a question if you have its
-:ref:`SRUID <sruid_definition>`, project name, and the necessary permissions.
+:ref:`SRUID <sruid_definition>`, project ID, and the necessary permissions.
 
 
 Asking a question
@@ -32,7 +32,7 @@ Asking a question
 
     child = Child(
         id="my-organisation/my-service:2.1.7",
-        backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
+        backend={"name": "GCPPubSubBackend", "project_id": "my-project"},
     )
 
     answer, question_uuid = child.ask(
@@ -241,7 +241,7 @@ if these values are in your service configuration file:
           "id": "template-child-services/wind-speed-service:2.1.1",
           "backend": {
             "name": "GCPPubSubBackend",
-            "project_name": "my-project"
+            "project_id": "my-project"
           }
         },
         {
@@ -249,7 +249,7 @@ if these values are in your service configuration file:
           "id": "template-child-services/elevation-service:3.1.9",
           "backend": {
             "name": "GCPPubSubBackend",
-            "project_name": "my-project"
+            "project_id": "my-project"
           }
         }
       ]
@@ -302,7 +302,7 @@ For example, if the child requires these children in its service configuration:
             "id": "template-child-services/wind-speed-service:2.1.1",
             "backend": {
                 "name": "GCPPubSubBackend",
-                "project_name": "octue-sdk-python"
+                "project_id": "octue-sdk-python"
             },
         },
         {
@@ -310,7 +310,7 @@ For example, if the child requires these children in its service configuration:
             "id": "template-child-services/elevation-service:3.1.9",
             "backend": {
                 "name": "GCPPubSubBackend",
-                "project_name": "octue-sdk-python"
+                "project_id": "octue-sdk-python"
             },
         }
     ]
@@ -327,7 +327,7 @@ then you can override them like this:
                 "id": "my/own-service:1.0.0",
                 "backend": {
                     "name": "GCPPubSubBackend",
-                    "project_name": "octue-sdk-python"
+                    "project_id": "octue-sdk-python"
                 },
             },
             {
@@ -335,7 +335,7 @@ then you can override them like this:
                 "id": "organisation/another-service:0.1.0",
                 "backend": {
                     "name": "GCPPubSubBackend",
-                    "project_name": "octue-sdk-python"
+                    "project_id": "octue-sdk-python"
                 },
             },
         ],
@@ -380,7 +380,7 @@ You can specify service registries in two ways:
 
         child = Child(
             id="my-organisation/my-service:1.1.0",
-            backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
+            backend={"name": "GCPPubSubBackend", "project_id": "my-project"},
             service_registries=[
                 {"name": "my-registry", "endpoint": "blah.com/services"},
             ]

@@ -44,9 +44,6 @@ jobs:
       - name: Check pyproject.toml file
         run: poetry check
 
-      - name: Install tox
-        run: pip install tox
-
       - name: Authenticate with Google Cloud
         id: auth
         uses: google-github-actions/auth@v0.6.0
@@ -56,11 +53,14 @@ jobs:
           workload_identity_provider: "projects/437801218871/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
           service_account: "github-actions@octue-sdk-python.iam.gserviceaccount.com"
 
+      - name: Install package
+        run: poetry install --all-extras -v
+
       - name: Run tests
-        env:
-          TEST_PROJECT_NAME: ${{ secrets.TEST_PROJECT_NAME }}
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.TEST_PROJECT_NAME }}
-        run: tox -vv -e py
+        run: |
+          poetry run coverage run --source octue -m unittest discover
+          poetry run coverage report --show-missing
+          poetry run coverage xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

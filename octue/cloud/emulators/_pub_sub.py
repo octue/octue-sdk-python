@@ -469,7 +469,7 @@ class MockSubscriptionCreationResponse:
 
 def get_pub_sub_resource_name(path):
     """Get the Pub/Sub resource name of the topic or subscription (e.g. "octue.services.<uuid>") from its path (e.g.
-    "projects/<project-name>/topics/octue.services.<uuid>").
+    "projects/<project-id>/topics/octue.services.<uuid>").
 
     :param str path:
     :return str:

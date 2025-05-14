@@ -17,14 +17,14 @@ class Topic:
     called.
 
     :param str name: the name to give the topic
-    :param str project_name: the name of the GCP project the topic should exist in
+    :param str project_id: the name of the GCP project the topic should exist in
     :return None:
     """
 
-    def __init__(self, name, project_name):
+    def __init__(self, name, project_id):
         self.name = name
-        self.project_name = project_name
-        self.path = self.generate_topic_path(self.project_name, self.name)
+        self.project_id = project_id
+        self.path = self.generate_topic_path(self.project_id, self.name)
         self._created = False
 
     @cached_property
@@ -112,14 +112,14 @@ class Topic:
         return False
 
     @staticmethod
-    def generate_topic_path(project_name, topic_name):
-        """Generate a full topic path in the format `projects/<project_name>/topics/<topic_name>`.
+    def generate_topic_path(project_id, topic_name):
+        """Generate a full topic path in the format `projects/<project_id>/topics/<topic_name>`.
 
-        :param str project_name:
+        :param str project_id:
         :param str topic_name:
         :return str:
         """
-        return f"projects/{project_name}/topics/{topic_name}"
+        return f"projects/{project_id}/topics/{topic_name}"
 
     def _log_creation(self):
         """Log the creation of the topic.

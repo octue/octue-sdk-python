@@ -16,9 +16,9 @@ class TestServiceBackends(BaseTestCase):
 
     def test_repr(self):
         """Test the representation displays as expected."""
-        self.assertEqual(repr(GCPPubSubBackend(project_name="hello")), "<GCPPubSubBackend(project_name='hello')>")
+        self.assertEqual(repr(GCPPubSubBackend(project_id="hello")), "<GCPPubSubBackend(project_id='hello')>")
 
-    def test_error_raised_if_project_name_is_none(self):
-        """Test that an error is raised if the project name isn't given during `GCPPubSubBackend` instantiation."""
+    def test_error_raised_if_project_id_is_none(self):
+        """Test that an error is raised if the project ID isn't given during `GCPPubSubBackend` instantiation."""
         with self.assertRaises(CloudLocationNotSpecified):
-            GCPPubSubBackend(project_name=None)
+            GCPPubSubBackend(project_id=None)

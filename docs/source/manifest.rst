@@ -46,7 +46,7 @@ Get a Twined service to analyse data for you as part of a larger analysis.
 
     child = Child(
         id="octue/wind-speed:2.1.0",
-        backend={"name": "GCPPubSubBackend", "project_name": "my-project"},
+        backend={"name": "GCPPubSubBackend", "project_id": "my-project"},
     )
 
     answer, question_uuid = child.ask(input_manifest=manifest)

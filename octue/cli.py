@@ -101,10 +101,10 @@ def ask():
 )
 @click.option(
     "-p",
-    "--project-name",
+    "--project-id",
     type=str,
     default=None,
-    help="The name of the Google Cloud project the service is deployed in. If not provided, the project name is "
+    help="The ID of the Google Cloud project the service is deployed in. If not provided, the project ID is "
     "detected from the local Google application credentials if present.",
 )
 @click.option(
@@ -122,7 +122,7 @@ def ask():
     "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
     "is used.",
 )
-def remote(sruid, input_values, input_manifest, project_name, asynchronous, service_config):
+def remote(sruid, input_values, input_manifest, project_id, asynchronous, service_config):
     """Ask a question to a remote Octue Twined service.
 
     SRUID should be a valid service revision unique identifier for an existing Octue Twined service e.g.
@@ -142,12 +142,12 @@ def remote(sruid, input_values, input_manifest, project_name, asynchronous, serv
     if input_manifest:
         input_manifest = Manifest.deserialise(input_manifest, from_string=True)
 
-    if not project_name:
-        _, project_name = auth.default()
+    if not project_id:
+        _, project_id = auth.default()
 
     child = Child(
         id=sruid,
-        backend={"name": "GCPPubSubBackend", "project_name": project_name},
+        backend={"name": "GCPPubSubBackend", "project_id": project_id},
         service_registries=service_registries,
     )
 
@@ -238,12 +238,12 @@ def local(input_values, input_manifest, attributes, service_config):
         backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
     else:
         # If no backend details are provided, use Google Pub/Sub with the default project.
-        _, project_name = auth.default()
-        backend = service_backends.get_backend()(project_name=project_name)
+        _, project_id = auth.default()
+        backend = service_backends.get_backend()(project_id=project_id)
 
     answer = answer_question(
         question=question,
-        project_name=backend.project_name,
+        project_id=backend.project_id,
         service_configuration=service_configuration,
     )
 
@@ -555,11 +555,11 @@ def diagnostics(cloud_path, local_path, download_datasets):
 # @click.argument("question_uuid", type=str)
 # @click.option(
 #     "-p",
-#     "--project-name",
+#     "--project-id",
 #     type=str,
 #     default=None,
-#     help="If asking a remote question, the name of the Google Cloud project the service is deployed in. If not "
-#     "provided, the project name is detected from the local Google application credentials if present.",
+#     help="If asking a remote question, the ID of the Google Cloud project the service is deployed in. If not "
+#     "provided, the project ID is detected from the local Google application credentials if present.",
 # )
 # @click.option(
 #     "-c",
@@ -570,17 +570,17 @@ def diagnostics(cloud_path, local_path, download_datasets):
 #     "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
 #     "is used.",
 # )
-# def cancel(question_uuid, project_name, service_config):
+# def cancel(question_uuid, project_id, service_config):
 #     """Cancel a question running on an Octue Twined service.
 #
 #     QUESTION_UUID: The question UUID of a running question
 #     """
 #     service_configuration = ServiceConfiguration.from_file(path=service_config)
 #
-#     if not project_name:
-#         _, project_name = auth.default()
+#     if not project_id:
+#         _, project_id = auth.default()
 #
-#     child = Child(id=None, backend={"name": "GCPPubSubBackend", "project_name": project_name})
+#     child = Child(id=None, backend={"name": "GCPPubSubBackend", "project_id": project_id})
 #     child.cancel(question_uuid=question_uuid, event_store_table_id=service_configuration.event_store_table_id)
 
 
@@ -673,8 +673,8 @@ def start(service_config, revision_tag, timeout, no_rm):
         backend = service_backends.get_backend(backend_configuration_values.pop("name"))(**backend_configuration_values)
     else:
         # If no backend details are provided, use Google Pub/Sub with the default project.
-        _, project_name = auth.default()
-        backend = service_backends.get_backend()(project_name=project_name)
+        _, project_id = auth.default()
+        backend = service_backends.get_backend()(project_id=project_id)
 
     service = Service(service_id=service_sruid, backend=backend, run_function=run_function)
 

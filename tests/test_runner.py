@@ -340,7 +340,7 @@ class TestRunner(BaseTestCase):
                     "id": f"octue/the-child:{MOCK_SERVICE_REVISION_TAG}",
                     "backend": {
                         "name": "GCPPubSubBackend",
-                        "project_name": "my-project",
+                        "project_id": "my-project",
                     },
                 },
                 {
@@ -348,7 +348,7 @@ class TestRunner(BaseTestCase):
                     "id": f"octue/yet-another-child:{MOCK_SERVICE_REVISION_TAG}",
                     "backend": {
                         "name": "GCPPubSubBackend",
-                        "project_name": "my-project",
+                        "project_id": "my-project",
                     },
                 },
             ],
@@ -739,7 +739,7 @@ class TestRunnerDiagnostics(BaseTestCase):
                             "id": f"octue/a-child:{MOCK_SERVICE_REVISION_TAG}",
                             "backend": {
                                 "name": "GCPPubSubBackend",
-                                "project_name": "my-project",
+                                "project_id": "my-project",
                             },
                         },
                         {
@@ -747,7 +747,7 @@ class TestRunnerDiagnostics(BaseTestCase):
                             "id": f"octue/another-child:{MOCK_SERVICE_REVISION_TAG}",
                             "backend": {
                                 "name": "GCPPubSubBackend",
-                                "project_name": "my-project",
+                                "project_id": "my-project",
                             },
                         },
                     ],

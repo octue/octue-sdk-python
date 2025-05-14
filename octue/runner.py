@@ -46,7 +46,7 @@ class Runner:
     :param str|None output_location: the path to a cloud directory to save output datasets at
     :param bool use_signed_urls_for_output_datasets: if `True`, use signed URLs instead of cloud URIs for dataset paths in the output manifest
     :param str|None diagnostics_cloud_path: the path to a cloud directory to store diagnostics (this includes the configuration, input values and manifest, and logs for each question)
-    :param str|None project_name: name of Google Cloud project to get credentials from
+    :param str|None project_id: name of Google Cloud project to get credentials from
     :param str|None service_id: the ID of the service being run
     :param bool delete_local_files: if `True`, delete any files downloaded and registered temporary directories created during an analysis once it's finished
     :return None:
@@ -62,7 +62,7 @@ class Runner:
         output_location=None,
         use_signed_urls_for_output_datasets=False,
         diagnostics_cloud_path=None,
-        project_name=None,
+        project_id=None,
         service_id=None,
         service_registries=None,
         delete_local_files=False,
@@ -105,14 +105,14 @@ class Runner:
         self.service_id = service_id
         self.service_registries = service_registries
         self.delete_local_files = delete_local_files
-        self._project_name = project_name
+        self._project_id = project_id
 
     @classmethod
-    def from_configuration(cls, service_configuration, project_name=None, service_id=None, **overrides):
+    def from_configuration(cls, service_configuration, project_id=None, service_id=None, **overrides):
         """Instantiate a runner from a service configuration.
 
         :param octue.configuration.ServiceConfiguration service_configuration:
-        :param str|None project_name: name of Google Cloud project to get credentials from
+        :param str|None project_id: name of Google Cloud project to get credentials from
         :param str|None service_id: the ID of the service being run
         :param overrides: optional keyword arguments to override the `Runner` instantiation parameters extracted from the service configuration
         :return octue.runner.Runner: a runner configured with the given service configuration
@@ -126,7 +126,7 @@ class Runner:
             "output_location": service_configuration.output_location,
             "use_signed_urls_for_output_datasets": service_configuration.use_signed_urls_for_output_datasets,
             "diagnostics_cloud_path": service_configuration.diagnostics_cloud_path,
-            "project_name": project_name,
+            "project_id": project_id,
             "service_id": service_id,
             "service_registries": service_configuration.service_registries,
             "delete_local_files": service_configuration.delete_local_files,
@@ -287,15 +287,15 @@ class Runner:
         if not missing_credentials:
             return
 
-        google_cloud_credentials, project_name = auth.default()
+        google_cloud_credentials, project_id = auth.default()
         secrets_client = secretmanager.SecretManagerServiceClient(credentials=google_cloud_credentials)
 
         if google_cloud_credentials is None:
-            project_name = self._project_name
+            project_id = self._project_id
 
         for credential in missing_credentials:
             secret_path = secrets_client.secret_version_path(
-                project=project_name,
+                project=project_id,
                 secret=credential["name"],
                 secret_version="latest",
             )

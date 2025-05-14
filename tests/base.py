@@ -11,7 +11,7 @@ from octue.cloud.emulators.service import ServicePatcher
 from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset, Manifest
-from tests import TEST_BUCKET_NAME, TEST_PROJECT_NAME
+from tests import TEST_BUCKET_NAME, TEST_PROJECT_ID
 
 
 class TestResultModifier(GoogleCloudStorageEmulatorTestResultModifier):
@@ -23,7 +23,7 @@ class TestResultModifier(GoogleCloudStorageEmulatorTestResultModifier):
         super().startTestRun()
 
         with ServicePatcher():
-            self.services_topic = MockTopic(name=OCTUE_SERVICES_TOPIC_NAME, project_name=TEST_PROJECT_NAME)
+            self.services_topic = MockTopic(name=OCTUE_SERVICES_TOPIC_NAME, project_id=TEST_PROJECT_ID)
             self.services_topic.create(allow_existing=True)
 
 

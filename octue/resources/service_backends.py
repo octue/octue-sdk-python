@@ -39,20 +39,20 @@ class ServiceBackend(ABC):
 class GCPPubSubBackend(ServiceBackend):
     """A dataclass containing the details needed to use Google Cloud Pub/Sub as a Service backend.
 
-    :param str project_name: the name of the project to use for Pub/Sub
+    :param str project_id: the ID of the project to use for Pub/Sub
     :return None:
     """
 
-    def __init__(self, project_name):
-        if project_name is None:
+    def __init__(self, project_id):
+        if project_id is None:
             raise exceptions.CloudLocationNotSpecified(
-                "`project_name` must be specified for a service to connect to the correct service - received None."
+                "`project_id` must be specified for a service to connect to the correct service - received None."
             )
 
-        self.project_name = project_name
+        self.project_id = project_id
 
     def __repr__(self):
-        return f"<{type(self).__name__}(project_name={self.project_name!r})>"
+        return f"<{type(self).__name__}(project_id={self.project_id!r})>"
 
 
 AVAILABLE_BACKENDS = {
