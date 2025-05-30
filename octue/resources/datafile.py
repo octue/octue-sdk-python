@@ -7,7 +7,6 @@ import logging
 import os
 import shutil
 import tempfile
-import warnings
 
 import requests
 
@@ -26,9 +25,7 @@ from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.metadata import METADATA_FILENAME, UpdateLocalMetadata, load_local_metadata_file
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=RuntimeWarning, module="google_crc32c")
-    from google_crc32c import Checksum
+from google_crc32c import Checksum
 
 
 logger = logging.getLogger(__name__)

@@ -20,9 +20,7 @@ from octue.exceptions import CloudStorageBucketNotFound
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=RuntimeWarning, module="google_crc32c")
-    from google_crc32c import Checksum
+from google_crc32c import Checksum
 
 logger = logging.getLogger(__name__)
 
