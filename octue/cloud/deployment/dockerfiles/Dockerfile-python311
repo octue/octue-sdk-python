@@ -1,4 +1,4 @@
-FROM windpioneers/gdal-python:modest-heron-gdal-2.4.1-python-3.11-slim
+FROM windpioneers/gdal-python:rational-swordtail-gdal-3.10.0-python-3.11-slim
 
 # Ensure print statements and log messages appear promptly in Cloud Logging.
 ENV PYTHONUNBUFFERED=True
