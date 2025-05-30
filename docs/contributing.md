@@ -39,7 +39,7 @@ We use continuous deployment and semantic versioning for our releases:
   ```
   git clone <your_forked_repo_address>                          # Fetches the repo to your local machine
   cd octue-sdk-python                                           # Move into the repo directory
-  pyenv virtualenv 3.9 myenv                                    # Makes a virtual environment for you to install the dev tools into. Use any python >= 3.8
+  pyenv virtualenv 3.10 myenv                                   # Makes a virtual environment for you to install the dev tools into. Use any python >= 3.10
   pyenv activate myenv                                          # Activates the virtual environment so you don't affect other installations
   pip install poetry                                            # Installs the poetry package manager
   poetry install --all-extras                                   # Installs the package editably, including developer dependencies (e.g. testing and code formatting utilities)
