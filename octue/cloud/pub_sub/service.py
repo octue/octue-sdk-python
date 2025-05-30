@@ -251,7 +251,7 @@ class Service:
                 sender_sdk_version=question_attributes.sender_sdk_version,
             )
 
-            self.send_exception(attributes=response_attributes, timeout=timeout)
+            self._send_exception(attributes=response_attributes, timeout=timeout)
             raise error
 
     def ask(
@@ -444,7 +444,7 @@ class Service:
     #     self._emit_event({"kind": "cancellation"}, attributes=question_attributes, timeout=timeout)
     #     logger.info("Cancellation of question %r requested.", question_uuid)
 
-    def send_exception(self, attributes, timeout=30):
+    def _send_exception(self, attributes, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
         :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the exception event
