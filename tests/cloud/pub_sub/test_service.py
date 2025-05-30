@@ -884,11 +884,15 @@ class TestService(BaseTestCase):
         :param str|None service_id:
         :return octue.cloud.emulators._pub_sub.MockService:
         """
-        return MockService(
-            backend=backend,
-            service_id=service_id,
-            run_function=lambda *args, **kwargs: run_function_returnee,
-        )
+
+        def _run_function(analysis=None, *args, **kwargs):
+            if analysis:
+                analysis.output_values = run_function_returnee.output_values
+                analysis.output_manifest = run_function_returnee.output_manifest
+
+            return run_function_returnee
+
+        return MockService(backend=backend, service_id=service_id, run_function=_run_function)
 
     def make_new_child_with_error(self, exception_to_raise):
         """Make a mock child service that raises the given exception when its run function is executed.
