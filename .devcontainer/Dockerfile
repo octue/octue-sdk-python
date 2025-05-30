@@ -1,4 +1,4 @@
-FROM windpioneers/gdal-python:familiar-catshark-gdal-2.4.1-python-3.9-dev
+FROM windpioneers/gdal-python:rational-swordtail-gdal-3.10.0-python-3.13-dev
 
 # Tell zsh where you want to store history
 #     We leave you to decide, but if you put this into a folder that's been mapped
