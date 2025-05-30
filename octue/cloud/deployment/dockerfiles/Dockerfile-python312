@@ -1,0 +1,39 @@
+FROM windpioneers/gdal-python:rational-swordtail-gdal-3.10.0-python-3.12-slim
+
+# Ensure print statements and log messages appear promptly in Cloud Logging.
+ENV PYTHONUNBUFFERED=True
+
+ENV PROJECT_ROOT=/workspace
+WORKDIR $PROJECT_ROOT
+
+RUN apt-get update -y && apt-get install -y --fix-missing build-essential && rm -rf /var/lib/apt/lists/*
+
+# Install poetry.
+ENV POETRY_HOME=/root/.poetry
+ENV PATH="$POETRY_HOME/bin:$PATH"
+RUN curl -sSL https://install.python-poetry.org | python3 - && poetry config virtualenvs.create false;
+
+# Copy in the dependencies file(s) for caching. One or more of `requirements.txt`, `setup.py`, and `pyproject.toml and
+# `poetry.lock` must be present.
+COPY pyproject.tom[l] poetry.loc[k] setup.p[y] requirements.tx[t] ./
+
+# If `pyproject.toml` is present, install the dependencies only to utilise layer caching for quick rebuilds.
+RUN if [ -f "pyproject.toml" ]; then poetry install  \
+    --no-ansi  \
+    --no-interaction  \
+    --no-cache  \
+    --no-root  \
+    --only main;  \
+    fi
+
+# Copy local code to the application root directory.
+COPY . .
+
+# Install local packages if using poetry. Otherwise, install everything if using `setup.py` or `requirements.txt`.
+RUN if [ -f "pyproject.toml" ]; then poetry install --only main;  \
+    elif [ -f "setup.py" ]; then pip install --upgrade pip && pip install -e .;  \
+    elif [ -f "requirements.txt" ]; then pip install --upgrade pip && pip install -r requirements.txt; fi
+
+ENV USE_OCTUE_LOG_HANDLER=1
+ENV COMPUTE_PROVIDER=GOOGLE_KUEUE
+CMD ["octue", "question", "ask", "local"]
