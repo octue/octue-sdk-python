@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octue"
-version = "0.64.0"
+version = "0.65.0"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
 authors = ["Marcus Lugg <marcus@octue.com>", "Thomas Clark <support@octue.com>"]
@@ -71,7 +71,7 @@ line-length = 120
 select = ["D", "E", "F"]
 # Ignore E501 line-too-long - see https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black for why
 ignore = [
-    "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D203", "D205", "D213", "D400", "D415",
+    "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D203", "D205", "D213", "D400", "D401", "D415",
     "E501", "E203", "E731",
     "F405",
     "N818",

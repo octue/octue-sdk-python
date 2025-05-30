@@ -80,7 +80,7 @@ Dockerfile (optional)
         Twined services run in a Docker container if they are deployed. They can also run this way locally. The SDK
         provides a default ``Dockerfile`` for these purposes that will work for most cases:
 
-        - For deploying to `Kubernetes <https://github.com/octue/octue-sdk-python/blob/main/octue/cloud/deployment/dockerfiles/Dockerfile-python311>`_
+        - For deploying to `Kubernetes <https://github.com/octue/octue-sdk-python/blob/main/octue/cloud/deployment/dockerfiles/Dockerfile-python313>`_
 
         However, you may need to write and provide your own ``Dockerfile`` if your app requires:
 
