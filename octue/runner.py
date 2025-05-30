@@ -250,7 +250,7 @@ class Runner:
                 analysis.output_location = self.output_location
                 analysis.use_signed_urls_for_output_datasets = self.use_signed_urls_for_output_datasets
 
-                for key, value in {**self.configuration.items(), **inputs, **outputs_and_monitors}:
+                for key, value in {**self.configuration, **inputs, **outputs_and_monitors}.items():
                     setattr(analysis, key, value)
             else:
                 analysis = Analysis(
