@@ -4,7 +4,6 @@ import datetime
 
 from google_crc32c import Checksum
 
-
 EMPTY_STRING_HASH_VALUE = "AAAAAA=="
 
 _HASH_PREPARATION_FUNCTIONS = {
