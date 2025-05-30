@@ -26,6 +26,7 @@ from octue.cloud.service_id import (
 from octue.compatibility import warn_if_incompatible
 from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL, LOCAL_SDK_VERSION
 import octue.exceptions
+from octue.resources import Analysis
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
@@ -195,12 +196,14 @@ class Service:
         :raise Exception: if any exception arises during running analysis and sending its results
         :return dict: the result event
         """
+        heartbeater = None
+        analysis = None
+
         try:
             question, question_attributes = self._parse_question(question)
         except jsonschema.ValidationError:
             return
 
-        heartbeater = None
         response_attributes = ResponseAttributes.from_question_attributes(question_attributes)
 
         try:
@@ -225,7 +228,12 @@ class Service:
 
             handle_monitor_message = functools.partial(self._send_monitor_message, attributes=response_attributes)
 
-            analysis = self.run_function(
+            # Instantiate analysis here so outputs can be accessed even in the event of an exception in the run
+            # function.
+            analysis = Analysis()
+
+            self.run_function(
+                analysis=analysis,
                 analysis_id=question_attributes.question_uuid,
                 input_values=question.get("input_values"),
                 input_manifest=question.get("input_manifest"),
@@ -252,6 +260,10 @@ class Service:
             )
 
             self._send_exception(attributes=response_attributes, timeout=timeout)
+
+            if analysis is not None:
+                self._send_result(analysis, response_attributes)
+
             raise error
 
     def ask(
