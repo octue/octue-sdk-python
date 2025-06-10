@@ -245,13 +245,17 @@ class Runner:
         ):
             if analysis:
                 analysis._set_id(analysis_id)
-                analysis.twine = self.twine
-                analysis.handle_monitor_message = handle_monitor_message
-                analysis.output_location = self.output_location
-                analysis.use_signed_urls_for_output_datasets = self.use_signed_urls_for_output_datasets
 
-                for key, value in {**self.configuration, **inputs, **outputs_and_monitors}.items():
-                    setattr(analysis, key, value)
+                analysis.prepare(
+                    twine=self.twine,
+                    handle_monitor_message=handle_monitor_message,
+                    output_location=self.output_location,
+                    use_signed_urls_for_output_datasets=self.use_signed_urls_for_output_datasets,
+                    **self.configuration,
+                    **inputs,
+                    **outputs_and_monitors,
+                )
+
             else:
                 analysis = Analysis(
                     id=analysis_id,

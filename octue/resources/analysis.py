@@ -61,6 +61,19 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     """
 
     def __init__(self, twine=None, handle_monitor_message=None, **kwargs):
+        self.prepare(twine=twine, handle_monitor_message=handle_monitor_message, **kwargs)
+        super().__init__(**kwargs)
+
+    @property
+    def finalised(self):
+        """Check whether the analysis has been finalised (i.e. whether its outputs have been validated and, if an output
+        manifest is produced, its datasets uploaded).
+
+        :return bool:
+        """
+        return self._finalised
+
+    def prepare(self, twine=None, handle_monitor_message=None, **kwargs):
         if twine is None or isinstance(twine, Twine):
             self.twine = twine
         else:
@@ -89,16 +102,6 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self._calculate_strand_hashes(strands=strand_kwargs)
         self._periodic_monitor_message_sender_threads = []
         self._finalised = False
-        super().__init__(**kwargs)
-
-    @property
-    def finalised(self):
-        """Check whether the analysis has been finalised (i.e. whether its outputs have been validated and, if an output
-        manifest is produced, its datasets uploaded).
-
-        :return bool:
-        """
-        return self._finalised
 
     def send_monitor_message(self, data):
         """Send a monitor message to the parent that requested the analysis.
