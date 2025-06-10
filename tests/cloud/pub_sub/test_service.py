@@ -884,11 +884,9 @@ class TestService(BaseTestCase):
 
     @staticmethod
     def make_run_function(run_function_returnee):
-        def _run_function(analysis=None, *args, **kwargs):
-            if analysis:
-                analysis.output_values = run_function_returnee.output_values
-                analysis.output_manifest = run_function_returnee.output_manifest
-
+        def _run_function(analysis, *args, **kwargs):
+            analysis.output_values = run_function_returnee.output_values
+            analysis.output_manifest = run_function_returnee.output_manifest
             return run_function_returnee
 
         return _run_function
@@ -903,7 +901,9 @@ class TestService(BaseTestCase):
         :return octue.cloud.emulators._pub_sub.MockService:
         """
         return MockService(
-            backend=backend, service_id=service_id, run_function=self.make_run_function(run_function_returnee)
+            backend=backend,
+            service_id=service_id,
+            run_function=self.make_run_function(run_function_returnee),
         )
 
     def make_new_child_with_error(self, exception_to_raise):
