@@ -37,6 +37,7 @@ class AbstractEventHandler:
     :param str|None exclude_logs_containing: if provided, skip handling log messages containing this string
     :param bool only_handle_result: if `True`, skip handling non-result events and only handle the "result" event when received (turning this on speeds up event handling)
     :param bool validate_events: if `True`, validate events before attempting to handle them (turning this off speeds up event handling)
+    :param bool raise_errors: if `True`, raise any exceptions received; otherwise, just log them (just logging them allows a partial result event to be received afterwards and handled)
     :return None:
     """
 
@@ -50,6 +51,7 @@ class AbstractEventHandler:
         exclude_logs_containing=None,
         only_handle_result=False,
         validate_events=True,
+        raise_errors=True,
     ):
         self.handle_monitor_message = handle_monitor_message
         self.record_events = record_events
@@ -58,6 +60,7 @@ class AbstractEventHandler:
         self.exclude_logs_containing = exclude_logs_containing
         self.only_handle_result = only_handle_result
         self.validate_events = validate_events
+        self.raise_errors = raise_errors
 
         self.handled_events = []
         self._start_time = None
@@ -221,7 +224,7 @@ class AbstractEventHandler:
         logger.handle(record)
 
     def _handle_exception(self, event, attributes):
-        """Raise the exception from the child.
+        """Raise or log the exception from the child.
 
         :param dict event:
         :param dict attributes: the event's attributes
@@ -243,7 +246,12 @@ class AbstractEventHandler:
         except KeyError:
             exception_type = type(event["exception_type"], (Exception,), {})
 
-        raise exception_type(exception_message)
+        error = exception_type(exception_message)
+
+        if self.raise_errors:
+            raise error
+
+        logger.error("", exc_info=error)
 
     def _handle_result(self, event, attributes):
         """Extract any output values and output manifest from the result, deserialising the manifest if present.
