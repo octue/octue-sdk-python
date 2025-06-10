@@ -61,7 +61,18 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     """
 
     def __init__(self, twine=None, handle_monitor_message=None, **kwargs):
-        self.prepare(twine=twine, handle_monitor_message=handle_monitor_message, **kwargs)
+        strand_kwargs = {name: kwargs.pop(name, None) for name in ALL_STRANDS}
+        output_location = kwargs.pop("output_location", None)
+        use_signed_urls_for_output_datasets = kwargs.pop("use_signed_urls_for_output_datasets", False)
+
+        self.prepare(
+            twine=twine,
+            handle_monitor_message=handle_monitor_message,
+            output_location=output_location,
+            use_signed_urls_for_output_datasets=use_signed_urls_for_output_datasets,
+            **strand_kwargs,
+        )
+
         super().__init__(**kwargs)
 
     @property
@@ -73,14 +84,20 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         """
         return self._finalised
 
-    def prepare(self, twine=None, handle_monitor_message=None, **kwargs):
+    def prepare(
+        self,
+        twine=None,
+        handle_monitor_message=None,
+        output_location=None,
+        use_signed_urls_for_output_datasets=None,
+        **strand_kwargs,
+    ):
         if twine is None or isinstance(twine, Twine):
             self.twine = twine
         else:
             self.twine = Twine(source=twine)
 
         self._handle_monitor_message = handle_monitor_message
-        strand_kwargs = {name: kwargs.pop(name, None) for name in ALL_STRANDS}
 
         # Values strands.
         self.configuration_values = strand_kwargs.get("configuration_values", None)
@@ -96,8 +113,8 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self.children = strand_kwargs.get("children", None)
 
         # Non-strands.
-        self.output_location = kwargs.pop("output_location", None)
-        self.use_signed_urls_for_output_datasets = kwargs.pop("use_signed_urls_for_output_datasets", False)
+        self.output_location = output_location
+        self.use_signed_urls_for_output_datasets = use_signed_urls_for_output_datasets
 
         self._calculate_strand_hashes(strands=strand_kwargs)
         self._periodic_monitor_message_sender_threads = []
