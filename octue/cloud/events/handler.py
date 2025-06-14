@@ -253,4 +253,8 @@ class AbstractEventHandler:
         else:
             output_manifest = None
 
-        return {"output_values": event.get("output_values"), "output_manifest": output_manifest}
+        return {
+            "output_values": event.get("output_values"),
+            "output_manifest": output_manifest,
+            "success": event.get("success"),
+        }
