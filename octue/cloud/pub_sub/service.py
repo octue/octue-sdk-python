@@ -455,17 +455,6 @@ class Service:
     #     self._emit_event({"kind": "cancellation"}, attributes=question_attributes, timeout=timeout)
     #     logger.info("Cancellation of question %r requested.", question_uuid)
 
-    def _serialise_exception(self):
-        exception = convert_exception_to_primitives()
-        exception_message = f"Error in {self!r}: {exception['message']}"
-
-        return {
-            "kind": "exception",
-            "exception_type": exception["type"],
-            "exception_message": exception_message,
-            "exception_traceback": exception["traceback"],
-        }
-
     def _send_exception(self, attributes, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
@@ -625,6 +614,17 @@ class Service:
 
         self._emit_event(event=result, attributes=attributes, timeout=timeout)
         return result
+
+    def _serialise_exception(self):
+        exception = convert_exception_to_primitives()
+        exception_message = f"Error in {self!r}: {exception['message']}"
+
+        return {
+            "kind": "exception",
+            "exception_type": exception["type"],
+            "exception_message": exception_message,
+            "exception_traceback": exception["traceback"],
+        }
 
     def _parse_question(self, question):
         """Parse a question in dictionary format or direct Google Pub/Sub format.
