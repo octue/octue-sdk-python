@@ -1,19 +1,18 @@
 import functools
 import logging
+from multiprocessing import Value
 import os
 import random
 import threading
 import time
-from multiprocessing import Value
 from unittest.mock import patch
 
-from octue.cloud.emulators._pub_sub import MockAnalysis, MockService
+from octue.cloud.emulators._pub_sub import MockService
 from octue.cloud.emulators.service import ServicePatcher
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
 from tests import MOCK_SERVICE_REVISION_TAG
 from tests.base import BaseTestCase
-
 
 lock = threading.Lock()
 
@@ -23,7 +22,7 @@ def mock_run_function_that_fails(analysis_id, input_values, *args, **kwargs):
     raise ValueError("Deliberately raised for `Child.ask` test.")
 
 
-def mock_run_function_that_fails_every_other_time(analysis_id, input_values, *args, **kwargs):
+def mock_run_function_that_fails_every_other_time(analysis, analysis_id, input_values, *args, **kwargs):
     """A run function that always fails every other time, starting with the first time."""
     with lock:
         # Every other question will fail.
@@ -32,7 +31,8 @@ def mock_run_function_that_fails_every_other_time(analysis_id, input_values, *ar
             raise ValueError("Deliberately raised for `Child.ask` test.")
 
     time.sleep(random.random() * 0.1)
-    return MockAnalysis(output_values=input_values)
+    analysis.output_values = input_values
+    return analysis
 
 
 class TestChild(BaseTestCase):
@@ -77,8 +77,9 @@ class TestChild(BaseTestCase):
     def test_child_can_be_asked_multiple_questions_in_serial(self):
         """Test that a child can be asked multiple questions in serial."""
 
-        def mock_run_function(analysis_id, input_values, *args, **kwargs):
-            return MockAnalysis(output_values=input_values)
+        def mock_run_function(analysis, analysis_id, input_values, *args, **kwargs):
+            analysis.output_values = input_values
+            return analysis
 
         responding_service = MockService(backend=GCPPubSubBackend(project_id="blah"), run_function=mock_run_function)
 
@@ -144,7 +145,7 @@ class TestChild(BaseTestCase):
             answer, _ = child.ask(input_values=[1, 2, 3, 4], raise_errors=False, max_retries=1)
 
         # Check that the question succeeds.
-        self.assertEqual(answer, {"output_manifest": None, "output_values": [1, 2, 3, 4]})
+        self.assertEqual(answer, {"output_manifest": None, "output_values": [1, 2, 3, 4], "success": True})
 
     def test_errors_logged_when_not_raised(self):
         """Test that errors from a question still failing after retries are exhausted are logged by default."""
@@ -163,8 +164,8 @@ class TestChild(BaseTestCase):
             with self.assertLogs(level=logging.ERROR) as logging_context:
                 child.ask(input_values=[1, 2, 3, 4], raise_errors=False, max_retries=0)
 
-            self.assertIn("failed after 0 retries (see below for error).", logging_context.output[2])
-            self.assertIn('raise ValueError("Deliberately raised for `Child.ask` test.")', logging_context.output[2])
+            self.assertIn("failed after 0 retries (see below for error).", logging_context.output[3])
+            self.assertIn('raise ValueError("Deliberately raised for `Child.ask` test.")', logging_context.output[3])
 
     def test_with_prevented_retries(self):
         """Test that retries can be prevented for specified exception types."""
@@ -216,9 +217,10 @@ class TestAskMultiple(BaseTestCase):
     def test_ask_multiple(self):
         """Test that a child can be asked multiple questions in parallel and return the answers in the correct order."""
 
-        def mock_run_function(analysis_id, input_values, *args, **kwargs):
+        def mock_run_function(analysis, analysis_id, input_values, *args, **kwargs):
             time.sleep(random.randint(0, 2))
-            return MockAnalysis(output_values=input_values)
+            analysis.output_values = input_values
+            return analysis
 
         responding_service = MockService(backend=GCPPubSubBackend(project_id="blah"), run_function=mock_run_function)
 
@@ -238,8 +240,8 @@ class TestAskMultiple(BaseTestCase):
             self.assertEqual(
                 [answer[0] for answer in answers],
                 [
-                    {"output_values": [1, 2, 3, 4], "output_manifest": None},
-                    {"output_values": [5, 6, 7, 8], "output_manifest": None},
+                    {"output_values": [1, 2, 3, 4], "output_manifest": None, "success": True},
+                    {"output_values": [5, 6, 7, 8], "output_manifest": None, "success": True},
                 ],
             )
 
@@ -280,9 +282,9 @@ class TestAskMultiple(BaseTestCase):
         self.assertEqual(
             [answer[0] for answer in answers],
             [
-                {"output_manifest": None, "output_values": [1, 2, 3, 4]},
-                {"output_manifest": None, "output_values": [5, 6, 7, 8]},
-                {"output_manifest": None, "output_values": [9, 10, 11, 12]},
-                {"output_manifest": None, "output_values": [13, 14, 15, 16]},
+                {"output_manifest": None, "output_values": [1, 2, 3, 4], "success": True},
+                {"output_manifest": None, "output_values": [5, 6, 7, 8], "success": True},
+                {"output_manifest": None, "output_values": [9, 10, 11, 12], "success": True},
+                {"output_manifest": None, "output_values": [13, 14, 15, 16], "success": True},
             ],
         )

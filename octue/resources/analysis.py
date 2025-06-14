@@ -3,7 +3,6 @@ import logging
 
 import coolname
 
-import twined.exceptions
 from octue.cloud import storage
 from octue.exceptions import InvalidMonitorMessage
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
@@ -11,7 +10,7 @@ from octue.resources.manifest import Manifest
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.threads import RepeatingTimer
 from twined import ALL_STRANDS, Twine
-
+import twined.exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     If a strand is ``None``, so will its corresponding hash attribute be. The hash of a datafile is the hash of its
     file, while the hash of a manifest or dataset is the cumulative hash of the files it refers to.
 
-    :param twined.Twine|dict|str twine: the twine, dictionary defining a twine, or path to "twine.json" file defining the service's data interface
+    :param twined.Twine|dict|str|None twine: the twine, dictionary defining a twine, or path to "twine.json" file defining the service's data interface
     :param callable|None handle_monitor_message: an optional function for sending monitor messages to the parent that requested the analysis
     :param any configuration_values: the configuration values for the analysis - this can be expressed as a python primitive (e.g. dict), a path to a JSON file, or a JSON string.
     :param octue.resources.manifest.Manifest configuration_manifest: a manifest of configuration datasets for the analysis if required
@@ -61,15 +60,44 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     :return None:
     """
 
-    def __init__(self, twine, handle_monitor_message=None, **kwargs):
-        if isinstance(twine, Twine):
+    def __init__(self, twine=None, handle_monitor_message=None, **kwargs):
+        strand_kwargs = {name: kwargs.pop(name, None) for name in ALL_STRANDS}
+        output_location = kwargs.pop("output_location", None)
+        use_signed_urls_for_output_datasets = kwargs.pop("use_signed_urls_for_output_datasets", False)
+
+        self.prepare(
+            twine=twine,
+            handle_monitor_message=handle_monitor_message,
+            output_location=output_location,
+            use_signed_urls_for_output_datasets=use_signed_urls_for_output_datasets,
+            **strand_kwargs,
+        )
+
+        super().__init__(**kwargs)
+
+    @property
+    def finalised(self):
+        """Check whether the analysis has been finalised (i.e. whether its outputs have been validated and, if an output
+        manifest is produced, its datasets uploaded).
+
+        :return bool:
+        """
+        return self._finalised
+
+    def prepare(
+        self,
+        twine=None,
+        handle_monitor_message=None,
+        output_location=None,
+        use_signed_urls_for_output_datasets=None,
+        **strand_kwargs,
+    ):
+        if twine is None or isinstance(twine, Twine):
             self.twine = twine
         else:
             self.twine = Twine(source=twine)
 
         self._handle_monitor_message = handle_monitor_message
-
-        strand_kwargs = {name: kwargs.pop(name, None) for name in ALL_STRANDS}
 
         # Values strands.
         self.configuration_values = strand_kwargs.get("configuration_values", None)
@@ -85,22 +113,12 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         self.children = strand_kwargs.get("children", None)
 
         # Non-strands.
-        self.output_location = kwargs.pop("output_location", None)
-        self.use_signed_urls_for_output_datasets = kwargs.pop("use_signed_urls_for_output_datasets", False)
+        self.output_location = output_location
+        self.use_signed_urls_for_output_datasets = use_signed_urls_for_output_datasets
 
         self._calculate_strand_hashes(strands=strand_kwargs)
         self._periodic_monitor_message_sender_threads = []
         self._finalised = False
-        super().__init__(**kwargs)
-
-    @property
-    def finalised(self):
-        """Check whether the analysis has been finalised (i.e. whether its outputs have been validated and, if an output
-        manifest is produced, its datasets uploaded).
-
-        :return bool:
-        """
-        return self._finalised
 
     def send_monitor_message(self, data):
         """Send a monitor message to the parent that requested the analysis.

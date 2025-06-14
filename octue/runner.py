@@ -6,12 +6,12 @@ import os
 import re
 import uuid
 
-import google.api_core.exceptions
 from google import auth
+import google.api_core.exceptions
 from google.cloud import secretmanager
-from jsonschema import ValidationError, validate as jsonschema_validate
+from jsonschema import ValidationError
+from jsonschema import validate as jsonschema_validate
 
-import twined.exceptions
 from octue import exceptions
 from octue.app_loading import AppFrom
 from octue.diagnostics import Diagnostics
@@ -21,7 +21,7 @@ from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.resources.datafile import downloaded_files
 from octue.utils.files import registered_temporary_directories
 from twined import Twine
-
+import twined.exceptions
 
 SAVE_DIAGNOSTICS_OFF = "SAVE_DIAGNOSTICS_OFF"
 SAVE_DIAGNOSTICS_ON_CRASH = "SAVE_DIAGNOSTICS_ON_CRASH"
@@ -145,6 +145,7 @@ class Runner:
 
     def run(
         self,
+        analysis=None,
         analysis_id=None,
         input_values=None,
         input_manifest=None,
@@ -158,6 +159,7 @@ class Runner:
     ):
         """Run an analysis.
 
+        :param octue.resources.analysis.Analysis|None analysis:
         :param str|None analysis_id: UUID of analysis
         :param str|dict|None input_values: the input_values strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
         :param str|dict|octue.resources.manifest.Manifest|None input_manifest: The input_manifest strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
@@ -241,16 +243,30 @@ class Runner:
             analysis_log_level=analysis_log_level,
             extra_log_handlers=extra_log_handlers,
         ):
-            analysis = Analysis(
-                id=analysis_id,
-                twine=self.twine,
-                handle_monitor_message=handle_monitor_message,
-                output_location=self.output_location,
-                use_signed_urls_for_output_datasets=self.use_signed_urls_for_output_datasets,
-                **self.configuration,
-                **inputs,
-                **outputs_and_monitors,
-            )
+            if analysis:
+                analysis._set_id(analysis_id)
+
+                analysis.prepare(
+                    twine=self.twine,
+                    handle_monitor_message=handle_monitor_message,
+                    output_location=self.output_location,
+                    use_signed_urls_for_output_datasets=self.use_signed_urls_for_output_datasets,
+                    **self.configuration,
+                    **inputs,
+                    **outputs_and_monitors,
+                )
+
+            else:
+                analysis = Analysis(
+                    id=analysis_id,
+                    twine=self.twine,
+                    handle_monitor_message=handle_monitor_message,
+                    output_location=self.output_location,
+                    use_signed_urls_for_output_datasets=self.use_signed_urls_for_output_datasets,
+                    **self.configuration,
+                    **inputs,
+                    **outputs_and_monitors,
+                )
 
             try:
                 self._load_and_run_app(analysis)

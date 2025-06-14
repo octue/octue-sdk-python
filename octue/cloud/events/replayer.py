@@ -19,6 +19,7 @@ class EventReplayer(AbstractEventHandler):
     :param str|None exclude_logs_containing: if provided, skip handling log messages containing this string
     :param bool only_handle_result: if `True`, skip non-result events and only handle the "result" event if present (turning this on speeds up event handling)
     :param bool validate_events: if `True`, validate events before attempting to handle them (this is off by default to speed up event handling)
+    :param bool raise_errors: if `True`, raise any exceptions received; otherwise, just log them (just logging them allows a partial result event to be received afterwards and handled)
     :return None:
     """
 
@@ -32,6 +33,7 @@ class EventReplayer(AbstractEventHandler):
         exclude_logs_containing=None,
         only_handle_result=False,
         validate_events=False,
+        raise_errors=True,
     ):
         event_handlers = event_handlers or {
             "question": self._handle_question,
@@ -52,6 +54,7 @@ class EventReplayer(AbstractEventHandler):
             exclude_logs_containing=exclude_logs_containing,
             only_handle_result=only_handle_result,
             validate_events=validate_events,
+            raise_errors=raise_errors,
         )
 
     def handle_events(self, events):

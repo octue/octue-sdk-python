@@ -46,6 +46,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     :param str|None exclude_logs_containing: if provided, skip handling log messages containing this string
     :param bool only_handle_result: if `True`, skip non-result events and only handle the "result" event if present (turning this on speeds up event handling)
     :param bool validate_events: if `True`, validate events before attempting to handle them (turn this off to speed up event handling at risk of failure if an invalid event is received)
+    :param bool raise_errors: if `True`, raise any exceptions received; otherwise, just log them (just logging them allows a partial result event to be received afterwards and handled)
     :return None:
     """
 
@@ -60,6 +61,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
         exclude_logs_containing=None,
         only_handle_result=False,
         validate_events=True,
+        raise_errors=True,
     ):
         self.subscription = subscription
 
@@ -72,6 +74,7 @@ class GoogleCloudPubSubEventHandler(AbstractEventHandler):
             exclude_logs_containing=exclude_logs_containing,
             only_handle_result=only_handle_result,
             validate_events=validate_events,
+            raise_errors=raise_errors,
         )
 
         self._heartbeat_checker = None

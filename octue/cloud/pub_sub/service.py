@@ -26,6 +26,7 @@ from octue.cloud.service_id import (
 from octue.compatibility import warn_if_incompatible
 from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL, LOCAL_SDK_VERSION
 import octue.exceptions
+from octue.resources import Analysis
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
@@ -195,12 +196,16 @@ class Service:
         :raise Exception: if any exception arises during running analysis and sending its results
         :return dict: the result event
         """
+        heartbeater = None
+
+        # Instantiate analysis here so outputs can be accessed even in the event of an exception in the run function.
+        analysis = Analysis()
+
         try:
             question, question_attributes = self._parse_question(question)
         except jsonschema.ValidationError:
             return
 
-        heartbeater = None
         response_attributes = ResponseAttributes.from_question_attributes(question_attributes)
 
         try:
@@ -225,7 +230,8 @@ class Service:
 
             handle_monitor_message = functools.partial(self._send_monitor_message, attributes=response_attributes)
 
-            analysis = self.run_function(
+            self.run_function(
+                analysis=analysis,
                 analysis_id=question_attributes.question_uuid,
                 input_values=question.get("input_values"),
                 input_manifest=question.get("input_manifest"),
@@ -237,7 +243,7 @@ class Service:
                 originator=question_attributes.originator,
             )
 
-            result = self._send_result(analysis, response_attributes)
+            result = self._send_result(analysis, response_attributes, success=True)
             heartbeater.cancel()
             logger.info("%r answered question %r.", self, question_attributes.question_uuid)
             return result
@@ -251,7 +257,8 @@ class Service:
                 sender_sdk_version=question_attributes.sender_sdk_version,
             )
 
-            self.send_exception(attributes=response_attributes, timeout=timeout)
+            self._send_exception(attributes=response_attributes, timeout=timeout)
+            self._send_result(analysis, response_attributes, success=False, exception=self._serialise_exception())
             raise error
 
     def ask(
@@ -381,6 +388,7 @@ class Service:
         record_events=True,
         timeout=60,
         maximum_heartbeat_interval=DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL,
+        raise_errors=True,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
@@ -390,8 +398,9 @@ class Service:
         :param bool record_events: if `True`, record messages received from the child in the `received_events` attribute
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
+        :param bool raise_errors:
         :raise TimeoutError: if the timeout is exceeded
-        :return dict: dictionary containing the keys "output_values" and "output_manifest"
+        :return dict: dictionary containing the keys "output_values", "output_manifest", "success", and for a failed analysis, "exception"
         """
         if subscription.is_push_subscription:
             raise octue.exceptions.NotAPullSubscription(
@@ -403,6 +412,7 @@ class Service:
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
             record_events=record_events,
+            raise_errors=raise_errors,
         )
 
         try:
@@ -444,26 +454,15 @@ class Service:
     #     self._emit_event({"kind": "cancellation"}, attributes=question_attributes, timeout=timeout)
     #     logger.info("Cancellation of question %r requested.", question_uuid)
 
-    def send_exception(self, attributes, timeout=30):
+    def _send_exception(self, attributes, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
         :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the exception event
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
-        exception = convert_exception_to_primitives()
-        exception_message = f"Error in {self!r}: {exception['message']}"
-
-        self._emit_event(
-            {
-                "kind": "exception",
-                "exception_type": exception["type"],
-                "exception_message": exception_message,
-                "exception_traceback": exception["traceback"],
-            },
-            attributes=attributes,
-            timeout=timeout,
-        )
+        event = self._serialise_exception()
+        self._emit_event(event, attributes=attributes, timeout=timeout)
 
     def _emit_event(self, event, attributes, wait=True, timeout=30):
         """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes.
@@ -592,21 +591,39 @@ class Service:
         self._emit_event({"kind": "monitor_message", "data": data}, attributes=attributes, timeout=timeout, wait=False)
         logger.debug("Monitor message sent by %r.", self)
 
-    def _send_result(self, analysis, attributes, timeout=30):
+    def _send_result(self, analysis, attributes, success, exception=None, timeout=30):
         """Send the result to the parent.
 
         :param octue.resources.analysis.Analysis analysis: the analysis object containing the output values and/or output manifest
         :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the result event
+        :param bool success:
+        :param dict|None exception:
         :param float timeout: time in seconds to retry sending the message
         :return dict: the result
         """
-        result = make_minimal_dictionary(kind="result", output_values=analysis.output_values)
+        result = make_minimal_dictionary(
+            kind="result",
+            output_values=analysis.output_values,
+            success=success,
+            exception=exception,
+        )
 
         if analysis.output_manifest is not None:
             result["output_manifest"] = analysis.output_manifest.to_primitive()
 
         self._emit_event(event=result, attributes=attributes, timeout=timeout)
         return result
+
+    def _serialise_exception(self):
+        exception = convert_exception_to_primitives()
+        exception_message = f"Error in {self!r}: {exception['message']}"
+
+        return {
+            "kind": "exception",
+            "exception_type": exception["type"],
+            "exception_message": exception_message,
+            "exception_traceback": exception["traceback"],
+        }
 
     def _parse_question(self, question):
         """Parse a question in dictionary format or direct Google Pub/Sub format.
