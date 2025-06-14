@@ -258,7 +258,11 @@ class TestService(BaseTestCase):
 
         self.assertEqual(
             answer,
-            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
+            {
+                "output_values": MockAnalysis().output_values,
+                "output_manifest": MockAnalysis().output_manifest,
+                "success": True,
+            },
         )
 
         self.assertTrue(all("[truly/madly:deeply" not in message for message in logging_context.output))
@@ -283,7 +287,11 @@ class TestService(BaseTestCase):
 
         self.assertEqual(
             answer,
-            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
+            {
+                "output_values": MockAnalysis().output_values,
+                "output_manifest": MockAnalysis().output_manifest,
+                "success": True,
+            },
         )
 
         # Check that the two expected remote log messages were logged consecutively in the right order with the service
@@ -459,7 +467,11 @@ class TestService(BaseTestCase):
 
         self.assertEqual(
             answer,
-            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
+            {
+                "output_values": MockAnalysis().output_values,
+                "output_manifest": MockAnalysis().output_manifest,
+                "success": True,
+            },
         )
 
     def test_ask_with_input_manifest_and_no_input_values(self):
@@ -487,7 +499,11 @@ class TestService(BaseTestCase):
 
         self.assertEqual(
             answer,
-            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
+            {
+                "output_values": MockAnalysis().output_values,
+                "output_manifest": MockAnalysis().output_manifest,
+                "success": True,
+            },
         )
 
     def test_ask_with_input_manifest_with_local_paths_raises_error(self):
@@ -566,7 +582,11 @@ class TestService(BaseTestCase):
         for answer in answers:
             self.assertEqual(
                 answer,
-                {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
+                {
+                    "output_values": MockAnalysis().output_values,
+                    "output_manifest": MockAnalysis().output_manifest,
+                    "success": True,
+                },
             )
 
     def test_service_can_ask_questions_to_multiple_children(self):
@@ -586,7 +606,11 @@ class TestService(BaseTestCase):
 
         self.assertEqual(
             answer_1,
-            {"output_values": MockAnalysis().output_values, "output_manifest": MockAnalysis().output_manifest},
+            {
+                "output_values": MockAnalysis().output_values,
+                "output_manifest": MockAnalysis().output_manifest,
+                "success": True,
+            },
         )
 
         self.assertEqual(
@@ -594,6 +618,7 @@ class TestService(BaseTestCase):
             {
                 "output_values": DifferentMockAnalysis.output_values,
                 "output_manifest": DifferentMockAnalysis.output_manifest,
+                "success": True,
             },
         )
 
@@ -633,9 +658,11 @@ class TestService(BaseTestCase):
                     "What does the child of the child say?": {
                         "output_values": DifferentMockAnalysis.output_values,
                         "output_manifest": DifferentMockAnalysis.output_manifest,
+                        "success": True,
                     }
                 },
                 "output_manifest": None,
+                "success": True,
             },
         )
 
@@ -685,13 +712,16 @@ class TestService(BaseTestCase):
                     "first_child_of_child": {
                         "output_values": DifferentMockAnalysis.output_values,
                         "output_manifest": DifferentMockAnalysis.output_manifest,
+                        "success": True,
                     },
                     "second_child_of_child": {
                         "output_values": MockAnalysis().output_values,
                         "output_manifest": MockAnalysis().output_manifest,
+                        "success": True,
                     },
                 },
                 "output_manifest": None,
+                "success": True,
             },
         )
 

@@ -145,7 +145,7 @@ class TestChild(BaseTestCase):
             answer, _ = child.ask(input_values=[1, 2, 3, 4], raise_errors=False, max_retries=1)
 
         # Check that the question succeeds.
-        self.assertEqual(answer, {"output_manifest": None, "output_values": [1, 2, 3, 4]})
+        self.assertEqual(answer, {"output_manifest": None, "output_values": [1, 2, 3, 4], "success": True})
 
     def test_errors_logged_when_not_raised(self):
         """Test that errors from a question still failing after retries are exhausted are logged by default."""
@@ -164,8 +164,8 @@ class TestChild(BaseTestCase):
             with self.assertLogs(level=logging.ERROR) as logging_context:
                 child.ask(input_values=[1, 2, 3, 4], raise_errors=False, max_retries=0)
 
-            self.assertIn("failed after 0 retries (see below for error).", logging_context.output[2])
-            self.assertIn('raise ValueError("Deliberately raised for `Child.ask` test.")', logging_context.output[2])
+            self.assertIn("failed after 0 retries (see below for error).", logging_context.output[3])
+            self.assertIn('raise ValueError("Deliberately raised for `Child.ask` test.")', logging_context.output[3])
 
     def test_with_prevented_retries(self):
         """Test that retries can be prevented for specified exception types."""
@@ -240,8 +240,8 @@ class TestAskMultiple(BaseTestCase):
             self.assertEqual(
                 [answer[0] for answer in answers],
                 [
-                    {"output_values": [1, 2, 3, 4], "output_manifest": None},
-                    {"output_values": [5, 6, 7, 8], "output_manifest": None},
+                    {"output_values": [1, 2, 3, 4], "output_manifest": None, "success": True},
+                    {"output_values": [5, 6, 7, 8], "output_manifest": None, "success": True},
                 ],
             )
 
@@ -282,9 +282,9 @@ class TestAskMultiple(BaseTestCase):
         self.assertEqual(
             [answer[0] for answer in answers],
             [
-                {"output_manifest": None, "output_values": [1, 2, 3, 4]},
-                {"output_manifest": None, "output_values": [5, 6, 7, 8]},
-                {"output_manifest": None, "output_values": [9, 10, 11, 12]},
-                {"output_manifest": None, "output_values": [13, 14, 15, 16]},
+                {"output_manifest": None, "output_values": [1, 2, 3, 4], "success": True},
+                {"output_manifest": None, "output_values": [5, 6, 7, 8], "success": True},
+                {"output_manifest": None, "output_values": [9, 10, 11, 12], "success": True},
+                {"output_manifest": None, "output_values": [13, 14, 15, 16], "success": True},
             ],
         )

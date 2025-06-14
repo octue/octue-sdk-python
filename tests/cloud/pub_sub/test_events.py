@@ -136,18 +136,15 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         child = MockService(backend=GCPPubSubBackend(project_id=TEST_PROJECT_ID))
 
         events = [
-            {"event": {"kind": "delivery_acknowledgement", "order": 0}},
-            {"event": {"kind": "result", "order": 1}},
+            {"event": {"kind": "delivery_acknowledgement"}},
+            {"event": {"kind": "result", "success": True}},
         ]
 
         for event in events:
-            child._emit_event(
-                event=event["event"],
-                attributes=self.attributes,
-            )
+            child._emit_event(event=event["event"], attributes=self.attributes)
 
         result = event_handler.handle_events()
-        self.assertEqual(result, {"output_values": None, "output_manifest": None})
+        self.assertEqual(result, {"output_values": None, "output_manifest": None, "success": True})
 
     def test_error_raised_if_heartbeat_not_received_before_checked(self):
         """Test that an error is raised if a heartbeat isn't received before a heartbeat is first checked for."""
