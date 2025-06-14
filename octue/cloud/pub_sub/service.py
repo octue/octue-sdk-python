@@ -262,7 +262,7 @@ class Service:
             self._send_exception(attributes=response_attributes, timeout=timeout)
 
             if analysis is not None:
-                self._send_result(analysis, response_attributes, success=False)
+                self._send_result(analysis, response_attributes, success=False, exception=self._serialise_exception())
 
             raise error
 
@@ -456,6 +456,17 @@ class Service:
     #     self._emit_event({"kind": "cancellation"}, attributes=question_attributes, timeout=timeout)
     #     logger.info("Cancellation of question %r requested.", question_uuid)
 
+    def _serialise_exception(self):
+        exception = convert_exception_to_primitives()
+        exception_message = f"Error in {self!r}: {exception['message']}"
+
+        return {
+            "kind": "exception",
+            "exception_type": exception["type"],
+            "exception_message": exception_message,
+            "exception_traceback": exception["traceback"],
+        }
+
     def _send_exception(self, attributes, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
@@ -463,19 +474,8 @@ class Service:
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
-        exception = convert_exception_to_primitives()
-        exception_message = f"Error in {self!r}: {exception['message']}"
-
-        self._emit_event(
-            {
-                "kind": "exception",
-                "exception_type": exception["type"],
-                "exception_message": exception_message,
-                "exception_traceback": exception["traceback"],
-            },
-            attributes=attributes,
-            timeout=timeout,
-        )
+        event = self._serialise_exception()
+        self._emit_event(event, attributes=attributes, timeout=timeout)
 
     def _emit_event(self, event, attributes, wait=True, timeout=30):
         """Emit a JSON-serialised event as a Pub/Sub message to the services topic with optional message attributes.
@@ -604,16 +604,22 @@ class Service:
         self._emit_event({"kind": "monitor_message", "data": data}, attributes=attributes, timeout=timeout, wait=False)
         logger.debug("Monitor message sent by %r.", self)
 
-    def _send_result(self, analysis, attributes, success, timeout=30):
+    def _send_result(self, analysis, attributes, success, exception=None, timeout=30):
         """Send the result to the parent.
 
         :param octue.resources.analysis.Analysis analysis: the analysis object containing the output values and/or output manifest
         :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the result event
         :param bool success:
+        :param dict|None exception:
         :param float timeout: time in seconds to retry sending the message
         :return dict: the result
         """
-        result = make_minimal_dictionary(kind="result", output_values=analysis.output_values, success=success)
+        result = make_minimal_dictionary(
+            kind="result",
+            output_values=analysis.output_values,
+            success=success,
+            exception=exception,
+        )
 
         if analysis.output_manifest is not None:
             result["output_manifest"] = analysis.output_manifest.to_primitive()
