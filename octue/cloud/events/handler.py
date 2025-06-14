@@ -1,4 +1,5 @@
 import abc
+import copy
 from datetime import datetime
 import logging
 import os
@@ -247,10 +248,9 @@ class AbstractEventHandler:
         :return dict:
         """
         logger.info("%r: Received an answer to question %r.", attributes.recipient, attributes.question_uuid)
+        event = copy.deepcopy(event)
 
         if event.get("output_manifest"):
-            output_manifest = Manifest.deserialise(event["output_manifest"])
-        else:
-            output_manifest = None
+            event["output_manifest"] = Manifest.deserialise(event["output_manifest"])
 
-        return {"output_values": event.get("output_values"), "output_manifest": output_manifest}
+        return event
