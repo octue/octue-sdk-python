@@ -150,7 +150,7 @@ class Child:
             record_events=record_events,
             timeout=timeout,
             maximum_heartbeat_interval=maximum_heartbeat_interval,
-            raise_errors=True,
+            raise_errors=False,
         )
 
         if answer["success"]:
