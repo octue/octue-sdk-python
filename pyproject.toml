@@ -1,9 +1,12 @@
-[tool.poetry]
+[project]
 name = "octue"
-version = "0.65.0"
+version = "0.65.1"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
-authors = ["Marcus Lugg <marcus@octue.com>", "Thomas Clark <support@octue.com>"]
+authors = [
+    {name = "Marcus Lugg", email = "marcus@octue.com"},
+    {name = "Thomas Clark", email = "support@octue.com"}
+]
 license = "MIT"
 repository = "https://www.github.com/octue/octue-sdk-python"
 packages = [{ include = "octue"}]
@@ -20,48 +23,51 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-click = ">=7,<9"
-coolname = "^2"
-google-auth = ">=1.27.0,<3"
-google-cloud-pubsub = "^2.5"
-google-cloud-secret-manager = "^2.20"
-google-cloud-storage = ">=1.35.1, <3"
-google-crc32c = "^1.1"
-python-dateutil = "^2.8"
-pyyaml = "^6"
-h5py = { version = "^3.6", optional = true }
-twined = "^0.7.0"
-packaging = ">=20.4"
-google-cloud-bigquery = "^3.18.0"
-pydash = "^8.0.4"
-grpcio = "^1.71.0"
+requires-python = ">=3.10,<4"
 
-[tool.poetry.extras]
-hdf5 = ["h5py"]
+dependencies = [
+    "click>=7,<9",
+    "coolname~=2.2",
+    "google-auth>=1.27.0,<3",
+    "google-cloud-pubsub~=2.5",
+    "google-cloud-secret-manager~=2.20",
+    "google-cloud-storage>=1.35.1,<3",
+    "google-crc32c~=1.1",
+    "python-dateutil~=2.8",
+    "pyyaml~=6.0",
+    "twined~=0.7",
+    "packaging>=20.4",
+    "google-cloud-bigquery~=3.18",
+    "pydash==8.0.4",
+    "grpcio==1.71.0",
+]
 
-[tool.poetry.scripts]
+[project.optional-dependencies]
+hdf5 = ["h5py~=3.6"]
+
+[dependency-groups]
+dev = [
+    # Testing
+    "gcp-storage-emulator==2022.06.11",
+    "pytest~=7.0",
+    # Code quality
+    "pre-commit~=2.17",
+    "coverage>=5,<6",
+    # Template app dependencies
+    "numpy~=2.2.1",
+    "pandas~=2.2.3",
+    "dateparser==1.1.1",
+    "stringcase==1.2.0",
+    # Documentation
+    "Sphinx>=5,<8",
+    "sphinx-rtd-theme>=1,<2",
+    "sphinx-tabs>=3.4.0,<4",
+    "sphinx-toolbox>=3,<4",
+    "ruff~=0.6.9",
+]
+
+[project.scripts]
 octue = "octue.cli:octue_cli"
-
-[tool.poetry.group.dev.dependencies]
-# Testing
-gcp-storage-emulator = "2022.06.11"
-pytest = "^7"
-# Code quality
-pre-commit = "^2.17"
-coverage = "^5"
-# Template app dependencies
-numpy = "^2.2.1"
-pandas = "^2.2.3"
-dateparser = "1.1.1"
-stringcase = "1.2.0"
-# Documentation
-Sphinx = ">=5,<8"
-sphinx-rtd-theme = ">=1,<2"
-sphinx-tabs = ">=3.4.0,<4"
-sphinx-toolbox = "^3"
-ruff = "^0.6.9"
 
 [tool.ruff]
 line-length = 120
@@ -82,7 +88,9 @@ known-first-party = ["octue", "app", "fractal", "test", "tests", "twined"]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 force-sort-within-sections = true
 
+[tool.uv.build-backend]
+module-root = ""
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.7.13,<0.8.0"]
+build-backend = "uv_build"
