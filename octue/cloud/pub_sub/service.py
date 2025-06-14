@@ -393,6 +393,7 @@ class Service:
         record_events=True,
         timeout=60,
         maximum_heartbeat_interval=DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL,
+        raise_errors=True,
     ):
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
@@ -402,6 +403,7 @@ class Service:
         :param bool record_events: if `True`, record messages received from the child in the `received_events` attribute
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
+        :param bool raise_errors:
         :raise TimeoutError: if the timeout is exceeded
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
@@ -415,6 +417,7 @@ class Service:
             subscription=subscription,
             handle_monitor_message=handle_monitor_message,
             record_events=record_events,
+            raise_errors=raise_errors,
         )
 
         try:
