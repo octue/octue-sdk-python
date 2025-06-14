@@ -113,7 +113,7 @@ class Child:
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :raise Exception: if the question raises an error and `raise_errors=True`
-        :return dict|octue.cloud.pub_sub.subscription.Subscription|Exception|None, str: for a synchronous question, a dictionary containing the keys "output_values" and "output_manifest" from the result (or just an exception if the question fails), and the question UUID; for a question with a push endpoint, the push subscription and the question UUID; for an asynchronous question, `None` and the question UUID
+        :return dict|octue.cloud.pub_sub.subscription.Subscription|Exception|None, str: for a synchronous question, a dictionary containing the keys "output_values", "output_manifest", and "success" from the result (or just an exception if the question fails), and the question UUID; for a question with a push endpoint, the push subscription and the question UUID; for an asynchronous question, `None` and the question UUID
         """
         prevent_retries_when = prevent_retries_when or []
 

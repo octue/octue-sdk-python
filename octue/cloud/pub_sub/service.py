@@ -401,7 +401,7 @@ class Service:
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :param bool raise_errors:
         :raise TimeoutError: if the timeout is exceeded
-        :return dict: dictionary containing the keys "output_values" and "output_manifest"
+        :return dict: dictionary containing the keys "output_values", "output_manifest", "success", and for a failed analysis, "exception"
         """
         if subscription.is_push_subscription:
             raise octue.exceptions.NotAPullSubscription(
