@@ -10,6 +10,7 @@ from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA, is_event
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
+from octue.utils.exceptions import convert_exception_event_to_exception
 
 logger = logging.getLogger(__name__)
 
@@ -227,26 +228,11 @@ class AbstractEventHandler:
         """Raise or log the exception from the child.
 
         :param dict event:
-        :param dict attributes: the event's attributes
+        :param octue.cloud.events.attributes.ResponseAttributes attributes: the event's attributes
         :raise Exception:
         :return None:
         """
-        exception_message = "\n\n".join(
-            (
-                event["exception_message"],
-                f"The following traceback was captured from the remote service {attributes.sender!r}:",
-                "".join(event["exception_traceback"]),
-            )
-        )
-
-        try:
-            exception_type = EXCEPTIONS_MAPPING[event["exception_type"]]
-
-        # Allow unknown exception types to still be raised.
-        except KeyError:
-            exception_type = type(event["exception_type"], (Exception,), {})
-
-        error = exception_type(exception_message)
+        error = convert_exception_event_to_exception(event, attributes.sender, EXCEPTIONS_MAPPING)
 
         if self.raise_errors:
             raise error

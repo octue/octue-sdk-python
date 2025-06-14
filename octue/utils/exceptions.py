@@ -45,3 +45,22 @@ def convert_exception_to_primitives(exception=None):
         "message": f"{exception_info[1]}",
         "traceback": tb.format_list(tb.extract_tb(exception_info[2])),
     }
+
+
+def convert_exception_event_to_exception(event, sender, exceptions_mapping):
+    exception_message = "\n\n".join(
+        (
+            event["exception_message"],
+            f"The following traceback was captured from the remote service {sender!r}:",
+            "".join(event["exception_traceback"]),
+        )
+    )
+
+    try:
+        exception_type = exceptions_mapping[event["exception_type"]]
+
+    # Allow unknown exception types to still be raised.
+    except KeyError:
+        exception_type = type(event["exception_type"], (Exception,), {})
+
+    return exception_type(exception_message)
