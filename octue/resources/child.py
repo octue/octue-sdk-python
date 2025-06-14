@@ -3,9 +3,11 @@ import copy
 import logging
 import os
 
+from octue.cloud import EXCEPTIONS_MAPPING
 from octue.cloud.pub_sub.service import Service
 from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.resources import service_backends
+from octue.utils.exceptions import convert_exception_event_to_exception
 
 logger = logging.getLogger(__name__)
 
@@ -142,52 +144,54 @@ class Child:
 
         logger.info("Waiting for question to be accepted...")
 
-        try:
-            answer = self._service.wait_for_answer(
-                subscription=subscription,
-                handle_monitor_message=handle_monitor_message,
-                record_events=record_events,
-                timeout=timeout,
-                maximum_heartbeat_interval=maximum_heartbeat_interval,
-            )
+        answer = self._service.wait_for_answer(
+            subscription=subscription,
+            handle_monitor_message=handle_monitor_message,
+            record_events=record_events,
+            timeout=timeout,
+            maximum_heartbeat_interval=maximum_heartbeat_interval,
+            raise_errors=True,
+        )
 
+        if answer["success"]:
             return answer, question_uuid
 
-        except Exception as e:
+        logger.error(
+            "Question %r failed. Run 'octue question diagnostics gs://<diagnostics-cloud-path>/%s "
+            "--download-datasets' to get the crash diagnostics.",
+            question_uuid,
+            question_uuid,
+        )
+
+        e = convert_exception_event_to_exception(answer["exception"], self.id, EXCEPTIONS_MAPPING)
+
+        if type(e) in prevent_retries_when:
+            logger.info("Skipping retries for exceptions of type %r.", type(e))
+            return e, question_uuid
+
+        for retry in range(max_retries):
+            logger.info("Retrying question %r %d of %d times.", question_uuid, retry + 1, max_retries)
+
+            inputs["retry_count"] += 1
+            answer, question_uuid = self.ask(**inputs, raise_errors=False, log_errors=False)
+
+            if not isinstance(answer, Exception) or type(answer) in prevent_retries_when:
+                return answer, question_uuid
+
+            e = answer
+
+        if raise_errors:
+            raise e
+
+        if log_errors:
             logger.error(
-                "Question %r failed. Run 'octue question diagnostics gs://<diagnostics-cloud-path>/%s "
-                "--download-datasets' to get the crash diagnostics.",
+                "Question %r failed after %d retries (see below for error).",
                 question_uuid,
-                question_uuid,
+                max_retries,
+                exc_info=e,
             )
 
-            if raise_errors:
-                raise e
-
-            if type(e) in prevent_retries_when:
-                logger.info("Skipping retries for exceptions of type %r.", type(e))
-                return e, question_uuid
-
-            for retry in range(max_retries):
-                logger.info("Retrying question %r %d of %d times.", question_uuid, retry + 1, max_retries)
-
-                inputs["retry_count"] += 1
-                answer, question_uuid = self.ask(**inputs, raise_errors=False, log_errors=False)
-
-                if not isinstance(answer, Exception) or type(answer) in prevent_retries_when:
-                    return answer, question_uuid
-
-                e = answer
-
-            if log_errors:
-                logger.error(
-                    "Question %r failed after %d retries (see below for error).",
-                    question_uuid,
-                    max_retries,
-                    exc_info=e,
-                )
-
-            return e, question_uuid
+        return e, question_uuid
 
     def ask_multiple(
         self,
