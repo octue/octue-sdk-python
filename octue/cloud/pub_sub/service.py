@@ -197,7 +197,9 @@ class Service:
         :return dict: the result event
         """
         heartbeater = None
-        analysis = None
+
+        # Instantiate analysis here so outputs can be accessed even in the event of an exception in the run function.
+        analysis = Analysis()
 
         try:
             question, question_attributes = self._parse_question(question)
@@ -228,10 +230,6 @@ class Service:
 
             handle_monitor_message = functools.partial(self._send_monitor_message, attributes=response_attributes)
 
-            # Instantiate analysis here so outputs can be accessed even in the event of an exception in the run
-            # function.
-            analysis = Analysis()
-
             self.run_function(
                 analysis=analysis,
                 analysis_id=question_attributes.question_uuid,
@@ -260,9 +258,7 @@ class Service:
             )
 
             self._send_exception(attributes=response_attributes, timeout=timeout)
-
-            if analysis is not None:
-                self._send_result(analysis, response_attributes, success=False, exception=self._serialise_exception())
+            self._send_result(analysis, response_attributes, success=False, exception=self._serialise_exception())
 
             raise error
 
