@@ -259,7 +259,6 @@ class Service:
 
             self._send_exception(attributes=response_attributes, timeout=timeout)
             self._send_result(analysis, response_attributes, success=False, exception=self._serialise_exception())
-
             raise error
 
     def ask(
