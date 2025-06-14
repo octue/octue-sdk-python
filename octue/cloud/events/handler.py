@@ -253,8 +253,13 @@ class AbstractEventHandler:
         else:
             output_manifest = None
 
-        return {
+        result = {
             "output_values": event.get("output_values"),
             "output_manifest": output_manifest,
-            "success": event.get("success"),
+            "success": event["success"],
         }
+
+        if event.get("exception"):
+            result["exception"] = event["exception"]
+
+        return result
