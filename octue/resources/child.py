@@ -175,10 +175,13 @@ class Child:
             inputs["retry_count"] += 1
             answer, question_uuid = self.ask(**inputs, raise_errors=False, log_errors=False)
 
-            if not isinstance(answer, Exception) or type(answer) in prevent_retries_when:
+            if answer["success"]:
                 return answer, question_uuid
 
-            e = answer
+            e = convert_exception_event_to_exception(answer["exception"], self.id, EXCEPTIONS_MAPPING)
+
+            if type(e) in prevent_retries_when:
+                return e, question_uuid
 
         if raise_errors:
             raise e
