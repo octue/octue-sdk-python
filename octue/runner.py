@@ -6,12 +6,12 @@ import os
 import re
 import uuid
 
-import google.api_core.exceptions
 from google import auth
+import google.api_core.exceptions
 from google.cloud import secretmanager
-from jsonschema import ValidationError, validate as jsonschema_validate
+from jsonschema import ValidationError
+from jsonschema import validate as jsonschema_validate
 
-import twined.exceptions
 from octue import exceptions
 from octue.app_loading import AppFrom
 from octue.diagnostics import Diagnostics
@@ -19,9 +19,9 @@ from octue.log_handlers import AnalysisLogFormatterSwitcher
 from octue.resources import Child
 from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.resources.datafile import downloaded_files
+from octue.twined import Twine
+import octue.twined.exceptions
 from octue.utils.files import registered_temporary_directories
-from twined import Twine
-
 
 SAVE_DIAGNOSTICS_OFF = "SAVE_DIAGNOSTICS_OFF"
 SAVE_DIAGNOSTICS_ON_CRASH = "SAVE_DIAGNOSTICS_ON_CRASH"
@@ -39,7 +39,7 @@ class Runner:
     of methods for managing input and output file parsing as well as controlling logging.
 
     :param callable|type|module|str app_src: either a function that accepts an Octue analysis, a class with a ``run`` method that accepts an Octue analysis, or a path to a directory containing an ``app.py`` file containing one of these
-    :param str|dict|twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
+    :param str|dict|octue.twined.Twine twine: path to the twine file, a string containing valid twine json, or a Twine instance
     :param str|dict|None configuration_values: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|dict|None configuration_manifest: The strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
     :param str|list(dict)|None children: The children strand data. Can be expressed as a string path of a *.json file (relative or absolute), as an open file-like object (containing json data), as a string of json data or as an already-parsed dict.
@@ -340,7 +340,7 @@ class Runner:
                         f"{file.name!r}. Add the property to the datafile as a tag to fix this."
                     )
 
-                    raise twined.exceptions.invalid_contents_map[manifest_kind](message)
+                    raise octue.twined.exceptions.invalid_contents_map[manifest_kind](message)
 
     def _instantiate_children(self, serialised_children, parent_question_uuid, originator_question_uuid, originator):
         """Instantiate children from their serialised form (e.g. as given in the service configuration) so they are ready

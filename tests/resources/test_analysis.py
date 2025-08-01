@@ -3,14 +3,14 @@ import os
 import tempfile
 from unittest.mock import patch
 
-import twined.exceptions
 from octue.cloud import storage
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.resources import Datafile, Dataset, Manifest
 from octue.resources.analysis import HASH_FUNCTIONS, Analysis
+from octue.twined import Twine
+import octue.twined.exceptions
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
-from twined import Twine
 
 
 class AnalysisTestCase(BaseTestCase):
@@ -82,7 +82,7 @@ class AnalysisTestCase(BaseTestCase):
             output_values={"wrong": "hello"},
         )
 
-        with self.assertRaises(twined.exceptions.InvalidValuesContents):
+        with self.assertRaises(octue.twined.exceptions.InvalidValuesContents):
             analysis.finalise()
 
     def test_finalise_validates_output(self):

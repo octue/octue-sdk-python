@@ -1,0 +1,76 @@
+{
+  "children": [
+    {
+      "key": "turbines",
+      "purpose": "wind turbines in a farm",
+      "filters": "tags:(met* AND mast AND location) files:(extension:csv AND sequence:>=0) location:10"
+    }
+  ],
+  "configuration_values_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "The example configuration form",
+    "description": "The configuration strand of an example twine",
+    "type": "object",
+    "properties": {
+      "n_iterations": {
+        "description": "An example of an integer configuration variable, called 'n_iterations'.",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "default": 5
+      }
+    }
+  },
+  "credentials": [
+    {
+      "name": "MYAPI_SECRET_KEY",
+      "purpose": "Token for accessing the MyApi service"
+    },
+    {
+      "name": "MY_DATABASE_URI",
+      "purpose": "A URI for accessing an external database from within a twin or analysis"
+    }
+  ],
+  "input_manifest": {
+    "datasets": {
+      "met_mast_data": {
+        "purpose": "A dataset containing meteorological mast data"
+      },
+      "scada_data": {
+        "purpose": "A dataset containing scada data"
+      }
+    }
+  },
+  "input_values_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Input Values",
+    "description": "The input values strand of an example twine",
+    "type": "object",
+    "properties": {
+      "width": {
+        "description": "An example of an integer value called 'width'",
+        "type": "integer",
+        "minimum": 2
+      }
+    }
+  },
+  "output_manifest": {
+    "datasets": {
+      "production_data": {
+        "purpose": "A dataset containing production data"
+      }
+    }
+  },
+  "output_values_schema": {
+    "title": "Output Values",
+    "description": "The output values strand of an example twine",
+    "type": "object",
+    "properties": {
+      "width": {
+        "description": "An example of an integer value called 'result'",
+        "type": "integer",
+        "minimum": 2
+      }
+    }
+  }
+}

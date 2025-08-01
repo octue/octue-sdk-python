@@ -7,7 +7,7 @@ authors = ["Marcus Lugg <marcus@octue.com>", "Thomas Clark <support@octue.com>"]
 license = "MIT"
 repository = "https://www.github.com/octue/octue-sdk-python"
 packages = [{ include = "octue"}]
-keywords = ["digital", "twins", "twined", "data", "services", "science", "api", "apps", "ml"]
+keywords = ["digital", "twins", "twined", "data", "services", "science", "api", "apps", "ml", "python", "schema"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -36,6 +36,8 @@ packaging = ">=20.4"
 google-cloud-bigquery = "^3.18.0"
 pydash = "^8.0.4"
 grpcio = "^1.71.0"
+jsonschema = "^4"
+python-dotenv = ">=0,<=2"
 
 [tool.poetry.extras]
 hdf5 = ["h5py"]

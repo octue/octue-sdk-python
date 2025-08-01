@@ -1,0 +1,13 @@
+{
+  // Manifest strands contain lists, with one entry for each required dataset
+  "configuration_manifest": {
+    "datasets": [
+      {
+        // Once the inputs are validated, your analysis program can use this key to access the dataset
+        "key": "trained_model",
+        // General notes, which are helpful as a reminder to users of the service
+        "purpose": "The trained classifier"
+      }
+    ]
+  }
+}

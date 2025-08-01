@@ -4,24 +4,23 @@ import os
 import random
 import tempfile
 import time
-import uuid
 from unittest.mock import Mock, patch
+import uuid
 
 import coolname
 
-import twined
 from octue import Runner, exceptions
 from octue.cloud import storage
 from octue.cloud.emulators import ChildEmulator
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Dataset, Manifest
 from octue.resources.datafile import Datafile
+import octue.twined
 from octue.utils.files import RegisteredTemporaryDirectory, registered_temporary_directories
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
 from tests.test_app_modules.app_class.app import App
 from tests.test_app_modules.app_module import app
-
 
 with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
     EVENTS = json.load(f)
@@ -84,7 +83,7 @@ class TestRunner(BaseTestCase):
 
     def test_instantiation_without_configuration_fails(self):
         """Ensures that runner can be instantiated with a string that points to a path"""
-        with self.assertRaises(twined.exceptions.TwineValueException) as error:
+        with self.assertRaises(octue.twined.exceptions.TwineValueException) as error:
             Runner(
                 app_src=".",
                 twine="""{
@@ -122,7 +121,7 @@ class TestRunner(BaseTestCase):
         runner = Runner(app_src=mock_app, twine=twine)
 
         # Test for failure with an incorrect output
-        with self.assertRaises(twined.exceptions.TwineValueException):
+        with self.assertRaises(octue.twined.exceptions.TwineValueException):
             runner.run().finalise()
 
         # Test for success with a valid output
@@ -157,7 +156,7 @@ class TestRunner(BaseTestCase):
             configuration_values={"n_iterations": 5},
         )
 
-        with self.assertRaises(twined.exceptions.TwineValueException) as error:
+        with self.assertRaises(octue.twined.exceptions.TwineValueException) as error:
             runner.run()
 
         self.assertIn(
@@ -542,7 +541,7 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
 
             runner = Runner(app_src=app, twine=self.TWINE_WITH_INPUT_MANIFEST_STRAND_WITH_TAG_TEMPLATE)
 
-            with self.assertRaises(twined.exceptions.InvalidManifestContents):
+            with self.assertRaises(octue.twined.exceptions.InvalidManifestContents):
                 runner.run(input_manifest=input_manifest)
 
     def test_validate_input_manifest_raises_error_if_required_tags_are_not_of_required_type(self):
@@ -575,7 +574,7 @@ class TestRunnerWithRequiredDatasetFileTags(BaseTestCase):
                     ) as (datafile, f):
                         f.write("hello")
 
-                    with self.assertRaises(twined.exceptions.InvalidManifestContents):
+                    with self.assertRaises(octue.twined.exceptions.InvalidManifestContents):
                         runner.run(input_manifest=input_manifest)
 
     def test_validate_input_manifest_with_required_tags(self):

@@ -3,15 +3,14 @@ import logging
 
 import coolname
 
-import twined.exceptions
 from octue.cloud import storage
 from octue.exceptions import InvalidMonitorMessage
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
+from octue.twined import ALL_STRANDS, Twine
+import octue.twined.exceptions
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.threads import RepeatingTimer
-from twined import ALL_STRANDS, Twine
-
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
     If a strand is ``None``, so will its corresponding hash attribute be. The hash of a datafile is the hash of its
     file, while the hash of a manifest or dataset is the cumulative hash of the files it refers to.
 
-    :param twined.Twine|dict|str twine: the twine, dictionary defining a twine, or path to "twine.json" file defining the service's data interface
+    :param octue.twined.Twine|dict|str twine: the twine, dictionary defining a twine, or path to "twine.json" file defining the service's data interface
     :param callable|None handle_monitor_message: an optional function for sending monitor messages to the parent that requested the analysis
     :param any configuration_values: the configuration values for the analysis - this can be expressed as a python primitive (e.g. dict), a path to a JSON file, or a JSON string.
     :param octue.resources.manifest.Manifest configuration_manifest: a manifest of configuration datasets for the analysis if required
@@ -110,7 +109,7 @@ class Analysis(Identifiable, Serialisable, Labelable, Taggable):
         """
         try:
             self.twine.validate_monitor_message(source=data)
-        except twined.exceptions.InvalidValuesContents as e:
+        except octue.twined.exceptions.InvalidValuesContents as e:
             raise InvalidMonitorMessage(e)
 
         if self._handle_monitor_message is None:
