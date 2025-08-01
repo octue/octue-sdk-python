@@ -10,10 +10,10 @@ from google import auth
 
 from octue.cloud import storage
 from octue.cloud.events.answer_question import answer_question
-from octue.cloud.events.replayer import EventReplayer
 from octue.cloud.events.question import make_question_event
+from octue.cloud.events.replayer import EventReplayer
 from octue.cloud.events.validation import VALID_EVENT_KINDS
-from octue.cloud.pub_sub.bigquery import get_events, DEFAULT_EVENT_STORE_TABLE_ID
+from octue.cloud.pub_sub.bigquery import DEFAULT_EVENT_STORE_TABLE_ID, get_events
 from octue.cloud.pub_sub.service import Service
 from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -56,8 +56,7 @@ global_cli_context = {}
 )
 @click.version_option(version=LOCAL_SDK_VERSION)
 def octue_cli(id, logger_uri, log_level, force_reset):
-    """The CLI for the Octue SDK. Use it to start an Octue data service or digital twin locally or run an analysis on
-    one locally.
+    """The CLI for Octue SDKs and APIs, most notably Twined.
 
     Read more in the docs: https://octue-python-sdk.readthedocs.io/en/latest/
     """
@@ -74,6 +73,12 @@ def octue_cli(id, logger_uri, log_level, force_reset):
 
 
 @octue_cli.group()
+def twined():
+    """The Twined CLI. Use it to ask questions to or start a Twined data service in the cloud or locally."""
+    pass
+
+
+@twined.group()
 def question():
     """Ask a new question to an Octue Twined data service or interact with a previous question."""
 
@@ -322,7 +327,7 @@ def get(
     limit,
     service_config,
 ):
-    """Get the events emitted during a question as JSON. One of the following must be set:
+    r"""Get the events emitted during a question as JSON. One of the following must be set:
 
     --question-uuid\n
     --parent-question-uuid\n
@@ -434,7 +439,7 @@ def replay(
     exclude_logs_containing,
     validate_events,
 ):
-    """Replay a question's events, returning the result as JSON at the end if there is one. One of the following must be
+    r"""Replay a question's events, returning the result as JSON at the end if there is one. One of the following must be
     set:
 
     --question-uuid\n
@@ -584,7 +589,7 @@ def diagnostics(cloud_path, local_path, download_datasets):
 #     child.cancel(question_uuid=question_uuid, event_store_table_id=service_configuration.event_store_table_id)
 
 
-@octue_cli.command(deprecated=True)
+@twined.command(deprecated=True)
 @click.argument(
     "cloud_path",
     type=str,
@@ -606,7 +611,7 @@ def get_diagnostics(cloud_path, local_path, download_datasets):
     diagnostics(cloud_path, local_path, download_datasets)
 
 
-@octue_cli.command()
+@twined.command()
 @click.option(
     "-c",
     "--service-config",

@@ -19,7 +19,11 @@ from tests.base import BaseTestCase
 
 TWINE_FILE_PATH = os.path.join(TESTS_DIR, "data", "twines", "valid_schema_twine.json")
 
-MOCK_CONFIGURATION = ServiceConfiguration(name="test-app", namespace="testing", configuration_values={"n_iterations": 5})
+MOCK_CONFIGURATION = ServiceConfiguration(
+    name="test-app",
+    namespace="testing",
+    configuration_values={"n_iterations": 5},
+)
 
 RESULT = {"output_values": {"some": "data"}}
 
@@ -50,6 +54,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "ask",
                         "remote",
@@ -70,6 +75,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "ask",
                         "remote",
@@ -91,6 +97,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "ask",
                         "remote",
@@ -113,6 +120,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "ask",
                         "remote",
@@ -134,6 +142,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "ask",
                         "remote",
@@ -152,6 +161,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
             result = CliRunner().invoke(
                 octue_cli,
                 [
+                    "twined",
                     "question",
                     "ask",
                     "remote",
@@ -174,6 +184,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "ask",
                         "local",
@@ -212,6 +223,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "ask",
                         "local",
@@ -252,6 +264,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "ask",
                         "local",
@@ -291,6 +304,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "ask",
                         "local",
@@ -331,6 +345,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "ask",
                         "local",
@@ -367,6 +382,7 @@ class TestQuestionEventsGetCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "events",
                         "get",
@@ -390,6 +406,7 @@ class TestQuestionEventsGetCommand(BaseTestCase):
                         result = CliRunner().invoke(
                             octue_cli,
                             [
+                                "twined",
                                 "question",
                                 "events",
                                 "get",
@@ -407,6 +424,7 @@ class TestQuestionEventsGetCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "events",
                         "get",
@@ -428,6 +446,7 @@ class TestQuestionEventsGetCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "events",
                         "get",
@@ -449,6 +468,7 @@ class TestQuestionEventsGetCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "events",
                         "get",
@@ -478,6 +498,7 @@ class TestQuestionEventsReplayCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "events",
                         "replay",
@@ -505,6 +526,7 @@ class TestQuestionEventsReplayCommand(BaseTestCase):
                             result = CliRunner().invoke(
                                 octue_cli,
                                 [
+                                    "twined",
                                     "question",
                                     "events",
                                     "replay",
@@ -533,6 +555,7 @@ class TestQuestionEventsReplayCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "events",
                         "replay",
@@ -559,6 +582,7 @@ class TestQuestionEventsReplayCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "events",
                         "replay",
@@ -581,6 +605,7 @@ class TestQuestionEventsReplayCommand(BaseTestCase):
                 result = CliRunner().invoke(
                     octue_cli,
                     [
+                        "twined",
                         "question",
                         "events",
                         "replay",
@@ -639,7 +664,7 @@ class TestStartCommand(BaseTestCase):
         ):
             with ServicePatcher():
                 with self.assertLogs(level=logging.INFO) as logging_context:
-                    result = CliRunner().invoke(octue_cli, ["start", "--timeout=0"])
+                    result = CliRunner().invoke(octue_cli, ["twined", "start", "--timeout=0"])
 
         self.assertEqual(logging_context.records[1].message, "Starting <MockService('testing/test-service:goodbye')>.")
         self.assertIsNone(result.exception)
@@ -658,7 +683,7 @@ class TestStartCommand(BaseTestCase):
         ):
             with ServicePatcher():
                 with self.assertLogs() as logging_context:
-                    result = CliRunner().invoke(octue_cli, ["start", "--revision-tag=hello", "--timeout=0"])
+                    result = CliRunner().invoke(octue_cli, ["twined", "start", "--revision-tag=hello", "--timeout=0"])
 
         self.assertEqual(
             logging_context.records[1].message,
@@ -701,6 +726,7 @@ class TestQuestionDiagnosticsCommand(BaseTestCase):
             result = CliRunner().invoke(
                 octue_cli,
                 [
+                    "twined",
                     "get-diagnostics",
                     cloud_path,
                     "--local-path",
@@ -717,6 +743,7 @@ class TestQuestionDiagnosticsCommand(BaseTestCase):
             result = CliRunner().invoke(
                 octue_cli,
                 [
+                    "twined",
                     "question",
                     "diagnostics",
                     storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, "9f4ccee3-15b0-4a03-b5ac-c19e1d66a709"),
@@ -747,6 +774,7 @@ class TestQuestionDiagnosticsCommand(BaseTestCase):
             result = CliRunner().invoke(
                 octue_cli,
                 [
+                    "twined",
                     "question",
                     "diagnostics",
                     storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),
@@ -800,6 +828,7 @@ class TestQuestionDiagnosticsCommand(BaseTestCase):
             result = CliRunner().invoke(
                 octue_cli,
                 [
+                    "twined",
                     "question",
                     "diagnostics",
                     storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID),

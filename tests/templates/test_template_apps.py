@@ -4,8 +4,8 @@ import subprocess
 import sys
 import time
 import unittest
-import uuid
 from unittest.mock import patch
+import uuid
 
 import yaml
 
@@ -78,6 +78,7 @@ class TemplateAppsTestCase(BaseTestCase):
             [
                 sys.executable,
                 cli_path,
+                "twined",
                 "start",
                 f"--service-config={os.path.join(elevation_service_path, 'octue.yaml')}",
             ],
@@ -92,6 +93,7 @@ class TemplateAppsTestCase(BaseTestCase):
             [
                 sys.executable,
                 cli_path,
+                "twined",
                 "start",
                 f"--service-config={os.path.join(wind_speed_service_path, 'octue.yaml')}",
             ],
