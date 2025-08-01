@@ -717,26 +717,6 @@ class TestQuestionDiagnosticsCommand(BaseTestCase):
 
         diagnostics.upload(storage.path.join(cls.DIAGNOSTICS_CLOUD_PATH, cls.ANALYSIS_ID))
 
-    def test_old_get_diagnostics_command_deprecated(self):
-        """Test that the old `octue get-diagnostics` command is deprecated and just calls the new one."""
-        cloud_path = storage.path.join(self.DIAGNOSTICS_CLOUD_PATH, self.ANALYSIS_ID)
-        local_path = "some-local-path"
-
-        with patch("octue.cli.diagnostics") as mock_diagnostics:
-            result = CliRunner().invoke(
-                octue_cli,
-                [
-                    "twined",
-                    "get-diagnostics",
-                    cloud_path,
-                    "--local-path",
-                    local_path,
-                ],
-            )
-
-        mock_diagnostics.assert_called_with(cloud_path, local_path, False)
-        self.assertEqual(result.output, "DeprecationWarning: The command 'get-diagnostics' is deprecated.\n")
-
     def test_warning_logged_if_no_diagnostics_found(self):
         """Test that a warning about there being no diagnostics is logged if the diagnostics cloud path is empty."""
         with tempfile.TemporaryDirectory() as temporary_directory:

@@ -589,28 +589,6 @@ def diagnostics(cloud_path, local_path, download_datasets):
 #     child.cancel(question_uuid=question_uuid, event_store_table_id=service_configuration.event_store_table_id)
 
 
-@twined.command(deprecated=True)
-@click.argument(
-    "cloud_path",
-    type=str,
-)
-@click.option(
-    "--local-path",
-    type=click.Path(file_okay=False),
-    default=".",
-    help="The path to a directory to store the directory of diagnostics data in. Defaults to the current working "
-    "directory.",
-)
-@click.option(
-    "--download-datasets",
-    is_flag=True,
-    help="If provided, download any datasets from the diagnostics and update their paths in the configuration and "
-    "input manifests to the new local paths.",
-)
-def get_diagnostics(cloud_path, local_path, download_datasets):
-    diagnostics(cloud_path, local_path, download_datasets)
-
-
 @twined.command()
 @click.option(
     "-c",
