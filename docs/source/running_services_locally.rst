@@ -24,7 +24,7 @@ Via the CLI
 
     .. code-block:: shell
 
-        octue question ask local --input-values='{"some": "input"}'
+        octue twined question ask local --input-values='{"some": "input"}'
 
 The output values and/or manifest will be printed to ``stdout`` but are also stored in the event store.
 
@@ -61,7 +61,7 @@ Via the CLI
 
     .. code-block:: shell
 
-        octue start
+        octue twined start
 
 This will run the service as a child waiting for questions until you press ``Ctrl + C`` or an error is encountered. The
 service will be available to be questioned by other services at the service ID ``organisation/name`` as specified in
