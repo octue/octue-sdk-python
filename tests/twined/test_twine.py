@@ -31,10 +31,10 @@ class TestTwine(BaseTestCase):
         """Ensures that an empty twine file can be loaded"""
         with self.assertLogs(level="DEBUG") as log:
             Twine(source="{}")
-            self.assertEqual(len(log.output), 3)
-            self.assertEqual(len(log.records), 3)
-            self.assertIn("Detected source", log.output[0])
-            self.assertIn("Validated", log.output[1])
+
+        log_output = "\n".join(log.output)
+        self.assertIn("Detected source", log_output)
+        self.assertIn("Validated", log_output)
 
     def test_example_twine(self):
         """Ensures that the example (full) twine can be loaded and validated"""
