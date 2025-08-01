@@ -25,9 +25,9 @@ from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Analysis, Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
+import octue.twined.exceptions
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_ID
 from tests.base import BaseTestCase
-import twined.exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +196,7 @@ class TestService(BaseTestCase):
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):
         """Test that exceptions raised in the child service are handled and sent back to the asker."""
         child = self.make_new_child_with_error(
-            twined.exceptions.InvalidManifestContents("'met_mast_id' is a required property")
+            octue.twined.exceptions.InvalidManifestContents("'met_mast_id' is a required property")
         )
 
         parent = MockService(backend=BACKEND, children={child.id: child})
@@ -204,7 +204,7 @@ class TestService(BaseTestCase):
         child.serve()
         subscription, _ = parent.ask(service_id=child.id, input_values={})
 
-        with self.assertRaises(twined.exceptions.InvalidManifestContents) as context:
+        with self.assertRaises(octue.twined.exceptions.InvalidManifestContents) as context:
             parent.wait_for_answer(subscription=subscription)
 
         self.assertIn("'met_mast_id' is a required property", context.exception.args[0])

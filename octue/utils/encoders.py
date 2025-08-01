@@ -1,7 +1,7 @@
-import datetime
 from collections import UserString
+import datetime
 
-from twined.utils import TwinedEncoder
+from octue.twined.utils import TwinedEncoder
 
 
 class OctueJSONEncoder(TwinedEncoder):
