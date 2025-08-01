@@ -727,7 +727,7 @@ class TestService(BaseTestCase):
         expected_interval = 0.05
 
         def run_function(*args, **kwargs):
-            time.sleep(0.3)
+            time.sleep(1)
             return MockAnalysis()
 
         child = MockService(backend=BACKEND, run_function=lambda *args, **kwargs: run_function())
