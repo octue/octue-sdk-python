@@ -32,13 +32,6 @@ global_cli_context = {}
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option(
-    "--id",
-    default=None,
-    type=click.UUID,
-    show_default=True,
-    help="UUID of the analysis being undertaken. None (for local use) will cause a unique ID to be generated.",
-)
 @click.option("--logger-uri", default=None, show_default=True, help="Stream logs to a websocket at the given URI.")
 @click.option(
     "--log-level",
@@ -47,24 +40,15 @@ global_cli_context = {}
     show_default=True,
     help="Log level used for the analysis.",
 )
-@click.option(
-    "--force-reset/--no-force-reset",
-    default=True,
-    is_flag=True,
-    show_default=True,
-    help="Forces a reset of analysis cache and outputs [For future use, currently not implemented]",
-)
 @click.version_option(version=LOCAL_SDK_VERSION)
-def octue_cli(id, logger_uri, log_level, force_reset):
+def octue_cli(logger_uri, log_level):
     """The CLI for Octue SDKs and APIs, most notably Twined.
 
     Read more in the docs: https://octue-python-sdk.readthedocs.io/en/latest/
     """
-    global_cli_context["analysis_id"] = id
     global_cli_context["logger_uri"] = logger_uri
     global_cli_context["log_handler"] = None
     global_cli_context["log_level"] = log_level.upper()
-    global_cli_context["force_reset"] = force_reset
 
     apply_log_handler(log_level=log_level.upper())
 
