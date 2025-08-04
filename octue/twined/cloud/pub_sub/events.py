@@ -26,7 +26,7 @@ def extract_event(message):
     :param dict|google.cloud.pubsub_v1.subscriber.message.Message message: the message in dictionary format or direct Google Pub/Sub format
     :return dict: the extracted event
     """
-    # Support already-extracted questions (e.g. from the `octue question ask local` CLI command).
+    # Support already-extracted questions (e.g. from the `octue twined question ask local` CLI command).
     if isinstance(message, dict) and "event" in message:
         return message["event"]
 
