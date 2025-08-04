@@ -9,13 +9,14 @@ import uuid
 
 import coolname
 
-from octue import Runner, exceptions
+from octue import exceptions
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Dataset, Manifest
 from octue.resources.datafile import Datafile
 import octue.twined
 from octue.twined.cloud.emulators import ChildEmulator
+from octue.twined.runner import Runner
 from octue.utils.files import RegisteredTemporaryDirectory, registered_temporary_directories
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
@@ -376,7 +377,7 @@ class TestRunner(BaseTestCase):
         analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
 
         # Run the app.
-        with patch("octue.runner.Child", side_effect=emulated_children):
+        with patch("octue.twined.runner.Child", side_effect=emulated_children):
             with self.assertRaises(TypeError):
                 runner.run(analysis_id=analysis_id, input_values={"hello": "world"})
 
@@ -773,7 +774,7 @@ class TestRunnerDiagnostics(BaseTestCase):
                 analysis_id = "4b91e3f0-4492-49e3-8061-34f1942dc68a"
 
                 # Run the app.
-                with patch("octue.runner.Child", side_effect=emulated_children):
+                with patch("octue.twined.runner.Child", side_effect=emulated_children):
                     with self.assertRaises(ValueError):
                         runner.run(
                             analysis_id=analysis_id,

@@ -1,9 +1,9 @@
 import logging
 
-from octue.runner import Runner
 from octue.twined.cloud.pub_sub.service import Service
 from octue.twined.cloud.service_id import create_sruid, get_sruid_parts
 from octue.twined.resources.service_backends import GCPPubSubBackend
+from octue.twined.runner import Runner
 
 logger = logging.getLogger(__name__)
 

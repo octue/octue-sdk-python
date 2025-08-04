@@ -39,7 +39,7 @@ def create_octue_formatter(
     """Create a log formatter from the given log record attributes that delimits the attributes with space-padded pipes
     and encapsulates the whole log message context in square brackets before adding the message at the end. e.g. if the
     attributes are `["%(asctime)s", "%(levelname)s", "%(name)s"]`, the formatter would format log messages as e.g.
-    `[2021-06-29 11:58:10,985 | INFO | octue.runner] This is a log message.`
+    `[2021-06-29 11:58:10,985 | INFO | octue.twined.runner] This is a log message.`
 
     :param log_record_attributes: any number of iterables of log record attribute names to use as context for every log message that the formatter is applied to; each iterable is interpreted as a different section by the formatter
     :param bool include_line_number: if `True`, include the line number in the log context

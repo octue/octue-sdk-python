@@ -115,7 +115,7 @@ class Runner:
         :param str|None project_id: name of Google Cloud project to get credentials from
         :param str|None service_id: the ID of the service being run
         :param overrides: optional keyword arguments to override the `Runner` instantiation parameters extracted from the service configuration
-        :return octue.runner.Runner: a runner configured with the given service configuration
+        :return octue.twined.runner.Runner: a runner configured with the given service configuration
         """
         inputs = {
             "app_src": service_configuration.app_source_path,

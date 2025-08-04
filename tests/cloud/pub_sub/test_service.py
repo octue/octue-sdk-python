@@ -10,7 +10,7 @@ from unittest.mock import patch
 import google.api_core.exceptions
 import requests
 
-from octue import Runner, exceptions
+from octue import exceptions
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
@@ -27,6 +27,7 @@ from octue.twined.cloud.pub_sub.service import Service
 import octue.twined.exceptions
 from octue.twined.resources import Analysis
 from octue.twined.resources.service_backends import GCPPubSubBackend
+from octue.twined.runner import Runner
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_ID
 from tests.base import BaseTestCase
 

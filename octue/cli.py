@@ -15,7 +15,6 @@ from octue.definitions import LOCAL_SDK_VERSION, MANIFEST_FILENAME, VALUES_FILEN
 from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import Manifest
-from octue.runner import Runner
 from octue.twined.cloud.events.answer_question import answer_question
 from octue.twined.cloud.events.question import make_question_event
 from octue.twined.cloud.events.replayer import EventReplayer
@@ -24,6 +23,7 @@ from octue.twined.cloud.pub_sub.bigquery import DEFAULT_EVENT_STORE_TABLE_ID, ge
 from octue.twined.cloud.pub_sub.service import Service
 from octue.twined.cloud.service_id import create_sruid, get_sruid_parts
 from octue.twined.resources import Child, service_backends
+from octue.twined.runner import Runner
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 

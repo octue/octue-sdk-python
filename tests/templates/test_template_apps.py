@@ -9,11 +9,12 @@ import uuid
 
 import yaml
 
-from octue import REPOSITORY_ROOT, Runner
+from octue import REPOSITORY_ROOT
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.resources.manifest import Manifest
 from octue.twined.cloud.emulators import ChildEmulator
 from octue.twined.cloud.service_id import create_sruid
+from octue.twined.runner import Runner
 from octue.utils.processes import ProcessesContextManager
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME
 from tests.base import BaseTestCase
@@ -184,7 +185,7 @@ class TemplateAppsTestCase(BaseTestCase):
             ),
         ]
 
-        with patch("octue.runner.Child", side_effect=emulated_children):
+        with patch("octue.twined.runner.Child", side_effect=emulated_children):
             analysis = runner.run(input_values=os.path.join(parent_service_path, "data", "input", "values.json"))
 
         self.assertEqual(analysis.output_values, {"wind_speeds": [10], "elevations": [300]})
