@@ -3,8 +3,8 @@ import copy
 import logging
 import os
 
-from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.twined.cloud.pub_sub.service import Service
+from octue.twined.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.twined.resources import service_backends
 
 logger = logging.getLogger(__name__)

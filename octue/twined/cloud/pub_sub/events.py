@@ -7,10 +7,10 @@ import time
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
-from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.twined.cloud.events.attributes import ResponseAttributes
 from octue.twined.cloud.events.handler import AbstractEventHandler
 from octue.twined.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
+from octue.twined.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer

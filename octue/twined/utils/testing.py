@@ -1,9 +1,9 @@
 import json
 import os
 
-from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.resources import Manifest
 from octue.twined.cloud.emulators.child import ChildEmulator
+from octue.twined.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 
 
 def load_test_fixture_from_diagnostics(path):
