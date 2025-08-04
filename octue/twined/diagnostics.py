@@ -1,7 +1,7 @@
 import copy
+from functools import cached_property
 import json
 import logging
-from functools import cached_property
 
 import coolname
 
@@ -9,7 +9,6 @@ from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Dataset
 from octue.utils.encoders import OctueJSONEncoder
-
 
 logger = logging.getLogger(__name__)
 

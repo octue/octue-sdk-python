@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from octue.diagnostics import Diagnostics
+from octue.twined.diagnostics import Diagnostics
 
 
 class TestDiagnostics(unittest.TestCase):
