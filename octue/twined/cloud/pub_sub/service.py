@@ -57,7 +57,7 @@ class Service:
     Services communicate entirely via Google Pub/Sub and can ask and/or respond to questions from any other service that
     has a corresponding topic on Google Pub/Sub.
 
-    :param octue.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
+    :param octue.twined.resources.service_backends.ServiceBackend backend: the object representing the type of backend the service uses
     :param str|None service_id: a unique ID to give to the service (any string); a UUID is generated if none is given
     :param callable|None run_function: the function the service should run when it is called
     :param iter(dict)|None service_registries: the names and endpoints of the registries used to resolve service revisions when asking questions; these should be in priority order (highest priority first)
@@ -163,7 +163,7 @@ class Service:
             future = subscriber.subscribe(subscription=subscription.path, callback=self.answer)
 
             logger.info(
-                "You can now ask this service questions at %r using the `octue.resources.Child` class.",
+                "You can now ask this service questions at %r using the `octue.twined.resources.Child` class.",
                 self.id,
             )
 
@@ -600,7 +600,7 @@ class Service:
     def _send_result(self, analysis, attributes, timeout=30):
         """Send the result to the parent.
 
-        :param octue.resources.analysis.Analysis analysis: the analysis object containing the output values and/or output manifest
+        :param octue.twined.resources.analysis.Analysis analysis: the analysis object containing the output values and/or output manifest
         :param octue.twined.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the result event
         :param float timeout: time in seconds to retry sending the message
         :return dict: the result

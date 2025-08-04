@@ -1,6 +1,5 @@
 import logging
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -9,7 +8,7 @@ def run(analysis):
 
     See the "fractal" template for an introduction to the analysis object and the purpose of this 'run' function.
 
-    :param octue.resources.Analysis analysis:
+    :param octue.twined.resources.Analysis analysis:
     :return None:
     """
     logger.info("Hello! The child services template app is running!")

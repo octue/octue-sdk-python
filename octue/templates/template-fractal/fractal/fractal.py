@@ -4,7 +4,7 @@ from .mandelbrot import mandelbrot
 def fractal(analysis):
     """Compute the heightmap of a fractal and output a data file containing visualisation data.
 
-    :param octue.resources.Analysis analysis:
+    :param octue.twined.resources.Analysis analysis:
     :return (dict, dict):
     """
     # Call the 'mandel' function to compute the fractal. Here, we just treat 'mandel' as a legacy function, passing in

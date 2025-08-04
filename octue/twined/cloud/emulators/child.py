@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChildEmulator:
-    """An emulator for the `octue.resources.child.Child` class that handles the given events without contacting the real
+    """An emulator for the `octue.twined.resources.child.Child` class that handles the given events without contacting the real
     child or using Pub/Sub. Any events a real child could produce are supported. `Child` instances can be
     replaced/mocked like-for-like by `ChildEmulator` without the parent knowing.
 

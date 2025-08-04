@@ -3,11 +3,11 @@ import os
 from unittest.mock import patch
 import uuid
 
-from octue.resources.service_backends import GCPPubSubBackend
 from octue.twined.cloud.emulators._pub_sub import MESSAGES, MockMessage, MockService, MockSubscription
 from octue.twined.cloud.emulators.service import ServicePatcher
 from octue.twined.cloud.events.attributes import ResponseAttributes
 from octue.twined.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
+from octue.twined.resources.service_backends import GCPPubSubBackend
 from tests import TEST_PROJECT_ID
 from tests.base import BaseTestCase
 

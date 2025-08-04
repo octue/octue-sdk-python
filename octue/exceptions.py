@@ -77,7 +77,7 @@ class ServiceAlreadyExists(OctueSDKException):
 
 
 class BackendNotFound(OctueSDKException):
-    """Raise when details of a backend that doesn't exist in `octue.resources.service_backends` are given for use as a
+    """Raise when details of a backend that doesn't exist in `octue.twined.resources.service_backends` are given for use as a
     Service backend.
     """
 

@@ -1,10 +1,10 @@
 import json
 import os
 
-from octue.resources.service_backends import GCPPubSubBackend
 from octue.twined.cloud.emulators._pub_sub import MockService
 from octue.twined.cloud.emulators.child import ChildEmulator
 from octue.twined.cloud.emulators.service import ServicePatcher
+from octue.twined.resources.service_backends import GCPPubSubBackend
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
 

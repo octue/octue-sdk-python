@@ -3,11 +3,11 @@ import logging
 from logging import makeLogRecord
 from unittest.mock import patch
 
-from octue.resources.service_backends import GCPPubSubBackend
 from octue.twined.cloud.emulators._pub_sub import MESSAGES, MockService
 from octue.twined.cloud.emulators.service import ServicePatcher
 from octue.twined.cloud.events.attributes import ResponseAttributes
 from octue.twined.cloud.pub_sub.logging import GoogleCloudPubSubHandler
+from octue.twined.resources.service_backends import GCPPubSubBackend
 from tests.base import BaseTestCase
 
 QUESTION_UUID = "96d69278-44ac-4631-aeea-c90fb08a1b2b"

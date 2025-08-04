@@ -6,7 +6,6 @@ from cleaner import clean, read_csv_files, read_dat_file
 from octue.resources import Datafile, Dataset
 from octue.utils.files import RegisteredTemporaryDirectory
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -24,7 +23,7 @@ def run(analysis):
     - Create new files containing the cleaned data
     - Add them to the output manifest
 
-    :param octue.resources.Analysis analysis:
+    :param octue.twined.resources.Analysis analysis:
     :return None:
     """
     # You can use a logger to record debug statements, general information, warnings or errors.

@@ -1,5 +1,5 @@
 from octue.exceptions import BackendNotFound, CloudLocationNotSpecified
-from octue.resources.service_backends import GCPPubSubBackend, get_backend
+from octue.twined.resources.service_backends import GCPPubSubBackend, get_backend
 from tests.base import BaseTestCase
 
 

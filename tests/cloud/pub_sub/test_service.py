@@ -13,8 +13,7 @@ import requests
 from octue import Runner, exceptions
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.exceptions import InvalidMonitorMessage
-from octue.resources import Analysis, Datafile, Dataset, Manifest
-from octue.resources.service_backends import GCPPubSubBackend
+from octue.resources import Datafile, Dataset, Manifest
 from octue.twined.cloud.emulators._pub_sub import (
     DifferentMockAnalysis,
     MockAnalysis,
@@ -26,6 +25,8 @@ from octue.twined.cloud.emulators._pub_sub import (
 from octue.twined.cloud.emulators.service import ServicePatcher
 from octue.twined.cloud.pub_sub.service import Service
 import octue.twined.exceptions
+from octue.twined.resources import Analysis
+from octue.twined.resources.service_backends import GCPPubSubBackend
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_ID
 from tests.base import BaseTestCase
 
@@ -879,7 +880,7 @@ class TestService(BaseTestCase):
         """Make and return a new child service that returns the given run function returnee when its run function is
         executed.
 
-        :param octue.resources.service_backends.ServiceBackend backend:
+        :param octue.twined.resources.service_backends.ServiceBackend backend:
         :param any run_function_returnee:
         :param str|None service_id:
         :return octue.twined.cloud.emulators._pub_sub.MockService:

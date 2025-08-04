@@ -306,7 +306,7 @@ class MockMessage:
 class MockService(Service):
     """A mock Google Pub/Sub Service that can send and receive messages synchronously to other instances.
 
-    :param octue.resources.service_backends.GCPPubSubBackEnd backend:
+    :param octue.twined.resources.service_backends.GCPPubSubBackEnd backend:
     :param str service_id:
     :param callable run_function:
     :param dict(str, MockService)|None children:

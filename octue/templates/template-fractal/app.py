@@ -2,7 +2,6 @@ import logging
 
 from fractal import fractal
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +31,7 @@ def run(analysis):
         - ``children``, a dict of Child objects allowing you to access child twins/services
         - ``credentials``, a dict of Credential objects
 
-    :param octue.resources.Analysis analysis:
+    :param octue.twined.resources.Analysis analysis:
     :return None:
     """
     # You can use a logger to record debug statements, general information, warnings or errors to forward to the parent.

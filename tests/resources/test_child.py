@@ -7,10 +7,10 @@ import threading
 import time
 from unittest.mock import patch
 
-from octue.resources.child import Child
-from octue.resources.service_backends import GCPPubSubBackend
 from octue.twined.cloud.emulators._pub_sub import MockAnalysis, MockService
 from octue.twined.cloud.emulators.service import ServicePatcher
+from octue.twined.resources.child import Child
+from octue.twined.resources.service_backends import GCPPubSubBackend
 from tests import MOCK_SERVICE_REVISION_TAG
 from tests.base import BaseTestCase
 
@@ -81,7 +81,7 @@ class TestChild(BaseTestCase):
 
         responding_service = MockService(backend=GCPPubSubBackend(project_id="blah"), run_function=mock_run_function)
 
-        with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+        with patch("octue.twined.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
             child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
@@ -97,7 +97,7 @@ class TestChild(BaseTestCase):
             run_function=mock_run_function_that_fails,
         )
 
-        with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+        with patch("octue.twined.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
 
             child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
@@ -115,7 +115,7 @@ class TestChild(BaseTestCase):
             run_function=mock_run_function_that_fails,
         )
 
-        with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+        with patch("octue.twined.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
 
             child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
@@ -134,7 +134,7 @@ class TestChild(BaseTestCase):
             run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
-        with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+        with patch("octue.twined.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
             child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
@@ -152,7 +152,7 @@ class TestChild(BaseTestCase):
             run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
-        with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+        with patch("octue.twined.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
             child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
 
@@ -172,7 +172,7 @@ class TestChild(BaseTestCase):
             run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
-        with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+        with patch("octue.twined.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
 
             child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
@@ -221,7 +221,7 @@ class TestAskMultiple(BaseTestCase):
 
         responding_service = MockService(backend=GCPPubSubBackend(project_id="blah"), run_function=mock_run_function)
 
-        with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+        with patch("octue.twined.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
 
             child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})
@@ -259,7 +259,7 @@ class TestAskMultiple(BaseTestCase):
             run_function=functools.partial(mock_run_function_that_fails_every_other_time, runs=Value("d", 0)),
         )
 
-        with patch("octue.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
+        with patch("octue.twined.resources.child.BACKEND_TO_SERVICE_MAPPING", {"GCPPubSubBackend": MockService}):
             responding_service.serve()
 
             child = Child(id=responding_service.id, backend={"name": "GCPPubSubBackend", "project_id": "blah"})

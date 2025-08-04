@@ -6,9 +6,9 @@ from unittest.mock import patch
 from octue.cloud import storage
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.resources import Datafile, Dataset, Manifest
-from octue.resources.analysis import HASH_FUNCTIONS, Analysis
 from octue.twined import Twine
 import octue.twined.exceptions
+from octue.twined.resources.analysis import HASH_FUNCTIONS, Analysis
 from tests import TEST_BUCKET_NAME
 from tests.base import BaseTestCase
 

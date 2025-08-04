@@ -45,7 +45,7 @@ ATTRIBUTES = {
 def mock_app(analysis):
     """Run a mock analysis that does nothing.
 
-    :param octue.resources.analysis.Analysis analysis:
+    :param octue.twined.resources.analysis.Analysis analysis:
     :return None:
     """
     pass
@@ -310,7 +310,7 @@ class TestRunner(BaseTestCase):
             # many times it's been called.
             analysis._finalised = True
 
-        with patch("octue.resources.analysis.Analysis.finalise") as mock_finalise:
+        with patch("octue.twined.resources.analysis.Analysis.finalise") as mock_finalise:
             analysis = Runner(app_src=app, twine={"output_values_schema": {}}).run()
 
         self.assertEqual(mock_finalise.call_count, 0)

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def send_status_text(analysis, text, service_name):
     """Send a status-type monitor message and additionally log it to the info level.
 
-    :param octue.resources.analysis.Analysis analysis: the analysis from which to send the status text
+    :param octue.twined.resources.analysis.Analysis analysis: the analysis from which to send the status text
     :param str text: the text of the status message
     :param str service_name: the name of the service/child running the analysis
     :return None:
@@ -25,7 +25,7 @@ def send_status_text(analysis, text, service_name):
 def send_estimated_seconds_remaining(analysis, estimated_seconds_remaining, service_name):
     """Send an estimated-seconds-remaining monitor message.
 
-    :param octue.resources.analysis.Analysis analysis: the analysis from which to send the estimate
+    :param octue.twined.resources.analysis.Analysis analysis: the analysis from which to send the estimate
     :param float estimated_seconds_remaining:
     :param str service_name: the name of the service/child running the analysis
     """

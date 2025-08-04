@@ -16,11 +16,11 @@ from octue import exceptions
 from octue.app_loading import AppFrom
 from octue.diagnostics import Diagnostics
 from octue.log_handlers import AnalysisLogFormatterSwitcher
-from octue.resources import Child
-from octue.resources.analysis import CLASS_MAP, Analysis
 from octue.resources.datafile import downloaded_files
 from octue.twined import Twine
 import octue.twined.exceptions
+from octue.twined.resources import Child
+from octue.twined.resources.analysis import CLASS_MAP, Analysis
 from octue.utils.files import registered_temporary_directories
 
 SAVE_DIAGNOSTICS_OFF = "SAVE_DIAGNOSTICS_OFF"
@@ -356,7 +356,7 @@ class Runner:
         :param str|None parent_question_uuid: the UUID of the question that triggered this analysis
         :param str originator_question_uuid: the UUID of the question that triggered all ancestor questions of this analysis
         :param str originator: the SRUID of the service revision that triggered the tree of questions this analysis is related to
-        :return dict: a mapping of child keys to `octue.resources.child.Child` instances
+        :return dict: a mapping of child keys to `octue.twined.resources.child.Child` instances
         """
         children = {}
 
@@ -386,7 +386,7 @@ class Runner:
         the questions asked by the app, the responses received to each question, and the order the questions are asked
         in for diagnostics.
 
-        :param octue.resources.child.Child child: the child to add question and response recording to
+        :param octue.twined.resources.child.Child child: the child to add question and response recording to
         :param str key: the key used to identify the child within the service
         :return callable: the wrapped `Child.ask` method
         """
@@ -408,7 +408,7 @@ class Runner:
     def _load_and_run_app(self, analysis):
         """Load and run the app on the given analysis object.
 
-        :param octue.resources.analysis.Analysis analysis: the analysis object containing the configuration and inputs to run the app on
+        :param octue.twined.resources.analysis.Analysis analysis: the analysis object containing the configuration and inputs to run the app on
         :return None:
         """
         # App as a class that takes "analysis" as a constructor argument and contains a method named "run" that
@@ -442,7 +442,7 @@ class Runner:
         2. If diagnostics are switched on, upload the diagnostics
         3. If `delete_local_files=True`, delete any datafiles downloaded and registered temporary directories created during the analysis
 
-        :param octue.resources.analysis.Analysis analysis: the analysis object containing the configuration and inputs to run the app on
+        :param octue.twined.resources.analysis.Analysis analysis: the analysis object containing the configuration and inputs to run the app on
         :param str save_diagnostics: must be one of {"SAVE_DIAGNOSTICS_OFF", "SAVE_DIAGNOSTICS_ON_CRASH", "SAVE_DIAGNOSTICS_ON"}; if turned on, allow the input values and manifest (and its datasets) to be saved either all the time or just if the analysis fails
         :return None:
         """

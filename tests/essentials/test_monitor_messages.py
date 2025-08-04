@@ -1,5 +1,5 @@
-from octue.resources.analysis import Analysis
 from octue.twined.essentials.monitor_messages import send_estimated_seconds_remaining, send_status_text
+from octue.twined.resources.analysis import Analysis
 from tests.base import BaseTestCase
 
 

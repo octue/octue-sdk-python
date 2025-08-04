@@ -60,7 +60,7 @@ def _load_child_emulators(path):
     """Load child emulators from a JSON file in the directory specified by `path`.
 
     :param str path: the path to the diagnostics directory
-    :return tuple(octue.resources.child.Child):
+    :return tuple(octue.twined.resources.child.Child):
     """
     with open(os.path.join(path, "questions.json")) as f:
         questions = json.load(f)
