@@ -2,7 +2,6 @@ import os
 import unittest
 
 import coolname
-import yaml
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
@@ -52,19 +51,6 @@ class BaseTestCase(unittest.TestCase):
         datasets = {"my_dataset": self.create_valid_dataset(), "another_dataset": self.create_valid_dataset()}
         manifest = Manifest(datasets=datasets)
         return manifest
-
-    def _create_octue_configuration_file(self, octue_configuration, directory_path):
-        """Create an `octue.yaml` configuration file in the given directory.
-
-        :param str directory_path:
-        :return str: the path of the `octue.yaml` file
-        """
-        octue_configuration_path = os.path.join(directory_path, "octue.yaml")
-
-        with open(octue_configuration_path, "w") as f:
-            yaml.dump(octue_configuration, f)
-
-        return octue_configuration_path
 
     def create_nested_cloud_dataset(self, dataset_name=None):
         """Create a dataset in cloud storage with the given name containing a nested set of files.
