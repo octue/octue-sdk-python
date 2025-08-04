@@ -5,7 +5,7 @@ from unittest.mock import patch
 from octue import apply_log_handler
 from octue.twined.log_handlers import AnalysisLogFormatterSwitcher
 from tests.base import BaseTestCase
-from tests.test_app_modules.app_using_submodule.app import run as app_using_submodule
+from tests.twined.test_app_modules.app_using_submodule.app import run as app_using_submodule
 
 
 class TestAnalysisLogFormatterSwitcher(BaseTestCase):
@@ -130,9 +130,9 @@ class TestAnalysisLogFormatterSwitcher(BaseTestCase):
                 app_using_submodule(None)
 
         self.assertIn("[hello-moto]", logging_context.output[0])
-        self.assertEqual(logging_context.records[0].name, "tests.test_app_modules.app_using_submodule.app")
+        self.assertEqual(logging_context.records[0].name, "tests.twined.test_app_modules.app_using_submodule.app")
         self.assertEqual(logging_context.records[0].message, "Log message from app.")
 
         self.assertIn("[hello-moto]", logging_context.output[1])
-        self.assertEqual(logging_context.records[1].name, "tests.test_app_modules.app_using_submodule.submodule")
+        self.assertEqual(logging_context.records[1].name, "tests.twined.test_app_modules.app_using_submodule.submodule")
         self.assertEqual(logging_context.records[1].message, "Log message from submodule.")

@@ -20,8 +20,8 @@ from octue.twined.runner import Runner
 from octue.utils.files import RegisteredTemporaryDirectory, registered_temporary_directories
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase
-from tests.test_app_modules.app_class.app import App
-from tests.test_app_modules.app_module import app
+from tests.twined.test_app_modules.app_class.app import App
+from tests.twined.test_app_modules.app_module import app
 
 with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
     EVENTS = json.load(f)
@@ -263,7 +263,7 @@ class TestRunner(BaseTestCase):
     def test_app_can_be_provided_as_path_to_module_containing_class_named_app(self):
         """Test that apps can be provided as a path to a module containing a class named "App"."""
         analysis = Runner(
-            app_src=os.path.join(TESTS_DIR, "test_app_modules", "app_class"),
+            app_src=os.path.join(TESTS_DIR, "twined", "test_app_modules", "app_class"),
             twine={"output_values_schema": {}},
         ).run()
 
@@ -277,7 +277,7 @@ class TestRunner(BaseTestCase):
     def test_app_submodule_logs_are_handled(self):
         """Test that log messages from modules imported into an app are handled and capturable."""
         runner = Runner(
-            app_src=os.path.join(TESTS_DIR, "test_app_modules", "app_using_submodule"),
+            app_src=os.path.join(TESTS_DIR, "twined", "test_app_modules", "app_using_submodule"),
             twine={},
         )
 
@@ -291,7 +291,7 @@ class TestRunner(BaseTestCase):
         self.assertEqual(logging_context.records[0].message, "Log message from app.")
 
         self.assertIn(analysis_id, logging_context.output[1])
-        self.assertEqual(logging_context.records[1].name, "tests.test_app_modules.app_using_submodule.submodule")
+        self.assertEqual(logging_context.records[1].name, "tests.twined.test_app_modules.app_using_submodule.submodule")
         self.assertEqual(logging_context.records[1].message, "Log message from submodule.")
 
     def test_analysis_finalised_by_runner_if_not_finalised_in_app(self):
