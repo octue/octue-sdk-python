@@ -32,6 +32,7 @@ from octue.twined.cloud.service_id import (
 )
 from octue.twined.compatibility import warn_if_incompatible
 from octue.twined.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
+import octue.twined.exceptions
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
@@ -116,7 +117,7 @@ class Service:
         topic = Topic(name=OCTUE_SERVICES_TOPIC_NAME, project_id=self.backend.project_id)
 
         if not topic.exists():
-            raise octue.exceptions.ServiceNotFound(
+            raise octue.twined.exceptions.ServiceNotFound(
                 f"The {topic!r} topic cannot be found. Check that it's been created for this service network."
             )
 
@@ -156,7 +157,7 @@ class Service:
         try:
             subscription.create(allow_existing=allow_existing)
         except google.api_core.exceptions.AlreadyExists:
-            raise octue.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
+            raise octue.twined.exceptions.ServiceAlreadyExists(f"A service with the ID {self.id!r} already exists.")
 
         subscriber = pubsub_v1.SubscriberClient()
 
@@ -320,7 +321,7 @@ class Service:
                 )
 
         elif not service_revision_tag:
-            raise octue.exceptions.InvalidServiceID(
+            raise octue.twined.exceptions.InvalidServiceID(
                 f"A service revision tag for {service_id!r} must be provided if service registries aren't being used."
             )
 
@@ -400,7 +401,7 @@ class Service:
         :return dict: dictionary containing the keys "output_values" and "output_manifest"
         """
         if subscription.is_push_subscription:
-            raise octue.exceptions.NotAPullSubscription(
+            raise octue.twined.exceptions.NotAPullSubscription(
                 f"{subscription.path!r} is a push subscription so it cannot be waited on for an answer. Please check "
                 f"its push endpoint at {subscription.push_endpoint!r}."
             )

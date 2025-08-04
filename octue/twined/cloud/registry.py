@@ -4,6 +4,7 @@ import requests
 
 import octue.exceptions
 from octue.twined.cloud.service_id import create_sruid, logger, split_service_id
+import octue.twined.exceptions
 
 
 def get_default_sruid(namespace, name, service_registries):
@@ -34,7 +35,7 @@ def get_default_sruid(namespace, name, service_registries):
 
             return create_sruid(namespace=namespace, name=name, revision_tag=revision_tag)
 
-    raise octue.exceptions.ServiceNotFound(
+    raise octue.twined.exceptions.ServiceNotFound(
         f"No revisions for the service {service_id!r} were found in any of the specified service registries: "
         f"{service_registries!r}"
     )
@@ -57,7 +58,7 @@ def raise_if_revision_not_registered(sruid, service_registries):
             logger.info("Found service revision %r in %r registry.", sruid, registry["name"])
             return
 
-    raise octue.exceptions.ServiceNotFound(
+    raise octue.twined.exceptions.ServiceNotFound(
         f"Service revision {sruid!r} was not found in any of the specified service registries: {service_registries!r}"
     )
 

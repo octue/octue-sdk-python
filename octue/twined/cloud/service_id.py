@@ -6,6 +6,7 @@ import uuid
 import coolname
 
 import octue.exceptions
+import octue.twined.exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ def validate_sruid(sruid=None, namespace=None, name=None, revision_tag=None):
     """
     if sruid:
         if not COMPILED_SRUID_PATTERN.fullmatch(sruid):
-            raise octue.exceptions.InvalidServiceID(
+            raise octue.twined.exceptions.InvalidServiceID(
                 f"{sruid!r} is not a valid service revision unique identifier (SRUID). It must be in the format "
                 f"<namespace>/<name>:<revision_tag>. The namespace and name must be lower kebab case (i.e. only "
                 f"contain the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen. The "
@@ -102,7 +103,7 @@ def validate_sruid(sruid=None, namespace=None, name=None, revision_tag=None):
         revision_tag = sruid.split(":")[-1]
 
         if len(revision_tag) > 128:
-            raise octue.exceptions.InvalidServiceID(
+            raise octue.twined.exceptions.InvalidServiceID(
                 f"The maximum length for a revision tag is 128 characters. Received {revision_tag!r}."
             )
 
@@ -118,12 +119,12 @@ def validate_sruid(sruid=None, namespace=None, name=None, revision_tag=None):
     validate_name(name)
 
     if len(revision_tag) > 128:
-        raise octue.exceptions.InvalidServiceID(
+        raise octue.twined.exceptions.InvalidServiceID(
             f"The maximum length for a revision tag is 128 characters. Received {revision_tag!r}."
         )
 
     if not COMPILED_REVISION_TAG_PATTERN.fullmatch(revision_tag):
-        raise octue.exceptions.InvalidServiceID(
+        raise octue.twined.exceptions.InvalidServiceID(
             f"{revision_tag!r} is not a valid revision tag for a service. It can contain lowercase and uppercase "
             "letters, numbers, underscores, periods, and hyphens, but can't start with a period or a dash. It can "
             "contain a maximum of 128 characters. These requirements are the same as the Docker tag format."
@@ -142,7 +143,7 @@ def validate_service_id(service_id=None, namespace=None, name=None):
     """
     if service_id:
         if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(service_id):
-            raise octue.exceptions.InvalidServiceID(
+            raise octue.twined.exceptions.InvalidServiceID(
                 f"{service_id!r} is not a valid service ID. It must be in the format <namespace>/<name>. The namespace "
                 "and name must be lower kebab case (i.e. only contain the letters [a-z], numbers [0-9], and hyphens [-]"
                 ") and not begin or end with a hyphen."
@@ -167,7 +168,7 @@ def validate_namespace(namespace):
     :return None:
     """
     if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(namespace):
-        raise octue.exceptions.InvalidServiceID(
+        raise octue.twined.exceptions.InvalidServiceID(
             f"{namespace!r} is not a valid namespace for a service. It must be lower kebab case (i.e. only contain "
             "the letters [a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
         )
@@ -180,7 +181,7 @@ def validate_name(name):
     :return None:
     """
     if not COMPILED_SERVICE_NAMESPACE_AND_NAME_PATTERN.fullmatch(name):
-        raise octue.exceptions.InvalidServiceID(
+        raise octue.twined.exceptions.InvalidServiceID(
             f"{name!r} is not a valid name for a service. It must be lower kebab case (i.e. only contain the letters "
             f"[a-z], numbers [0-9], and hyphens [-]) and not begin or end with a hyphen."
         )

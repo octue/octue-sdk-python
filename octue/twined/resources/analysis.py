@@ -4,11 +4,11 @@ import logging
 import coolname
 
 from octue.cloud import storage
-from octue.exceptions import InvalidMonitorMessage
 from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
 from octue.resources.manifest import Manifest
 from octue.twined import ALL_STRANDS, Twine
 import octue.twined.exceptions
+from octue.twined.exceptions import InvalidMonitorMessage
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.threads import RepeatingTimer
 

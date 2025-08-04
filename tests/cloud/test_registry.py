@@ -6,6 +6,7 @@ import requests
 
 import octue.exceptions
 from octue.twined.cloud.registry import get_default_sruid, raise_if_revision_not_registered
+import octue.twined.exceptions
 
 
 class TestGetDefaultSRUID(unittest.TestCase):
@@ -39,7 +40,7 @@ class TestGetDefaultSRUID(unittest.TestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with self.assertRaises(octue.exceptions.ServiceNotFound):
+            with self.assertRaises(octue.twined.exceptions.ServiceNotFound):
                 get_default_sruid(
                     namespace="my-org",
                     name="my-service",
@@ -111,7 +112,7 @@ class TestRaiseIfRevisionNotRegistered(unittest.TestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with self.assertRaises(octue.exceptions.ServiceNotFound):
+            with self.assertRaises(octue.twined.exceptions.ServiceNotFound):
                 raise_if_revision_not_registered(
                     sruid="my-org/my-service:1.0.0",
                     service_registries=self.SERVICE_REGISTRIES,

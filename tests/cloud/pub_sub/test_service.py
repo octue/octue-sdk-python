@@ -12,7 +12,6 @@ import requests
 
 from octue import exceptions
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
-from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Datafile, Dataset, Manifest
 from octue.twined.cloud.emulators._pub_sub import (
     DifferentMockAnalysis,
@@ -25,6 +24,7 @@ from octue.twined.cloud.emulators._pub_sub import (
 from octue.twined.cloud.emulators.service import ServicePatcher
 from octue.twined.cloud.pub_sub.service import Service
 import octue.twined.exceptions
+from octue.twined.exceptions import InvalidMonitorMessage
 from octue.twined.resources import Analysis
 from octue.twined.resources.service_backends import GCPPubSubBackend
 from octue.twined.runner import Runner
@@ -87,7 +87,7 @@ class TestService(BaseTestCase):
             "octue.twined.cloud.pub_sub.service.Subscription.create",
             side_effect=google.api_core.exceptions.AlreadyExists(""),
         ):
-            with self.assertRaises(exceptions.ServiceAlreadyExists):
+            with self.assertRaises(octue.twined.exceptions.ServiceAlreadyExists):
                 MockService(backend=BACKEND, service_id=f"my-org/existing-service:{MOCK_SERVICE_REVISION_TAG}").serve()
 
     def test_serve(self):
@@ -119,7 +119,7 @@ class TestService(BaseTestCase):
         service = MockService(backend=BACKEND)
 
         with patch("octue.twined.cloud.emulators._pub_sub.TOPICS", set()):
-            with self.assertRaises(exceptions.ServiceNotFound):
+            with self.assertRaises(octue.twined.exceptions.ServiceNotFound):
                 service.services_topic
 
     def test_ask_unregistered_service_revision_when_service_registries_specified_results_in_error(self):
@@ -136,7 +136,7 @@ class TestService(BaseTestCase):
 
         with patch("requests.get", return_value=mock_response):
             with patch("octue.twined.cloud.registry._get_google_cloud_id_token", return_value="some-token"):
-                with self.assertRaises(exceptions.ServiceNotFound):
+                with self.assertRaises(octue.twined.exceptions.ServiceNotFound):
                     service.ask(
                         service_id=f"my-org/unregistered-service:{MOCK_SERVICE_REVISION_TAG}",
                         input_values=[1, 2, 3, 4],
@@ -156,7 +156,7 @@ class TestService(BaseTestCase):
 
         with patch("requests.get", return_value=mock_response):
             with patch("octue.twined.cloud.registry._get_google_cloud_id_token", return_value="some-token"):
-                with self.assertRaises(exceptions.ServiceNotFound):
+                with self.assertRaises(octue.twined.exceptions.ServiceNotFound):
                     service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
 
     def test_ask_service_with_no_revision_tag_when_service_registries_not_specified_results_in_error(self):
@@ -169,7 +169,7 @@ class TestService(BaseTestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with self.assertRaises(exceptions.InvalidServiceID):
+            with self.assertRaises(octue.twined.exceptions.InvalidServiceID):
                 service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
 
     def test_timeout_error_raised_if_no_messages_received_when_waiting(self):
@@ -192,7 +192,7 @@ class TestService(BaseTestCase):
             push_endpoint="https://example.com/endpoint",
         )
 
-        with self.assertRaises(exceptions.NotAPullSubscription):
+        with self.assertRaises(octue.twined.exceptions.NotAPullSubscription):
             service.wait_for_answer(subscription=subscription)
 
     def test_exceptions_in_responder_are_handled_and_sent_to_asker(self):

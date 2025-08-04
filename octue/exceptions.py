@@ -66,34 +66,10 @@ class InvalidLabelException(OctueSDKException, ValueError):
     """Raise when a label applied to a data file or dataset"""
 
 
-class ServiceNotFound(OctueSDKException):
-    """Raise when a Service of the given ID has not been found on the Google Pub/Sub server (i.e. if there is no topic
-    associated with the Service ID).
-    """
-
-
-class ServiceAlreadyExists(OctueSDKException):
-    """Raise if trying to create a service with the ID of an existing service."""
-
-
-class BackendNotFound(OctueSDKException):
-    """Raise when details of a backend that doesn't exist in `octue.twined.resources.service_backends` are given for use as a
-    Service backend.
-    """
-
-
 class AttributeConflict(OctueSDKException):
     """Raise if, when trying to set an attribute whose current value has a significantly higher confidence than the new
     value, the new value conflicts with the current value.
     """
-
-
-class MissingServiceID(OctueSDKException):
-    """Raise when a specific ID for a service is expected to be provided, but is missing or None."""
-
-
-class InvalidServiceID(OctueSDKException):
-    """Raise when a service ID is invalid."""
 
 
 class CloudLocationNotSpecified(OctueSDKException):
@@ -102,16 +78,8 @@ class CloudLocationNotSpecified(OctueSDKException):
     """
 
 
-class InvalidMonitorMessage(OctueSDKException):
-    """Raise if a monitor message fails validation against the "monitor_message_schema" field of the Twine."""
-
-
 class CloudStorageBucketNotFound(OctueSDKException):
     """Raise if attempting to access a cloud storage bucket that cannot be found."""
-
-
-class NotAPullSubscription(OctueSDKException):
-    """Raise if attempting to pull a subscription that's not a pull subscription."""
 
 
 class ReadOnlyResource(OctueSDKException):

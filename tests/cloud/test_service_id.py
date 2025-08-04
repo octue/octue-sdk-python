@@ -3,7 +3,6 @@ import os
 import unittest
 from unittest.mock import patch
 
-from octue.exceptions import InvalidServiceID
 from octue.twined.cloud.service_id import (
     DEFAULT_NAMESPACE,
     convert_service_id_to_pub_sub_form,
@@ -14,6 +13,7 @@ from octue.twined.cloud.service_id import (
     validate_sruid,
 )
 from octue.twined.configuration import ServiceConfiguration
+from octue.twined.exceptions import InvalidServiceID
 from tests import MOCK_SERVICE_REVISION_TAG
 
 

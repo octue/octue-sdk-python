@@ -9,6 +9,7 @@ the "oneOf" field of the "backend" key of the children schema in `Twined`, which
 from abc import ABC
 
 from octue import exceptions
+import octue.twined.exceptions
 
 
 def get_backend(backend_name=None):
@@ -21,7 +22,7 @@ def get_backend(backend_name=None):
         return GCPPubSubBackend
 
     if backend_name not in AVAILABLE_BACKENDS:
-        raise exceptions.BackendNotFound(
+        raise octue.twined.exceptions.BackendNotFound(
             f"Backend with name {backend_name} not found. Available backends are {list(AVAILABLE_BACKENDS.keys())}"
         )
 
