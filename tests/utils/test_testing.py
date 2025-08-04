@@ -1,9 +1,8 @@
 import os
 from unittest import TestCase
 
-from octue.utils.testing import load_test_fixture_from_diagnostics
+from octue.twined.utils.testing import load_test_fixture_from_diagnostics
 from tests import TESTS_DIR
-
 
 TEST_DIAGNOSTICS_PATH = os.path.join(TESTS_DIR, "data", "diagnostics")
 
