@@ -2,9 +2,8 @@
 message schema https://jsonschema.registry.octue.com/octue/essential-monitors/0.0.2.json
 """
 
-import logging
 from datetime import datetime, timezone
-
+import logging
 
 logger = logging.getLogger(__name__)
 
