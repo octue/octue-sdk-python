@@ -1,4 +1,4 @@
-from octue.cloud.events.attributes import QuestionAttributes
+from octue.twined.cloud.events.attributes import QuestionAttributes
 from octue.utils.dictionaries import make_minimal_dictionary
 
 

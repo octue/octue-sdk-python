@@ -12,7 +12,6 @@ import requests
 
 from octue import Runner, exceptions
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
-from octue.cloud.pub_sub.service import Service
 from octue.exceptions import InvalidMonitorMessage
 from octue.resources import Analysis, Datafile, Dataset, Manifest
 from octue.resources.service_backends import GCPPubSubBackend
@@ -25,6 +24,7 @@ from octue.twined.cloud.emulators._pub_sub import (
     MockTopic,
 )
 from octue.twined.cloud.emulators.service import ServicePatcher
+from octue.twined.cloud.pub_sub.service import Service
 import octue.twined.exceptions
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_ID
 from tests.base import BaseTestCase
@@ -82,7 +82,7 @@ class TestService(BaseTestCase):
     def test_serve_fails_if_service_with_same_id_already_exists(self):
         """Test that serving a service fails if a service with the same name already exists."""
         with patch(
-            "octue.cloud.pub_sub.service.Subscription.create",
+            "octue.twined.cloud.pub_sub.service.Subscription.create",
             side_effect=google.api_core.exceptions.AlreadyExists(""),
         ):
             with self.assertRaises(exceptions.ServiceAlreadyExists):
@@ -133,7 +133,7 @@ class TestService(BaseTestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with patch("octue.cloud.registry._get_google_cloud_id_token", return_value="some-token"):
+            with patch("octue.twined.cloud.registry._get_google_cloud_id_token", return_value="some-token"):
                 with self.assertRaises(exceptions.ServiceNotFound):
                     service.ask(
                         service_id=f"my-org/unregistered-service:{MOCK_SERVICE_REVISION_TAG}",
@@ -153,7 +153,7 @@ class TestService(BaseTestCase):
         mock_response.status_code = 404
 
         with patch("requests.get", return_value=mock_response):
-            with patch("octue.cloud.registry._get_google_cloud_id_token", return_value="some-token"):
+            with patch("octue.twined.cloud.registry._get_google_cloud_id_token", return_value="some-token"):
                 with self.assertRaises(exceptions.ServiceNotFound):
                     service.ask(service_id="my-org/unregistered-service", input_values=[1, 2, 3, 4])
 

@@ -2,7 +2,7 @@ import logging
 
 from google.cloud.bigquery import Client, QueryJobConfig, ScalarQueryParameter
 
-from octue.cloud.events.validation import VALID_EVENT_KINDS
+from octue.twined.cloud.events.validation import VALID_EVENT_KINDS
 
 logger = logging.getLogger(__name__)
 

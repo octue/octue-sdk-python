@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import google.api_core.exceptions
 
-from octue.cloud.pub_sub.topic import Topic
+from octue.twined.cloud.pub_sub.topic import Topic
 from tests.base import BaseTestCase
 
 
@@ -24,7 +24,7 @@ class TestTopic(BaseTestCase):
 
         for allow_existing in (True, False):
             with self.subTest(allow_existing=allow_existing):
-                with patch("octue.cloud.pub_sub.service.pubsub_v1.PublisherClient.create_topic"):
+                with patch("octue.twined.cloud.pub_sub.service.pubsub_v1.PublisherClient.create_topic"):
                     topic.create(allow_existing=allow_existing)
 
                 self.assertTrue(topic.creation_triggered_locally)
@@ -36,7 +36,7 @@ class TestTopic(BaseTestCase):
         topic = Topic(name="world", project_id="my-project")
 
         with patch(
-            "octue.cloud.pub_sub.service.pubsub_v1.PublisherClient.create_topic",
+            "octue.twined.cloud.pub_sub.service.pubsub_v1.PublisherClient.create_topic",
             side_effect=google.api_core.exceptions.AlreadyExists(""),
         ):
             with self.assertRaises(google.api_core.exceptions.AlreadyExists):
@@ -50,7 +50,7 @@ class TestTopic(BaseTestCase):
         topic = Topic(name="world", project_id="my-project")
 
         with patch(
-            "octue.cloud.pub_sub.service.pubsub_v1.PublisherClient.create_topic",
+            "octue.twined.cloud.pub_sub.service.pubsub_v1.PublisherClient.create_topic",
             side_effect=google.api_core.exceptions.AlreadyExists(""),
         ):
             topic.create(allow_existing=True)
@@ -62,11 +62,11 @@ class TestTopic(BaseTestCase):
         """Test that topics can be tested for existence."""
         topic = Topic(name="world", project_id="my-project")
 
-        with patch("octue.cloud.pub_sub.service.pubsub_v1.PublisherClient.get_topic"):
+        with patch("octue.twined.cloud.pub_sub.service.pubsub_v1.PublisherClient.get_topic"):
             self.assertTrue(topic.exists())
 
         with patch(
-            "octue.cloud.pub_sub.service.pubsub_v1.PublisherClient.get_topic",
+            "octue.twined.cloud.pub_sub.service.pubsub_v1.PublisherClient.get_topic",
             side_effect=google.api_core.exceptions.NotFound(""),
         ):
             self.assertFalse(topic.exists(timeout=1))

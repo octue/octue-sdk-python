@@ -3,11 +3,11 @@ import os
 from unittest.mock import patch
 import uuid
 
-from octue.cloud.events.attributes import ResponseAttributes
-from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
 from octue.resources.service_backends import GCPPubSubBackend
 from octue.twined.cloud.emulators._pub_sub import MESSAGES, MockMessage, MockService, MockSubscription
 from octue.twined.cloud.emulators.service import ServicePatcher
+from octue.twined.cloud.events.attributes import ResponseAttributes
+from octue.twined.cloud.pub_sub.events import GoogleCloudPubSubEventHandler
 from tests import TEST_PROJECT_ID
 from tests.base import BaseTestCase
 
@@ -184,7 +184,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
             child._emit_event(event=event["event"], attributes=self.attributes)
 
         with patch(
-            "octue.cloud.pub_sub.events.GoogleCloudPubSubEventHandler._time_since_last_heartbeat",
+            "octue.twined.cloud.pub_sub.events.GoogleCloudPubSubEventHandler._time_since_last_heartbeat",
             datetime.timedelta(seconds=0),
         ):
             event_handler.handle_events(maximum_heartbeat_interval=0)

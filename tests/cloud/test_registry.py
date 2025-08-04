@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 import requests
 
-from octue.cloud.registry import get_default_sruid, raise_if_revision_not_registered
 import octue.exceptions
+from octue.twined.cloud.registry import get_default_sruid, raise_if_revision_not_registered
 
 
 class TestGetDefaultSRUID(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestGetDefaultSRUID(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.id_token_patch = patch("octue.cloud.registry._get_google_cloud_id_token", return_value="some-token")
+        cls.id_token_patch = patch("octue.twined.cloud.registry._get_google_cloud_id_token", return_value="some-token")
         cls.id_token_patch.start()
 
     @classmethod
@@ -86,7 +86,7 @@ class TestRaiseIfRevisionNotRegistered(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.id_token_patch = patch("octue.cloud.registry._get_google_cloud_id_token", return_value="some-token")
+        cls.id_token_patch = patch("octue.twined.cloud.registry._get_google_cloud_id_token", return_value="some-token")
         cls.id_token_patch.start()
 
     @classmethod

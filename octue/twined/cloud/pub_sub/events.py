@@ -7,10 +7,10 @@ import time
 from google.api_core import retry
 from google.cloud.pubsub_v1 import SubscriberClient
 
-from octue.cloud.events.attributes import ResponseAttributes
-from octue.cloud.events.handler import AbstractEventHandler
-from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
+from octue.twined.cloud.events.attributes import ResponseAttributes
+from octue.twined.cloud.events.handler import AbstractEventHandler
+from octue.twined.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.objects import get_nested_attribute
 from octue.utils.threads import RepeatingTimer
@@ -37,7 +37,7 @@ def extract_event(message):
 class GoogleCloudPubSubEventHandler(AbstractEventHandler):
     """A synchronous handler for events received as Google Pub/Sub messages from a pull subscription.
 
-    :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
+    :param octue.twined.cloud.pub_sub.subscription.Subscription subscription: the subscription messages are pulled from
     :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive
     :param bool record_events: if `True`, record received events in the `received_events` attribute
     :param dict|None event_handlers: a mapping of event type names to callables that handle each type of event. The handlers must not mutate the events.

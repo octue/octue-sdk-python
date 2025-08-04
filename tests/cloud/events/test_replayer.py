@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from octue.cloud.events.replayer import EventReplayer
+from octue.twined.cloud.events.replayer import EventReplayer
 from tests import TEST_BUCKET_NAME, TESTS_DIR
 
 with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
@@ -89,7 +89,7 @@ class TestEventReplayer(unittest.TestCase):
     def test_with_only_handle_result(self):
         """Test that non-result events are skipped if `only_handle_result=True`."""
         with patch(
-            "octue.cloud.events.handler.AbstractEventHandler._handle_delivery_acknowledgement"
+            "octue.twined.cloud.events.handler.AbstractEventHandler._handle_delivery_acknowledgement"
         ) as mock_handle_delivery_acknowledgement:
             with self.assertLogs() as logging_context:
                 result = EventReplayer(only_handle_result=True).handle_events(EVENTS)
@@ -117,7 +117,7 @@ class TestEventReplayer(unittest.TestCase):
 
     def test_without_validating_events(self):
         """Test that event validation is skipped when `validate_events=False`."""
-        with patch("octue.cloud.events.handler.is_event_valid") as mock_is_event_valid:
+        with patch("octue.twined.cloud.events.handler.is_event_valid") as mock_is_event_valid:
             result = EventReplayer(validate_events=False).handle_events(EVENTS)
 
         mock_is_event_valid.assert_not_called()

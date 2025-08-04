@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from octue.cloud.events.attributes import QuestionAttributes, ResponseAttributes
+from octue.twined.cloud.events.attributes import QuestionAttributes, ResponseAttributes
 
 QUESTION_UUID = "50760303-ee89-4752-81cc-aadd05f81752"
 SENDER = "my-org/my-parent:1.0.0"

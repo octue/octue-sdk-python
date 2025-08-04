@@ -66,7 +66,7 @@ class EventAttributes:
         assume the required attributes are present as validation hasn't happened yet.
 
         :param dict serialised_attributes: the event container in dictionary format or direct Google Pub/Sub format
-        :return octue.cloud.events.attributes.EventAttributes: the extracted and deserialised attributes
+        :return octue.twined.cloud.events.attributes.EventAttributes: the extracted and deserialised attributes
         """
         serialised_attributes = dict(serialised_attributes)
 
@@ -221,7 +221,7 @@ class QuestionAttributes(EventAttributes):
         attributes are present as validation hasn't happened yet.
 
         :param dict serialised_attributes: attributes for a question event
-        :return octue.cloud.events.attributes.QuestionAttributes: the deserialised attributes
+        :return octue.twined.cloud.events.attributes.QuestionAttributes: the deserialised attributes
         """
         serialised_attributes = dict(serialised_attributes)
         cpus = serialised_attributes.get("cpus")
@@ -294,8 +294,8 @@ class ResponseAttributes(EventAttributes):
     def from_question_attributes(cls, question_attributes):
         """Create corresponding response attributes from a set of question attributes.
 
-        :param octue.cloud.events.attributes.QuestionEventAttributes question_attributes: the question attributes to make the response attributes from
-        :return octue.cloud.events.attributes.ResponseEventAttributes: the event attributes for a response event of any kind
+        :param octue.twined.cloud.events.attributes.QuestionEventAttributes question_attributes: the question attributes to make the response attributes from
+        :return octue.twined.cloud.events.attributes.ResponseEventAttributes: the event attributes for a response event of any kind
         """
         return cls(
             sender=question_attributes.recipient,

@@ -1,6 +1,6 @@
 import logging
 
-from octue.cloud.events.replayer import EventReplayer
+from octue.twined.cloud.events.replayer import EventReplayer
 
 logger = logging.getLogger(__name__)
 

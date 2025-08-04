@@ -1,5 +1,5 @@
-import logging
 from functools import cached_property
+import logging
 
 import google.api_core.exceptions
 from google.cloud.pubsub_v1 import SubscriberClient
@@ -9,10 +9,11 @@ from google.pubsub_v1.types.pubsub import (
     ExpirationPolicy,
     PushConfig,
     RetryPolicy,
-    Subscription as _Subscription,
     UpdateSubscriptionRequest,
 )
-
+from google.pubsub_v1.types.pubsub import (
+    Subscription as _Subscription,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class Subscription:
     does not necessarily already exist on the Google Pub/Sub servers.
 
     :param str name: the name of the subscription excluding "projects/<project_id>/subscriptions/<namespace>"
-    :param octue.cloud.pub_sub.topic.Topic topic: the topic the subscription is attached to
+    :param octue.twined.cloud.pub_sub.topic.Topic topic: the topic the subscription is attached to
     :param str|None project_id: the ID of the Google Cloud project that the subscription belongs to; if `None`, the project ID of the topic is used
     :param str|None filter: if provided, only receive messages matching the filter (see here for filter syntax: https://cloud.google.com/pubsub/docs/subscription-message-filter#filtering_syntax)
     :param int ack_deadline: the time in seconds after which, if the subscriber hasn't acknowledged a message, to retry sending it to the subscription

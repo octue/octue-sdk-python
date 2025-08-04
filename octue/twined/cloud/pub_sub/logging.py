@@ -8,7 +8,7 @@ class GoogleCloudPubSubHandler(logging.Handler):
     """A log handler that publishes log records to a Google Cloud Pub/Sub topic.
 
     :param callable event_emitter: the `_emit_event` method of the service that instantiated this instance
-    :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the log record event
+    :param octue.twined.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the log record event
     :param float timeout: timeout in seconds for attempting to publish each log record
     :return None:
     """

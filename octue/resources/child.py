@@ -3,9 +3,9 @@ import copy
 import logging
 import os
 
-from octue.cloud.pub_sub.service import Service
 from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.resources import service_backends
+from octue.twined.cloud.pub_sub.service import Service
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ class Child:
         :param float|int maximum_heartbeat_interval: the maximum amount of time (in seconds) allowed between child heartbeats before an error is raised
         :raise TimeoutError: if the timeout is exceeded while waiting for an answer
         :raise Exception: if the question raises an error and `raise_errors=True`
-        :return dict|octue.cloud.pub_sub.subscription.Subscription|Exception|None, str: for a synchronous question, a dictionary containing the keys "output_values" and "output_manifest" from the result (or just an exception if the question fails), and the question UUID; for a question with a push endpoint, the push subscription and the question UUID; for an asynchronous question, `None` and the question UUID
+        :return dict|octue.twined.cloud.pub_sub.subscription.Subscription|Exception|None, str: for a synchronous question, a dictionary containing the keys "output_values" and "output_manifest" from the result (or just an exception if the question fails), and the question UUID; for a question with a push endpoint, the push subscription and the question UUID; for an asynchronous question, `None` and the question UUID
         """
         prevent_retries_when = prevent_retries_when or []
 
@@ -209,7 +209,7 @@ class Child:
         :param list(type)|None prevent_retries_when: prevent retrying any questions that fail with an exception type in this list (note: this will have no effect unless `raise_errors=False`)
         :param int|None max_workers: the maximum number of questions that can be asked at once; defaults to the lowest of {32, no. of CPUs + 4, and no. of questions} (see `concurrent.futures.ThreadPoolExecutor`)
         :param bool log_errors: if `True` and `raise_errors=False`, log any errors remaining once retries are exhausted
-        :return list((dict|octue.cloud.pub_sub.subscription.Subscription|Exception|None, str)): the answers to the questions and the question UUIDs (in the same order as asked)
+        :return list((dict|octue.twined.cloud.pub_sub.subscription.Subscription|Exception|None, str)): the answers to the questions and the question UUIDs (in the same order as asked)
         """
         # Answers will come out of order, so use a dictionary to store them against their questions' original index.
         answers = {}

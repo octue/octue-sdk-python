@@ -13,9 +13,9 @@ class ServicePatcher(MultiPatcher):
     def __init__(self):
         super().__init__(
             patches=[
-                patch("octue.cloud.pub_sub.service.Topic", new=MockTopic),
-                patch("octue.cloud.pub_sub.service.Subscription", new=MockSubscription),
-                patch("octue.cloud.pub_sub.events.SubscriberClient", new=MockSubscriber),
+                patch("octue.twined.cloud.pub_sub.service.Topic", new=MockTopic),
+                patch("octue.twined.cloud.pub_sub.service.Subscription", new=MockSubscription),
+                patch("octue.twined.cloud.pub_sub.events.SubscriberClient", new=MockSubscriber),
                 patch("google.cloud.pubsub_v1.SubscriberClient", new=MockSubscriber),
             ]
         )

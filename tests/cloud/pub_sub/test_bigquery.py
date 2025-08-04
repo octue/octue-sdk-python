@@ -2,7 +2,7 @@ import logging
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
-from octue.cloud.pub_sub.bigquery import get_events
+from octue.twined.cloud.pub_sub.bigquery import get_events
 
 
 class MockEmptyResult:
@@ -54,7 +54,7 @@ class TestGetEvents(TestCase):
 
     def test_warning_logged_if_no_events_found(self):
         """Test that an empty list is returned and a warning is logged if no events are found for the question UUID."""
-        with patch("octue.cloud.pub_sub.bigquery.Client", MockEmptyBigQueryClient):
+        with patch("octue.twined.cloud.pub_sub.bigquery.Client", MockEmptyBigQueryClient):
             with self.assertLogs(level=logging.WARNING) as logging_context:
                 events = get_events(table_id="blah", question_uuid="blah")
 
@@ -63,7 +63,7 @@ class TestGetEvents(TestCase):
 
     def test_without_tail(self):
         """Test the non-tail query."""
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+        with patch("octue.twined.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", question_uuid="blah", tail=False)
 
         self.assertEqual(
@@ -77,7 +77,7 @@ class TestGetEvents(TestCase):
 
     def test_without_kinds(self):
         """Test the query used to retrieve events of all kinds."""
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+        with patch("octue.twined.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", question_uuid="blah")
 
         self.assertEqual(
@@ -93,7 +93,7 @@ class TestGetEvents(TestCase):
 
     def test_with_kind(self):
         """Test the query used to retrieve events of a specific kind."""
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+        with patch("octue.twined.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", question_uuid="blah", kinds=["result"])
 
         self.assertEqual(
@@ -109,7 +109,7 @@ class TestGetEvents(TestCase):
 
     def test_with_kinds(self):
         """Test the query used to retrieve events of specific kinds."""
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+        with patch("octue.twined.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", question_uuid="blah", kinds=["result", "question"])
 
         self.assertEqual(
@@ -123,7 +123,7 @@ class TestGetEvents(TestCase):
 
     def test_with_exclude_kind(self):
         """Test the query used to retrieve events of all kinds except a specific kind."""
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+        with patch("octue.twined.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", question_uuid="blah", exclude_kinds=["result"])
 
         self.assertEqual(
@@ -139,7 +139,7 @@ class TestGetEvents(TestCase):
 
     def test_with_exclude_kinds(self):
         """Test the query used to retrieve events of all kinds except specific kinds."""
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+        with patch("octue.twined.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", question_uuid="blah", exclude_kinds=["result", "question"])
 
         self.assertEqual(
@@ -153,7 +153,7 @@ class TestGetEvents(TestCase):
 
     def test_with_backend_metadata(self):
         """Test the query used to retrieve backend metadata in addition to events."""
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+        with patch("octue.twined.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", question_uuid="blah", include_backend_metadata=True)
 
         self.assertEqual(
@@ -169,7 +169,7 @@ class TestGetEvents(TestCase):
         )
 
     def test_with_parent_question_uuid(self):
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+        with patch("octue.twined.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", parent_question_uuid="blah")
 
         self.assertEqual(
@@ -184,7 +184,7 @@ class TestGetEvents(TestCase):
         )
 
     def test_with_originator_parent_question_uuid(self):
-        with patch("octue.cloud.pub_sub.bigquery.Client") as mock_client:
+        with patch("octue.twined.cloud.pub_sub.bigquery.Client") as mock_client:
             get_events(table_id="blah", originator_question_uuid="blah")
 
         self.assertEqual(

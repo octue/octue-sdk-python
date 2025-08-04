@@ -10,22 +10,27 @@ import google.api_core.exceptions
 from google.cloud import pubsub_v1
 import jsonschema
 
-from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
-from octue.cloud.events.attributes import CHILD_SENDER_TYPE, PARENT_SENDER_TYPE, QuestionAttributes, ResponseAttributes
-from octue.cloud.events.validation import raise_if_event_is_invalid
-from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event
-from octue.cloud.pub_sub.logging import GoogleCloudPubSubHandler
-from octue.cloud.registry import get_default_sruid, raise_if_revision_not_registered
-from octue.cloud.service_id import (
+from octue.compatibility import warn_if_incompatible
+from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL, LOCAL_SDK_VERSION
+import octue.exceptions
+from octue.twined.cloud.events import OCTUE_SERVICES_TOPIC_NAME
+from octue.twined.cloud.events.attributes import (
+    CHILD_SENDER_TYPE,
+    PARENT_SENDER_TYPE,
+    QuestionAttributes,
+    ResponseAttributes,
+)
+from octue.twined.cloud.events.validation import raise_if_event_is_invalid
+from octue.twined.cloud.pub_sub import Subscription, Topic
+from octue.twined.cloud.pub_sub.events import GoogleCloudPubSubEventHandler, extract_event
+from octue.twined.cloud.pub_sub.logging import GoogleCloudPubSubHandler
+from octue.twined.cloud.registry import get_default_sruid, raise_if_revision_not_registered
+from octue.twined.cloud.service_id import (
     convert_service_id_to_pub_sub_form,
     create_sruid,
     split_service_id,
     validate_sruid,
 )
-from octue.compatibility import warn_if_incompatible
-from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL, LOCAL_SDK_VERSION
-import octue.exceptions
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
@@ -105,7 +110,7 @@ class Service:
         environment variable to be put off until it's needed.
 
         :raise octue.exceptions.ServiceNotFound: if the topic doesn't exist in the project
-        :return octue.cloud.pub_sub.topic.Topic: the Octue services topic for the project
+        :return octue.twined.cloud.pub_sub.topic.Topic: the Octue services topic for the project
         """
         topic = Topic(name=OCTUE_SERVICES_TOPIC_NAME, project_id=self.backend.project_id)
 
@@ -297,7 +302,7 @@ class Service:
         :param str|None memory: the amount of memory to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
         :param str|None ephemeral_storage: the amount of ephemeral storage to request for the question e.g. "256Mi" or "1Gi"; defaults to the amount set by the child service
         :param float|None timeout: time in seconds to keep retrying sending the question
-        :return (octue.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
+        :return (octue.twined.cloud.pub_sub.subscription.Subscription|None, str): the answer subscription (if the question is synchronous or a push endpoint was used) and question UUID
         """
         service_namespace, service_name, service_revision_tag = split_service_id(service_id)
 
@@ -385,7 +390,7 @@ class Service:
         """Wait for an answer to a question on the given subscription, deleting the subscription and its topic once
         the answer is received.
 
-        :param octue.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
+        :param octue.twined.cloud.pub_sub.subscription.Subscription subscription: the subscription for the question's answer
         :param callable|None handle_monitor_message: a function to handle monitor messages (e.g. send them to an endpoint for plotting or displaying) - this function should take a single JSON-compatible python primitive as an argument (note that this could be an array or object)
         :param bool record_events: if `True`, record messages received from the child in the `received_events` attribute
         :param float|None timeout: how long in seconds to wait for an answer before raising a `TimeoutError`
@@ -447,7 +452,7 @@ class Service:
     def send_exception(self, attributes, timeout=30):
         """Serialise and send the exception being handled to the parent.
 
-        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the exception event
+        :param octue.twined.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the exception event
         :param float|None timeout: time in seconds to keep retrying sending of the exception
         :return None:
         """
@@ -482,7 +487,7 @@ class Service:
         - `datetime`
 
         :param dict event: JSON-serialisable data to emit as an event
-        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the event
+        :param octue.twined.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the event
         :param bool wait: if `True`, wait for the result of the publishing future before continuing execution (this is important if the python process ends promptly after the event is emitted instead of being part of a prolonged stream as the publishing may not complete and the event won't actually be emitted)
         :param int|float timeout: the timeout for sending the event in seconds
         :return google.cloud.pubsub_v1.publisher.futures.Future:
@@ -564,7 +569,7 @@ class Service:
     def _send_delivery_acknowledgment(self, attributes, timeout=30):
         """Send an acknowledgement of question receipt to the parent.
 
-        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the delivery acknowledgement event
+        :param octue.twined.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the delivery acknowledgement event
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -574,7 +579,7 @@ class Service:
     def _send_heartbeat(self, attributes, timeout=30):
         """Send a heartbeat to the parent, indicating that the service is alive.
 
-        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the heartbeat event
+        :param octue.twined.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the heartbeat event
         :param float timeout: time in seconds after which to give up sending
         :return None:
         """
@@ -585,7 +590,7 @@ class Service:
         """Send a monitor message to the parent.
 
         :param any data: the data to send as a monitor message
-        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the monitor message event
+        :param octue.twined.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the monitor message event
         :param float timeout: time in seconds to retry sending the message
         :return None:
         """
@@ -596,7 +601,7 @@ class Service:
         """Send the result to the parent.
 
         :param octue.resources.analysis.Analysis analysis: the analysis object containing the output values and/or output manifest
-        :param octue.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the result event
+        :param octue.twined.cloud.events.attributes.ResponseAttributes attributes: the attributes to use for the result event
         :param float timeout: time in seconds to retry sending the message
         :return dict: the result
         """
@@ -612,7 +617,7 @@ class Service:
         """Parse a question in dictionary format or direct Google Pub/Sub format.
 
         :param dict|google.cloud.pubsub_v1.subscriber.message.Message question: the question to parse in dictionary format or direct Google Pub/Sub format
-        :return (dict, octue.cloud.events.attributes.QuestionAttributes): the question's event and its attributes
+        :return (dict, octue.twined.cloud.events.attributes.QuestionAttributes): the question's event and its attributes
         """
         logger.info("%r received a question.", self)
 

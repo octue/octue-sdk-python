@@ -9,13 +9,6 @@ import click
 from google import auth
 
 from octue.cloud import storage
-from octue.cloud.events.answer_question import answer_question
-from octue.cloud.events.question import make_question_event
-from octue.cloud.events.replayer import EventReplayer
-from octue.cloud.events.validation import VALID_EVENT_KINDS
-from octue.cloud.pub_sub.bigquery import DEFAULT_EVENT_STORE_TABLE_ID, get_events
-from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.configuration import ServiceConfiguration
 from octue.definitions import LOCAL_SDK_VERSION, MANIFEST_FILENAME, VALUES_FILENAME
@@ -23,6 +16,13 @@ from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
 from octue.resources import Child, Manifest, service_backends
 from octue.runner import Runner
+from octue.twined.cloud.events.answer_question import answer_question
+from octue.twined.cloud.events.question import make_question_event
+from octue.twined.cloud.events.replayer import EventReplayer
+from octue.twined.cloud.events.validation import VALID_EVENT_KINDS
+from octue.twined.cloud.pub_sub.bigquery import DEFAULT_EVENT_STORE_TABLE_ID, get_events
+from octue.twined.cloud.pub_sub.service import Service
+from octue.twined.cloud.service_id import create_sruid, get_sruid_parts
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 

@@ -4,11 +4,11 @@ import logging
 
 import google.api_core
 
-from octue.cloud.events.attributes import QuestionAttributes
-from octue.cloud.pub_sub import Subscription, Topic
-from octue.cloud.pub_sub.service import Service
 from octue.definitions import LOCAL_SDK_VERSION
 from octue.resources import Manifest
+from octue.twined.cloud.events.attributes import QuestionAttributes
+from octue.twined.cloud.pub_sub import Subscription, Topic
+from octue.twined.cloud.pub_sub.service import Service
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 

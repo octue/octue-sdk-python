@@ -1,12 +1,11 @@
-import logging
-import time
 from datetime import datetime
 from functools import cached_property
+import logging
+import time
 
 import google.api_core.exceptions
 from google.cloud.pubsub_v1 import PublisherClient
 from google.pubsub_v1.types.pubsub import Topic as Topic_
-
 
 logger = logging.getLogger(__name__)
 

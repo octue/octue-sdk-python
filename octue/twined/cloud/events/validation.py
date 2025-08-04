@@ -34,7 +34,7 @@ def is_event_valid(event, attributes, recipient, schema=None):
     """Check if the event and its attributes are valid according to the Octue services communication schema.
 
     :param dict event: the event to validate
-    :param octue.cloud.events.attributes.EventAttributes attributes: the attributes of the event to validate
+    :param octue.twined.cloud.events.attributes.EventAttributes attributes: the attributes of the event to validate
     :param str recipient: the SRUID of the service revision receiving and validating the event
     :param dict|None schema: the schema to validate the event and its attributes against; if `None`, this defaults to the service communication schema used in this version of Octue SDK
     :return bool: `True` if the event and its attributes are valid
@@ -51,7 +51,7 @@ def raise_if_event_is_invalid(event, attributes, recipient, schema=None):
     """Raise an error if the event or its attributes aren't valid according to the Octue services communication schema.
 
     :param dict event: the event to validate
-    :param octue.cloud.events.attributes.EventAttributes attributes: the attributes of the event to validate
+    :param octue.twined.cloud.events.attributes.EventAttributes attributes: the attributes of the event to validate
     :param str recipient: the SRUID of the service revision receiving and validating the event
     :param dict|None schema: the schema to validate the event and its attributes against; if `None`, this defaults to the service communication schema used in this version of Octue SDK
     :raise jsonschema.ValidationError: if the event or its attributes are invalid

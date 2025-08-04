@@ -1,8 +1,8 @@
 import logging
 
-from octue.cloud.events.attributes import ResponseAttributes
-from octue.cloud.events.handler import AbstractEventHandler
-from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
+from octue.twined.cloud.events.attributes import ResponseAttributes
+from octue.twined.cloud.events.handler import AbstractEventHandler
+from octue.twined.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA
 
 logger = logging.getLogger(__name__)
 

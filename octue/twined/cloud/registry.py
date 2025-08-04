@@ -2,8 +2,8 @@ import google.auth.transport.requests
 import google.oauth2.id_token
 import requests
 
-from octue.cloud.service_id import create_sruid, logger, split_service_id
 import octue.exceptions
+from octue.twined.cloud.service_id import create_sruid, logger, split_service_id
 
 
 def get_default_sruid(namespace, name, service_registries):

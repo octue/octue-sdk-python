@@ -5,11 +5,11 @@ import os
 import re
 import time
 
-from octue.cloud import EXCEPTIONS_MAPPING
-from octue.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 from octue.log_handlers import COLOUR_PALETTE
 from octue.resources.manifest import Manifest
+from octue.twined.cloud import EXCEPTIONS_MAPPING
+from octue.twined.cloud.events.validation import SERVICE_COMMUNICATION_SCHEMA, is_event_valid
 
 logger = logging.getLogger(__name__)
 
