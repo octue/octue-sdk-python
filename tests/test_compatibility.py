@@ -3,7 +3,7 @@ import logging
 import sys
 from unittest.mock import patch
 
-from octue.compatibility import is_compatible, warn_if_incompatible
+from octue.twined.compatibility import is_compatible, warn_if_incompatible
 from tests.base import BaseTestCase
 
 
@@ -45,7 +45,7 @@ class TestIsCompatible(BaseTestCase):
         try:
             with self.assertLogs(level=logging.WARNING) as logging_context:
                 with patch("builtins.open", side_effect=FileNotFoundError()):
-                    importlib.reload(sys.modules["octue.compatibility"])
+                    importlib.reload(sys.modules["octue.twined.compatibility"])
 
                 self.assertIn("Version compatibility data could not be loaded.", logging_context.output[0])
                 self.assertTrue(is_compatible("0.39.0", "0.39.0"))
@@ -57,7 +57,7 @@ class TestIsCompatible(BaseTestCase):
 
         # Ensure version compatibility data is available again.
         finally:
-            importlib.reload(sys.modules["octue.compatibility"])
+            importlib.reload(sys.modules["octue.twined.compatibility"])
 
 
 class TestWarnIfIncompatible(BaseTestCase):
@@ -67,8 +67,8 @@ class TestWarnIfIncompatible(BaseTestCase):
             warn_if_incompatible(sender_sdk_version="0.51.0", recipient_sdk_version=None)
 
         self.assertIn(
-            "The recipient couldn't be checked for compatibility with this service because its Octue SDK version "
-            "wasn't provided. Please update it to the latest Octue SDK version.",
+            "The recipient couldn't be checked for compatibility with this service because its Twined version "
+            "wasn't provided. Please update it to the latest Twined version.",
             logging_context.output[0],
         )
 
@@ -78,8 +78,8 @@ class TestWarnIfIncompatible(BaseTestCase):
             warn_if_incompatible(sender_sdk_version=None, recipient_sdk_version="0.16.0")
 
         self.assertIn(
-            "The sender couldn't be checked for compatibility with this service because its Octue SDK version wasn't "
-            "provided. Please update it to the latest Octue SDK version.",
+            "The sender couldn't be checked for compatibility with this service because its Twined version wasn't "
+            "provided. Please update it to the latest Twined version.",
             logging_context.output[0],
         )
 
@@ -89,7 +89,7 @@ class TestWarnIfIncompatible(BaseTestCase):
             warn_if_incompatible(sender_sdk_version="0.50.0", recipient_sdk_version="0.51.0")
 
         self.assertIn(
-            "The sender's Octue SDK version 0.50.0 is incompatible with the recipient's version 0.51.0. Please update "
+            "The sender's Twined version 0.50.0 is incompatible with the recipient's version 0.51.0. Please update "
             "either or both to the latest version.",
             logging_context.output[0],
         )

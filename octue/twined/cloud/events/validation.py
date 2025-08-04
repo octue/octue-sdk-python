@@ -2,8 +2,8 @@ import logging
 
 import jsonschema
 
-from octue.compatibility import warn_if_incompatible
 from octue.definitions import LOCAL_SDK_VERSION
+from octue.twined.compatibility import warn_if_incompatible
 
 VALID_EVENT_KINDS = {
     "question",

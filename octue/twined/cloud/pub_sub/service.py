@@ -10,7 +10,6 @@ import google.api_core.exceptions
 from google.cloud import pubsub_v1
 import jsonschema
 
-from octue.compatibility import warn_if_incompatible
 from octue.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL, LOCAL_SDK_VERSION
 import octue.exceptions
 from octue.twined.cloud.events import OCTUE_SERVICES_TOPIC_NAME
@@ -31,6 +30,7 @@ from octue.twined.cloud.service_id import (
     split_service_id,
     validate_sruid,
 )
+from octue.twined.compatibility import warn_if_incompatible
 from octue.utils.dictionaries import make_minimal_dictionary
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.exceptions import convert_exception_to_primitives
