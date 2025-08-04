@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = ("Runner",)
+
 REPOSITORY_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 if should_use_octue_log_handler():

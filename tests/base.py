@@ -46,7 +46,7 @@ class BaseTestCase(unittest.TestCase):
         """
         root_dir = os.path.dirname(os.path.abspath(__file__))
         self.data_path = os.path.join(root_dir, "data")
-        self.templates_path = os.path.join(os.path.dirname(root_dir), "octue", "templates")
+        self.templates_path = os.path.join(os.path.dirname(root_dir), "octue", "twined", "templates")
 
         super().setUp()
 

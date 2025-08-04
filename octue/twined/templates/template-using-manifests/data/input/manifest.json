@@ -1,0 +1,6 @@
+{
+  "id": "8ead7669-8162-4f64-8cd5-4abe92509e17",
+  "datasets": {
+    "raw_met_mast_data": "data/input/raw_met_mast_data"
+  }
+}
