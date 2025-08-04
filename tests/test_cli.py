@@ -627,6 +627,7 @@ class TestStartCommand(BaseTestCase):
         cls.python_fractal_service_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             "octue",
+            "twined",
             "templates",
             "template-fractal",
         )
