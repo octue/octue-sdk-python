@@ -13,12 +13,12 @@ from jsonschema import ValidationError
 from jsonschema import validate as jsonschema_validate
 
 from octue import exceptions
-from octue.log_handlers import AnalysisLogFormatterSwitcher
 from octue.resources.datafile import downloaded_files
 from octue.twined import Twine
 from octue.twined.app_loading import AppFrom
 from octue.twined.diagnostics import Diagnostics
 import octue.twined.exceptions
+from octue.twined.log_handlers import AnalysisLogFormatterSwitcher
 from octue.twined.resources import Child
 from octue.twined.resources.analysis import CLASS_MAP, Analysis
 from octue.utils.files import registered_temporary_directories
