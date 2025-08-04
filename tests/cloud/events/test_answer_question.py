@@ -4,9 +4,9 @@ from unittest.mock import patch
 
 import yaml
 
-from octue.configuration import ServiceConfiguration
 from octue.twined.cloud.emulators._pub_sub import MockTopic
 from octue.twined.cloud.events.answer_question import answer_question
+from octue.twined.configuration import ServiceConfiguration
 from octue.utils.patches import MultiPatcher
 from tests.mocks import MockOpen
 
@@ -35,7 +35,7 @@ class TestAnswerQuestion(TestCase):
         with patch("octue.twined.cloud.events.answer_question.Runner.from_configuration") as mock_constructor:
             with MultiPatcher(
                 patches=[
-                    patch("octue.configuration.open", mock.mock_open(mock=MockOpenForConfigurationFiles)),
+                    patch("octue.twined.configuration.open", mock.mock_open(mock=MockOpenForConfigurationFiles)),
                     patch("octue.twined.cloud.pub_sub.service.Topic", new=MockTopic),
                     patch("octue.twined.cloud.events.answer_question.Service"),
                     patch.dict(os.environ, {"OCTUE_SERVICE_REVISION_TAG": "blah"}),

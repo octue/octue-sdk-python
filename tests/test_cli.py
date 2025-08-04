@@ -9,10 +9,10 @@ from click.testing import CliRunner
 
 from octue.cli import octue_cli
 from octue.cloud import storage
-from octue.configuration import ServiceConfiguration
 from octue.resources import Dataset, Manifest
 from octue.twined.cloud.emulators._pub_sub import MockService
 from octue.twined.cloud.emulators.service import ServicePatcher
+from octue.twined.configuration import ServiceConfiguration
 from octue.utils.patches import MultiPatcher
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase

@@ -111,7 +111,7 @@ class Runner:
     def from_configuration(cls, service_configuration, project_id=None, service_id=None, **overrides):
         """Instantiate a runner from a service configuration.
 
-        :param octue.configuration.ServiceConfiguration service_configuration:
+        :param octue.twined.configuration.ServiceConfiguration service_configuration:
         :param str|None project_id: name of Google Cloud project to get credentials from
         :param str|None service_id: the ID of the service being run
         :param overrides: optional keyword arguments to override the `Runner` instantiation parameters extracted from the service configuration

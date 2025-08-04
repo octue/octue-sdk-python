@@ -10,7 +10,6 @@ from google import auth
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.configuration import ServiceConfiguration
 from octue.definitions import LOCAL_SDK_VERSION, MANIFEST_FILENAME, VALUES_FILENAME
 from octue.exceptions import ServiceAlreadyExists
 from octue.log_handlers import apply_log_handler, get_remote_handler
@@ -22,6 +21,7 @@ from octue.twined.cloud.events.validation import VALID_EVENT_KINDS
 from octue.twined.cloud.pub_sub.bigquery import DEFAULT_EVENT_STORE_TABLE_ID, get_events
 from octue.twined.cloud.pub_sub.service import Service
 from octue.twined.cloud.service_id import create_sruid, get_sruid_parts
+from octue.twined.configuration import ServiceConfiguration
 from octue.twined.resources import Child, service_backends
 from octue.twined.runner import Runner
 from octue.utils.decoders import OctueJSONDecoder

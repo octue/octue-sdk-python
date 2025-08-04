@@ -26,7 +26,7 @@ def get_sruid_parts(service_configuration):
     service configuration (in that order of precedence). The service revision tag is `None` if it's not provided in the
     `OCTUE_SERVICE_REVISION_TAG` environment variable as it can't be specified in the service configuration.
 
-    :param octue.configuration.ServiceConfiguration service_configuration: the service configuration to get the service namespace and name from
+    :param octue.twined.configuration.ServiceConfiguration service_configuration: the service configuration to get the service namespace and name from
     :return (str, str, str|None):
     """
     service_namespace = os.environ.get("OCTUE_SERVICE_NAMESPACE")

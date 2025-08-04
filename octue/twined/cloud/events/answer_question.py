@@ -13,7 +13,7 @@ def answer_question(question, project_id, service_configuration):
 
     :param dict question: a question event and its attributes
     :param str project_id: the ID of the project the service is running on
-    :param octue.configuration.ServiceConfiguration service_configuration:
+    :param octue.twined.configuration.ServiceConfiguration service_configuration:
     :return dict: the result event
     """
     service_namespace, service_name, service_revision_tag = get_sruid_parts(service_configuration)
