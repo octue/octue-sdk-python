@@ -1,13 +1,12 @@
 import json
 import os
 
-from octue.cloud.emulators._pub_sub import MockService
-from octue.cloud.emulators.child import ChildEmulator
-from octue.cloud.emulators.service import ServicePatcher
 from octue.resources.service_backends import GCPPubSubBackend
+from octue.twined.cloud.emulators._pub_sub import MockService
+from octue.twined.cloud.emulators.child import ChildEmulator
+from octue.twined.cloud.emulators.service import ServicePatcher
 from tests import TESTS_DIR
 from tests.base import BaseTestCase
-
 
 with open(os.path.join(TESTS_DIR, "data", "events.json")) as f:
     EVENTS = json.load(f)

@@ -4,9 +4,9 @@ from unittest.mock import patch
 
 import yaml
 
-from octue.cloud.emulators._pub_sub import MockTopic
 from octue.cloud.events.answer_question import answer_question
 from octue.configuration import ServiceConfiguration
+from octue.twined.cloud.emulators._pub_sub import MockTopic
 from octue.utils.patches import MultiPatcher
 from tests.mocks import MockOpen
 

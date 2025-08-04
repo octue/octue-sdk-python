@@ -5,12 +5,12 @@ import coolname
 import yaml
 
 from octue.cloud import storage
-from octue.cloud.emulators._pub_sub import MockTopic
 from octue.cloud.emulators.cloud_storage import GoogleCloudStorageEmulatorTestResultModifier
-from octue.cloud.emulators.service import ServicePatcher
 from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset, Manifest
+from octue.twined.cloud.emulators._pub_sub import MockTopic
+from octue.twined.cloud.emulators.service import ServicePatcher
 from tests import TEST_BUCKET_NAME, TEST_PROJECT_ID
 
 

@@ -11,11 +11,11 @@ import coolname
 
 from octue import Runner, exceptions
 from octue.cloud import storage
-from octue.cloud.emulators import ChildEmulator
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Dataset, Manifest
 from octue.resources.datafile import Datafile
 import octue.twined
+from octue.twined.cloud.emulators import ChildEmulator
 from octue.utils.files import RegisteredTemporaryDirectory, registered_temporary_directories
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TESTS_DIR
 from tests.base import BaseTestCase

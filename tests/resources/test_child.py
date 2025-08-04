@@ -1,19 +1,18 @@
 import functools
 import logging
+from multiprocessing import Value
 import os
 import random
 import threading
 import time
-from multiprocessing import Value
 from unittest.mock import patch
 
-from octue.cloud.emulators._pub_sub import MockAnalysis, MockService
-from octue.cloud.emulators.service import ServicePatcher
 from octue.resources.child import Child
 from octue.resources.service_backends import GCPPubSubBackend
+from octue.twined.cloud.emulators._pub_sub import MockAnalysis, MockService
+from octue.twined.cloud.emulators.service import ServicePatcher
 from tests import MOCK_SERVICE_REVISION_TAG
 from tests.base import BaseTestCase
-
 
 lock = threading.Lock()
 

@@ -1,9 +1,9 @@
 import json
 import os
 
-from octue.cloud.emulators.child import ChildEmulator
 from octue.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.resources import Manifest
+from octue.twined.cloud.emulators.child import ChildEmulator
 
 
 def load_test_fixture_from_diagnostics(path):
@@ -14,7 +14,7 @@ def load_test_fixture_from_diagnostics(path):
     questions were asked by the service during its analysis.
 
     :param str path: the path to a local directory containing downloaded diagnostics data
-    :return (any|None, octue.resources.manifest.Manifest|None, any|None, octue.resources.manifest.Manifest|None, tuple(octue.cloud.emulators.child.ChildEmulator)): the configuration values, configuration manifest, input values, input manifest (each if available), and a tuple of child emulators corresponding to the questions asked by the service
+    :return (any|None, octue.resources.manifest.Manifest|None, any|None, octue.resources.manifest.Manifest|None, tuple(octue.twined.cloud.emulators.child.ChildEmulator)): the configuration values, configuration manifest, input values, input manifest (each if available), and a tuple of child emulators corresponding to the questions asked by the service
     """
     return (
         _load_values(path, "configuration"),

@@ -3,9 +3,9 @@ from unittest.mock import patch
 
 import google.api_core.exceptions
 
-from octue.cloud.emulators._pub_sub import MockSubscriber, MockSubscriptionCreationResponse
 from octue.cloud.pub_sub.subscription import THIRTY_ONE_DAYS, Subscription
 from octue.cloud.pub_sub.topic import Topic
+from octue.twined.cloud.emulators._pub_sub import MockSubscriber, MockSubscriptionCreationResponse
 from tests import TEST_PROJECT_ID
 from tests.base import BaseTestCase
 
@@ -31,7 +31,7 @@ class TestSubscription(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
             with patch(
-                "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
+                "octue.twined.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
                 side_effect=google.api_core.exceptions.AlreadyExists(""),
             ):
                 with self.assertRaises(google.api_core.exceptions.AlreadyExists):
@@ -48,7 +48,7 @@ class TestSubscription(BaseTestCase):
 
         with patch("octue.cloud.pub_sub.subscription.SubscriberClient", MockSubscriber):
             with patch(
-                "octue.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
+                "octue.twined.cloud.emulators._pub_sub.MockSubscriber.create_subscription",
                 side_effect=google.api_core.exceptions.AlreadyExists(""),
             ):
                 subscription.create(allow_existing=True)

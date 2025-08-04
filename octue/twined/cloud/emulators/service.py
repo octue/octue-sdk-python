@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from octue.cloud.emulators._pub_sub import MockSubscriber, MockSubscription, MockTopic
+from octue.twined.cloud.emulators._pub_sub import MockSubscriber, MockSubscription, MockTopic
 from octue.utils.patches import MultiPatcher
 
 

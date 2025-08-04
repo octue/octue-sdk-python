@@ -11,7 +11,12 @@ import google.api_core.exceptions
 import requests
 
 from octue import Runner, exceptions
-from octue.cloud.emulators._pub_sub import (
+from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
+from octue.cloud.pub_sub.service import Service
+from octue.exceptions import InvalidMonitorMessage
+from octue.resources import Analysis, Datafile, Dataset, Manifest
+from octue.resources.service_backends import GCPPubSubBackend
+from octue.twined.cloud.emulators._pub_sub import (
     DifferentMockAnalysis,
     MockAnalysis,
     MockAnalysisWithOutputManifest,
@@ -19,12 +24,7 @@ from octue.cloud.emulators._pub_sub import (
     MockSubscription,
     MockTopic,
 )
-from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
-from octue.cloud.emulators.service import ServicePatcher
-from octue.cloud.pub_sub.service import Service
-from octue.exceptions import InvalidMonitorMessage
-from octue.resources import Analysis, Datafile, Dataset, Manifest
-from octue.resources.service_backends import GCPPubSubBackend
+from octue.twined.cloud.emulators.service import ServicePatcher
 import octue.twined.exceptions
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME, TEST_PROJECT_ID
 from tests.base import BaseTestCase
@@ -116,7 +116,7 @@ class TestService(BaseTestCase):
         """Test that an error is raised if the services topic doesn't exist."""
         service = MockService(backend=BACKEND)
 
-        with patch("octue.cloud.emulators._pub_sub.TOPICS", set()):
+        with patch("octue.twined.cloud.emulators._pub_sub.TOPICS", set()):
             with self.assertRaises(exceptions.ServiceNotFound):
                 service.services_topic
 
@@ -735,7 +735,7 @@ class TestService(BaseTestCase):
         child.serve()
 
         with patch(
-            "octue.cloud.emulators._pub_sub.MockService.answer",
+            "octue.twined.cloud.emulators._pub_sub.MockService.answer",
             functools.partial(child.answer, heartbeat_interval=expected_interval),
         ):
             subscription, _ = parent.ask(
@@ -882,7 +882,7 @@ class TestService(BaseTestCase):
         :param octue.resources.service_backends.ServiceBackend backend:
         :param any run_function_returnee:
         :param str|None service_id:
-        :return octue.cloud.emulators._pub_sub.MockService:
+        :return octue.twined.cloud.emulators._pub_sub.MockService:
         """
         return MockService(
             backend=backend,
@@ -894,7 +894,7 @@ class TestService(BaseTestCase):
         """Make a mock child service that raises the given exception when its run function is executed.
 
         :param Exception exception_to_raise:
-        :return octue.cloud.emulators._pub_sub.MockService:
+        :return octue.twined.cloud.emulators._pub_sub.MockService:
         """
         child = self.make_new_child(BACKEND, run_function_returnee=None)
 

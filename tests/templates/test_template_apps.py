@@ -10,10 +10,10 @@ import uuid
 import yaml
 
 from octue import REPOSITORY_ROOT, Runner
-from octue.cloud.emulators import ChildEmulator
 from octue.cloud.emulators.cloud_storage import mock_generate_signed_url
 from octue.cloud.service_id import create_sruid
 from octue.resources.manifest import Manifest
+from octue.twined.cloud.emulators import ChildEmulator
 from octue.utils.processes import ProcessesContextManager
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME
 from tests.base import BaseTestCase
