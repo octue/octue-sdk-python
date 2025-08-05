@@ -665,7 +665,7 @@ class TestStartCommand(BaseTestCase):
         ):
             with ServicePatcher():
                 with self.assertLogs(level=logging.INFO) as logging_context:
-                    result = CliRunner().invoke(octue_cli, ["twined", "start", "--timeout=0"])
+                    result = CliRunner().invoke(octue_cli, ["twined", "service", "start", "--timeout=0"])
 
         self.assertEqual(logging_context.records[1].message, "Starting <MockService('testing/test-service:goodbye')>.")
         self.assertIsNone(result.exception)
@@ -684,7 +684,10 @@ class TestStartCommand(BaseTestCase):
         ):
             with ServicePatcher():
                 with self.assertLogs() as logging_context:
-                    result = CliRunner().invoke(octue_cli, ["twined", "start", "--revision-tag=hello", "--timeout=0"])
+                    result = CliRunner().invoke(
+                        octue_cli,
+                        ["twined", "service", "start", "--revision-tag=hello", "--timeout=0"],
+                    )
 
         self.assertEqual(
             logging_context.records[1].message,

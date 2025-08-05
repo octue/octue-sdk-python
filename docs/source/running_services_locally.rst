@@ -61,7 +61,7 @@ Via the CLI
 
     .. code-block:: shell
 
-        octue twined start
+        octue twined service start
 
 This will run the service as a child waiting for questions until you press ``Ctrl + C`` or an error is encountered. The
 service will be available to be questioned by other services at the service ID ``organisation/name`` as specified in
