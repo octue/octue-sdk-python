@@ -45,6 +45,6 @@ resource "google_project_service" "pub_sub" {
 
 
 resource "google_pubsub_topic" "services_topic" {
-  name       = "main.octue.services"
+  name       = "main.octue.twined.services"
   depends_on = [google_project_service.pub_sub]
 }
