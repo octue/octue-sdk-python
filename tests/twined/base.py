@@ -5,7 +5,7 @@ import unittest
 from octue.cloud.emulators.cloud_storage import GoogleCloudStorageEmulatorTestResultModifier
 from octue.twined.cloud.emulators._pub_sub import MockTopic
 from octue.twined.cloud.emulators.service import ServicePatcher
-from octue.twined.cloud.events import OCTUE_SERVICES_TOPIC_NAME
+from octue.twined.cloud.events import TWINED_SERVICES_TOPIC_NAME
 from tests import TEST_PROJECT_ID
 
 VALID_SCHEMA_TWINE = """
@@ -78,12 +78,12 @@ class BaseTestCase(unittest.TestCase):
 
 class TestResultModifier(GoogleCloudStorageEmulatorTestResultModifier):
     """A test result modifier based on `GoogleCloudStorageEmulatorTestResultModifier` that also creates a mock
-    `octue.services` topic.
+    `octue.twined.services` topic.
     """
 
     def startTestRun(self):
         super().startTestRun()
 
         with ServicePatcher():
-            self.services_topic = MockTopic(name=OCTUE_SERVICES_TOPIC_NAME, project_id=TEST_PROJECT_ID)
+            self.services_topic = MockTopic(name=TWINED_SERVICES_TOPIC_NAME, project_id=TEST_PROJECT_ID)
             self.services_topic.create(allow_existing=True)

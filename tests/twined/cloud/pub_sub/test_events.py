@@ -21,7 +21,7 @@ class TestGoogleCloudPubSubEventHandler(BaseTestCase):
         cls.question_uuid = str(uuid.uuid4())
 
         cls.subscription = MockSubscription(
-            name=f"octue.services.my-org.my-service.1-0-0.answers.{cls.question_uuid}",
+            name=f"octue.twined.services.my-org.my-service.1-0-0.answers.{cls.question_uuid}",
             topic=cls.test_result_modifier.services_topic,
         )
         cls.subscription.create()

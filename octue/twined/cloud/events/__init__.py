@@ -1,3 +1,3 @@
 import os
 
-OCTUE_SERVICES_TOPIC_NAME = os.environ.get("OCTUE_SERVICES_TOPIC_NAME", "main.octue.services")
+TWINED_SERVICES_TOPIC_NAME = os.environ.get("TWINED_SERVICES_TOPIC_NAME", "main.octue.twined.services")

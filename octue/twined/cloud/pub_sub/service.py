@@ -12,7 +12,7 @@ import jsonschema
 
 from octue.definitions import LOCAL_SDK_VERSION
 import octue.exceptions
-from octue.twined.cloud.events import OCTUE_SERVICES_TOPIC_NAME
+from octue.twined.cloud.events import TWINED_SERVICES_TOPIC_NAME
 from octue.twined.cloud.events.attributes import (
     CHILD_SENDER_TYPE,
     PARENT_SENDER_TYPE,
@@ -114,7 +114,7 @@ class Service:
         :raise octue.exceptions.ServiceNotFound: if the topic doesn't exist in the project
         :return octue.twined.cloud.pub_sub.topic.Topic: the Octue services topic for the project
         """
-        topic = Topic(name=OCTUE_SERVICES_TOPIC_NAME, project_id=self.backend.project_id)
+        topic = Topic(name=TWINED_SERVICES_TOPIC_NAME, project_id=self.backend.project_id)
 
         if not topic.exists():
             raise octue.twined.exceptions.ServiceNotFound(
