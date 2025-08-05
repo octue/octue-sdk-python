@@ -1,5 +1,5 @@
 from octue import exceptions
-from octue.mixins import Filterable
+from octue.mixins.filterable import Filterable
 from octue.resources.filter_containers import FilterDict, FilterList, FilterSet
 from tests.base import BaseTestCase
 

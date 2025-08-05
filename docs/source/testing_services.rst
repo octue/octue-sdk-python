@@ -138,8 +138,8 @@ To emulate your children in tests, patch the :mod:`Child <octue.resources.child.
 
     from unittest.mock import patch
 
-    from octue import Runner
-    from octue.cloud.emulators import ChildEmulator
+    from octue.twined.runner import Runner
+    from octue.twined.cloud.emulators import ChildEmulator
 
 
     app_directory_path = "path/to/directory_containing_app"
@@ -227,7 +227,7 @@ child.
 .. code-block:: python
 
     import json
-    from octue.resources import Child
+    from octue.twined.resources import Child
 
 
     child = Child(
@@ -276,7 +276,7 @@ You can then feed these into a child emulator to emulate one possible response o
 
 .. code-block:: python
 
-    from octue.cloud.emulators import ChildEmulator
+    from octue.twined.cloud.emulators import ChildEmulator
 
 
     child_emulator = ChildEmulator(events=child.received_events)

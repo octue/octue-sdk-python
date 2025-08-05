@@ -9,20 +9,22 @@ import click
 from google import auth
 
 from octue.cloud import storage
-from octue.cloud.events.answer_question import answer_question
-from octue.cloud.events.question import make_question_event
-from octue.cloud.events.replayer import EventReplayer
-from octue.cloud.events.validation import VALID_EVENT_KINDS
-from octue.cloud.pub_sub.bigquery import DEFAULT_EVENT_STORE_TABLE_ID, get_events
-from octue.cloud.pub_sub.service import Service
-from octue.cloud.service_id import create_sruid, get_sruid_parts
 from octue.cloud.storage import GoogleCloudStorageClient
-from octue.configuration import ServiceConfiguration
-from octue.definitions import LOCAL_SDK_VERSION, MANIFEST_FILENAME, VALUES_FILENAME
-from octue.exceptions import ServiceAlreadyExists
+from octue.definitions import LOCAL_SDK_VERSION
 from octue.log_handlers import apply_log_handler, get_remote_handler
-from octue.resources import Child, Manifest, service_backends
-from octue.runner import Runner
+from octue.resources import Manifest
+from octue.twined.cloud.events.answer_question import answer_question
+from octue.twined.cloud.events.question import make_question_event
+from octue.twined.cloud.events.replayer import EventReplayer
+from octue.twined.cloud.events.validation import VALID_EVENT_KINDS
+from octue.twined.cloud.pub_sub.bigquery import DEFAULT_EVENT_STORE_TABLE_ID, get_events
+from octue.twined.cloud.pub_sub.service import Service
+from octue.twined.cloud.service_id import create_sruid, get_sruid_parts
+from octue.twined.configuration import ServiceConfiguration
+from octue.twined.definitions import MANIFEST_FILENAME, VALUES_FILENAME
+from octue.twined.exceptions import ServiceAlreadyExists
+from octue.twined.resources import Child, service_backends
+from octue.twined.runner import Runner
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
@@ -193,7 +195,7 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
 def local(input_values, input_manifest, attributes, service_config):
     """Ask a question to a local Octue Twined service.
 
-    This command is similar to running `octue start` and asking the resulting local service revision a question
+    This command is similar to running `octue twined start` and asking the resulting local service revision a question
     via Pub/Sub. Instead of starting a local Pub/Sub service revision, however, no Pub/Sub subscription or subscriber is
     created; the question is instead passed directly to local the service revision without Pub/Sub being involved.
     Everything after this runs the same, though, with the service revision emitting any events via Pub/Sub as usual.

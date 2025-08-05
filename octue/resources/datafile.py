@@ -11,20 +11,26 @@ import tempfile
 from google_crc32c import Checksum
 import requests
 
+from octue.cloud import storage
+from octue.cloud.storage import GoogleCloudStorageClient
+from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, ReadOnlyResource
+from octue.mixins.cloud_pathable import CloudPathable
+from octue.mixins.filterable import Filterable
+from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE, Hashable
+from octue.mixins.identifiable import Identifiable
+from octue.mixins.labelable import Labelable
+from octue.mixins.metadata import Metadata
+from octue.mixins.serialisable import Serialisable
+from octue.mixins.taggable import Taggable
+from octue.utils.decoders import OctueJSONDecoder
+from octue.utils.metadata import METADATA_FILENAME, UpdateLocalMetadata, load_local_metadata_file
+
 # The `h5py` package is only needed if dealing with HDF5 files. It's only available if the `hdf5` extra is provided
 # during installation of `octue`.
 try:
     import h5py
 except (ModuleNotFoundError, ImportError):
     pass
-
-from octue.cloud import storage
-from octue.cloud.storage import GoogleCloudStorageClient
-from octue.exceptions import CloudLocationNotSpecified, FileNotFoundException, ReadOnlyResource
-from octue.mixins import CloudPathable, Filterable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
-from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
-from octue.utils.decoders import OctueJSONDecoder
-from octue.utils.metadata import METADATA_FILENAME, UpdateLocalMetadata, load_local_metadata_file
 
 logger = logging.getLogger(__name__)
 

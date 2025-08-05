@@ -28,7 +28,7 @@ Asking a question
 
 .. code-block:: python
 
-    from octue.resources import Child
+    from octue.twined.resources import Child
 
     child = Child(
         id="my-organisation/my-service:2.1.7",
@@ -103,7 +103,7 @@ access the event store and run:
 
 .. code-block:: python
 
-    from octue.cloud.pub_sub.bigquery import get_events
+    from octue.twined.cloud.pub_sub.bigquery import get_events
 
     events = get_events(question_uuid="53353901-0b47-44e7-9da3-a3ed59990a71")
 

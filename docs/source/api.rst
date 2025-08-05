@@ -23,18 +23,18 @@ Manifest
 
 Analysis
 ========
-.. autoclass:: octue.resources.analysis.Analysis
+.. autoclass:: octue.twined.resources.analysis.Analysis
    :inherited-members:
 
 
 Child
 =====
-.. autoclass:: octue.resources.child.Child
+.. autoclass:: octue.twined.resources.child.Child
 
 
 Child emulator
 ==============
-.. autoclass:: octue.cloud.emulators.child.ChildEmulator
+.. autoclass:: octue.twined.cloud.emulators.child.ChildEmulator
 
 
 Filter containers
@@ -61,17 +61,17 @@ Configuration
 
 Service configuration
 ---------------------
-.. autoclass:: octue.configuration.ServiceConfiguration
+.. autoclass:: octue.twined.configuration.ServiceConfiguration
 
 
 Runner
 ======
-.. autoclass:: octue.runner.Runner
+.. autoclass:: octue.twined.runner.Runner
 
 
 Octue essential monitor messages
 ================================
-.. automodule:: octue.essentials.monitor_messages
+.. automodule:: octue.twined.essentials.monitor_messages
 
 
 Octue log handler

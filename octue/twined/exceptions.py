@@ -1,5 +1,7 @@
 from jsonschema import ValidationError
 
+from octue.exceptions import OctueSDKException
+
 
 class TwineException(Exception):
     """All exceptions raised by the twine framework inherit from TwineException"""
@@ -124,15 +126,6 @@ class InvalidManifestContents(InvalidManifest, ValidationError):
     """Raised when the manifest files are missing or do not match tags, sequences, clusters, extensions etc as required"""
 
 
-# --------------------- Exceptions relating to access of data using the Twine instance ------------------------
-
-
-# TODO This is related to filtering files from a manifest. Determine whether this belongs here,
-#  or whether we should port the filtering code across from the SDK.
-class UnexpectedNumberOfResults(TwineException):
-    """Raise when searching for a single data file (or a particular number of data files) and the number of results exceeds that expected"""
-
-
 # --------------------- Maps allowing customised exceptions per-strand (simplifies code elsewhere) ------------------
 
 
@@ -171,3 +164,35 @@ invalid_contents_map = {
     "input_manifest": InvalidManifestContents,
     "output_manifest": InvalidManifestContents,
 }
+
+
+class ServiceNotFound(OctueSDKException):
+    """Raise when a Service of the given ID has not been found on the Google Pub/Sub server (i.e. if there is no topic
+    associated with the Service ID).
+    """
+
+
+class ServiceAlreadyExists(OctueSDKException):
+    """Raise if trying to create a service with the ID of an existing service."""
+
+
+class BackendNotFound(OctueSDKException):
+    """Raise when details of a backend that doesn't exist in `octue.twined.resources.service_backends` are given for use as a
+    Service backend.
+    """
+
+
+class MissingServiceID(OctueSDKException):
+    """Raise when a specific ID for a service is expected to be provided, but is missing or None."""
+
+
+class InvalidServiceID(OctueSDKException):
+    """Raise when a service ID is invalid."""
+
+
+class InvalidMonitorMessage(OctueSDKException):
+    """Raise if a monitor message fails validation against the "monitor_message_schema" field of the Twine."""
+
+
+class NotAPullSubscription(OctueSDKException):
+    """Raise if attempting to pull a subscription that's not a pull subscription."""

@@ -2,29 +2,12 @@ import os
 import unittest
 
 import coolname
-import yaml
 
 from octue.cloud import storage
-from octue.cloud.emulators._pub_sub import MockTopic
-from octue.cloud.emulators.cloud_storage import GoogleCloudStorageEmulatorTestResultModifier
-from octue.cloud.emulators.service import ServicePatcher
-from octue.cloud.events import OCTUE_SERVICES_TOPIC_NAME
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.resources import Datafile, Dataset, Manifest
-from tests import TEST_BUCKET_NAME, TEST_PROJECT_ID
-
-
-class TestResultModifier(GoogleCloudStorageEmulatorTestResultModifier):
-    """A test result modifier based on `GoogleCloudStorageEmulatorTestResultModifier` that also creates a mock
-    `octue.services` topic.
-    """
-
-    def startTestRun(self):
-        super().startTestRun()
-
-        with ServicePatcher():
-            self.services_topic = MockTopic(name=OCTUE_SERVICES_TOPIC_NAME, project_id=TEST_PROJECT_ID)
-            self.services_topic.create(allow_existing=True)
+from tests import TEST_BUCKET_NAME
+from tests.twined.base import TestResultModifier
 
 
 class BaseTestCase(unittest.TestCase):
@@ -46,7 +29,7 @@ class BaseTestCase(unittest.TestCase):
         """
         root_dir = os.path.dirname(os.path.abspath(__file__))
         self.data_path = os.path.join(root_dir, "data")
-        self.templates_path = os.path.join(os.path.dirname(root_dir), "octue", "templates")
+        self.templates_path = os.path.join(os.path.dirname(root_dir), "octue", "twined", "templates")
 
         super().setUp()
 
@@ -68,19 +51,6 @@ class BaseTestCase(unittest.TestCase):
         datasets = {"my_dataset": self.create_valid_dataset(), "another_dataset": self.create_valid_dataset()}
         manifest = Manifest(datasets=datasets)
         return manifest
-
-    def _create_octue_configuration_file(self, octue_configuration, directory_path):
-        """Create an `octue.yaml` configuration file in the given directory.
-
-        :param str directory_path:
-        :return str: the path of the `octue.yaml` file
-        """
-        octue_configuration_path = os.path.join(directory_path, "octue.yaml")
-
-        with open(octue_configuration_path, "w") as f:
-            yaml.dump(octue_configuration, f)
-
-        return octue_configuration_path
 
     def create_nested_cloud_dataset(self, dataset_name=None):
         """Create a dataset in cloud storage with the given name containing a nested set of files.

@@ -1,5 +1,5 @@
 from octue import exceptions
-from octue.mixins import Taggable
+from octue.mixins.taggable import Taggable
 from octue.resources.tag import TagDict
 
 from ..base import BaseTestCase

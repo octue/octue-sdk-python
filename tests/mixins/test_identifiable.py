@@ -1,7 +1,7 @@
 import uuid
 
 from octue import exceptions
-from octue.mixins import Identifiable
+from octue.mixins.identifiable import Identifiable
 
 from ..base import BaseTestCase
 
