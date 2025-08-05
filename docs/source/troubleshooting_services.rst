@@ -63,8 +63,8 @@ your service to fail.
 
     from unittest.mock import patch
 
-    from octue import Runner
-    from octue.utils.testing import load_test_fixture_from_diagnostics
+    from octue.twined.runner import Runner
+    from octue.twined.utils.testing import load_test_fixture_from_diagnostics
 
 
      (

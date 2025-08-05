@@ -35,7 +35,7 @@ like this:
 
 .. code-block:: python
 
-    from octue import Runner
+    from octue.twined.runner import Runner
 
     runner = Runner(app_src="path/to/app.py", twine="path/to/twine.json")
     analysis = runner.run(input_values={"height": 5, "width": 10})

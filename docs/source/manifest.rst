@@ -42,7 +42,7 @@ Get a Twined service to analyse data for you as part of a larger analysis.
 
 .. code-block:: python
 
-    from octue.resources import Child
+    from octue.twined.resources import Child
 
     child = Child(
         id="octue/wind-speed:2.1.0",
