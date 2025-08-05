@@ -1,10 +1,10 @@
+from collections.abc import Iterable
 import concurrent.futures
 import copy
 import datetime
 import json
 import logging
 import os
-from collections.abc import Iterable
 
 import coolname
 import requests
@@ -12,13 +12,18 @@ import requests
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import CloudLocationNotSpecified, InvalidInputException
-from octue.mixins import CloudPathable, Hashable, Identifiable, Labelable, Metadata, Serialisable, Taggable
+from octue.mixins.cloud_pathable import CloudPathable
+from octue.mixins.hashable import Hashable
+from octue.mixins.identifiable import Identifiable
+from octue.mixins.labelable import Labelable
+from octue.mixins.metadata import Metadata
+from octue.mixins.serialisable import Serialisable
+from octue.mixins.taggable import Taggable
 from octue.resources.datafile import Datafile
 from octue.resources.filter_containers import FilterSet
 from octue.utils.encoders import OctueJSONEncoder
 from octue.utils.files import RegisteredTemporaryDirectory
 from octue.utils.metadata import METADATA_FILENAME, UpdateLocalMetadata, load_local_metadata_file
-
 
 logger = logging.getLogger(__name__)
 

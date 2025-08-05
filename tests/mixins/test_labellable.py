@@ -1,5 +1,5 @@
 from octue import exceptions
-from octue.mixins import Labelable
+from octue.mixins.labelable import Labelable
 from octue.resources.label import Label, LabelSet
 
 from ..base import BaseTestCase

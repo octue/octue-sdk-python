@@ -1,4 +1,4 @@
-from octue.mixins import CoolNameable
+from octue.mixins.cool_nameable import CoolNameable
 from tests.base import BaseTestCase
 
 

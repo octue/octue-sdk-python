@@ -1,9 +1,8 @@
-import re
 from collections import UserDict
+import re
 
 from octue.exceptions import InvalidTagException
-from octue.mixins import Serialisable
-
+from octue.mixins.serialisable import Serialisable
 
 TAG_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_]*(?<!_)$")
 

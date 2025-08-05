@@ -1,5 +1,4 @@
-from octue.mixins import Hashable
-from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE
+from octue.mixins.hashable import EMPTY_STRING_HASH_VALUE, Hashable
 
 from ..base import BaseTestCase
 

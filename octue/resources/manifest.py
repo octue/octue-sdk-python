@@ -8,10 +8,12 @@ import threading
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.exceptions import InvalidInputException
-from octue.mixins import Hashable, Identifiable, Metadata, Serialisable
+from octue.mixins.hashable import Hashable
+from octue.mixins.identifiable import Identifiable
+from octue.mixins.metadata import Metadata
+from octue.mixins.serialisable import Serialisable
 from octue.resources.dataset import Dataset
 from octue.utils.files import RegisteredTemporaryDirectory
-
 
 logger = logging.getLogger(__name__)
 

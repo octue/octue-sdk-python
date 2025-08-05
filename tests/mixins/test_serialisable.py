@@ -2,7 +2,7 @@ import json
 import os
 from tempfile import TemporaryDirectory
 
-from octue.mixins import Serialisable
+from octue.mixins.serialisable import Serialisable
 from tests.base import BaseTestCase
 
 

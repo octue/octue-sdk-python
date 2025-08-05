@@ -2,7 +2,7 @@ from abc import ABC
 from collections import UserDict
 
 from octue import exceptions
-from octue.mixins import Filterable
+from octue.mixins.filterable import Filterable
 from octue.utils.objects import get_nested_attribute
 
 

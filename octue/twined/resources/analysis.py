@@ -4,7 +4,11 @@ import logging
 import coolname
 
 from octue.cloud import storage
-from octue.mixins import Hashable, Identifiable, Labelable, Serialisable, Taggable
+from octue.mixins.hashable import Hashable
+from octue.mixins.identifiable import Identifiable
+from octue.mixins.labelable import Labelable
+from octue.mixins.serialisable import Serialisable
+from octue.mixins.taggable import Taggable
 from octue.resources.manifest import Manifest
 from octue.twined import ALL_STRANDS, Twine
 import octue.twined.exceptions
