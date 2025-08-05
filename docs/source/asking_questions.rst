@@ -26,6 +26,12 @@ Questions are always asked to a *revision* of a service. You can ask a service a
 Asking a question
 =================
 
+.. important::
+    If you're using an environment other than the ``main`` environment, then before asking any questions to your Twined
+    services, set the ``TWINED_SERVICES_TOPIC_NAME`` environment variable to the name of the Twined services Pub/Sub
+    topic (this is set when :ref:`deploying a service network <deploying_services_advanced>`). It will be in the form
+    ``<environment-name>.octue.twined.services``
+
 .. code-block:: python
 
     from octue.twined.resources import Child
