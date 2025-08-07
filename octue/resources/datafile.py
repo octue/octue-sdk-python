@@ -7,8 +7,8 @@ import logging
 import os
 import shutil
 import tempfile
+import warnings
 
-from google_crc32c import Checksum
 import requests
 
 from octue.cloud import storage
@@ -31,6 +31,11 @@ try:
     import h5py
 except (ModuleNotFoundError, ImportError):
     pass
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=RuntimeWarning, module="google_crc32c")
+    from google_crc32c import Checksum
+
 
 logger = logging.getLogger(__name__)
 
