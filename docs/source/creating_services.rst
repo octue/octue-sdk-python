@@ -126,7 +126,7 @@ See :ref:`here <service_naming>` for service naming requirements.
 - Set in:
 
   - ``OCTUE_SERVICE_REVISION_TAG`` environment variable
-  - If using ``octue twined start`` command, the ``--revision-tag`` option (takes priority)
+  - If using ``octue twined service start`` command, the ``--revision-tag`` option (takes priority)
 
 
 Template apps
