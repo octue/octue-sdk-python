@@ -1,0 +1,57 @@
+site_name: Octue Twined
+site_url: https://docs.twined.octue.com
+
+theme:
+  name: material
+  features:
+    - navigation.top
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.path
+
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
+plugins:
+  - privacy
+
+nav:
+  - index.md
+  - installation.md
+  - data_containers.md
+  - datafile.md
+  - dataset.md
+  - manifest.md
+  - services.md
+  - asking_questions.md
+  - creating_services.md
+  - updating_services.md
+  - running_services_locally.md
+  - deploying_services.md
+  - testing_services.md
+  - troubleshooting_services.md
+  - logging.md
+  - authentication.md
+  - inter_service_compatibility.md
+  #  - api.md
+  - license.md
+  - version_history.md
