@@ -63,6 +63,7 @@ sphinx-rtd-theme = ">=1,<2"
 sphinx-tabs = ">=3.4.0,<4"
 sphinx-toolbox = "^3"
 ruff = "^0.6.9"
+mkdocs-material = "^9.6.17"
 
 [tool.ruff]
 line-length = 120
