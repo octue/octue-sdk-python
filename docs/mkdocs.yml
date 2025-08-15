@@ -21,5 +21,28 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+
 plugins:
   - privacy
+
+nav:
+  - index.md
+  - installation.md
+  - data_containers.md
+  - datafile.md
+  - dataset.md
+  - manifest.md
+  - services.md
+  - asking_questions.md
+  - creating_services.md
+  - updating_services.md
+  - running_services_locally.md
+  - deploying_services.md
+  - testing_services.md
+  - troubleshooting_services.md
+  - logging.md
+  - authentication.md
+  - inter_service_compatibility.md
+  #  - api.md
+  - license.md
+  - version_history.md
