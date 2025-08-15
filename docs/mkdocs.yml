@@ -2,6 +2,21 @@ site_name: Octue Twined
 site_url: https://docs.twined.octue.com
 theme:
   name: material
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
 markdown_extensions:
   - admonition
   - pymdownx.details
