@@ -1,7 +1,16 @@
 site_name: Octue Twined
 site_url: https://docs.twined.octue.com
+
 theme:
   name: material
+  features:
+    - navigation.top
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.path
+
   palette:
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
