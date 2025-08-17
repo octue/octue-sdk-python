@@ -3,6 +3,7 @@ site_url: https://docs.twined.octue.com
 
 theme:
   name: material
+
   features:
     - navigation.top
     - navigation.instant
@@ -30,9 +31,13 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - pymdownx.blocks.caption
 
 plugins:
   - privacy
+  - glightbox
 
 nav:
   - index.md
