@@ -16,7 +16,7 @@ poetry add octue=x.y.z
 
 ## Add to your dependencies
 
-To use a specific version of the Octue SDK in your python application,
+To use a specific version of Twined in your python application,
 simply add:
 
 ```shell

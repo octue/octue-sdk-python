@@ -13,7 +13,7 @@ to a child for processing/analysis. Questions can be:
 
   - **Regular:** Responses to these questions are automatically stored
     in an event store where they can be
-    [retrieved using the Octue SDK](#retrieving-answers-to-asynchronous-questions)
+    [retrieved using the Twined CLI](#retrieving-answers-to-asynchronous-questions)
 
   - **Push endpoint:** Responses to these questions are pushed to an
     HTTP endpoint for asynchronous handling using Octue's

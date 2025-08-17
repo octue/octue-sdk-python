@@ -37,7 +37,7 @@ more:
 
     **Twined ecosystem**
 
-    The set of services running the Octue SDK as their backend. These
+    The set of services running Twined as their backend. These
     services guarantee:
 
     - Defined input/output JSON schemas and validation
