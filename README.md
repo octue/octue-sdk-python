@@ -36,30 +36,20 @@ octue --help
 ```text
 Usage: octue [OPTIONS] COMMAND [ARGS]...
 
-  The CLI for the Octue SDK. Use it to start an Octue data service or digital
-  twin locally or run an analysis on one locally.
+  The CLI for Octue SDKs and APIs, most notably Twined.
 
   Read more in the docs: https://octue-python-sdk.readthedocs.io/en/latest/
 
 Options:
-  --id UUID                       UUID of the analysis being undertaken. None
-                                  (for local use) will cause a unique ID to be
-                                  generated.
   --logger-uri TEXT               Stream logs to a websocket at the given URI.
   --log-level [debug|info|warning|error]
                                   Log level used for the analysis.  [default:
                                   info]
-  --force-reset / --no-force-reset
-                                  Forces a reset of analysis cache and outputs
-                                  [For future use, currently not implemented]
-                                  [default: force-reset]
   --version                       Show the version and exit.
   -h, --help                      Show this message and exit.
 
 Commands:
-  deploy  Deploy a python app to the cloud as an Octue service or digital...
-  run     Run an analysis on the given input data using an Octue service...
-  start   Start an Octue service or digital twin locally as a child so it...
+  twined  The Twined CLI.
 ```
 
 ## Deprecated code
