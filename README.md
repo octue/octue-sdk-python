@@ -6,7 +6,7 @@
 [![black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10961975.svg)](https://doi.org/10.5281/zenodo.10961975)
 
-# Octue Python SDK <img src="./docs/source/images/213_purple-fruit-snake-transparent.gif" alt="Purple Fruit Snake" width="100"/></span>
+# Octue Python SDK <img src="./docs/docs/images/213_purple-fruit-snake-transparent.gif" alt="Purple Fruit Snake" width="100"/></span>
 
 The python SDK for running [Octue](https://octue.com) data services, digital twins, and applications - get faster data
 groundwork so you have more time for the science!
