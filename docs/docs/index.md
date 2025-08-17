@@ -3,7 +3,9 @@
 The python SDK for [Octue](https://octue.com) Twined scientific data services and digital twins - get faster data
 groundwork so you have more time for the science!
 
-!!! info "Definition: Twined service"
+!!! info "Definition"
+
+    **Twined service**
 
     A data service or digital twin built with the Twined framework that can be asked questions, process them, and
     return answers. Twined services can communicate with each other with minimal extra setup.
