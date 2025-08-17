@@ -1355,6 +1355,18 @@ platformdirs = ">=2.2.0"
 pyyaml = ">=5.1"
 
 [[package]]
+name = "mkdocs-glightbox"
+version = "0.4.0"
+description = "MkDocs plugin supports image lightbox with GLightbox."
+optional = false
+python-versions = "*"
+groups = ["dev"]
+files = [
+    {file = "mkdocs-glightbox-0.4.0.tar.gz", hash = "sha256:392b34207bf95991071a16d5f8916d1d2f2cd5d5bb59ae2997485ccd778c70d9"},
+    {file = "mkdocs_glightbox-0.4.0-py3-none-any.whl", hash = "sha256:e0107beee75d3eb7380ac06ea2d6eac94c999eaa49f8c3cbab0e7be2ac006ccf"},
+]
+
+[[package]]
 name = "mkdocs-material"
 version = "9.6.17"
 description = "Documentation that simply works"
@@ -3097,4 +3109,4 @@ hdf5 = ["h5py"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "24be32340ed09272c80d6a6e6d033d841fa19f25e390d29fe2c7af7e19a258b3"
+content-hash = "1093362b1bfb65a7d8bcd257d7fea3d02d712d5b979e996953912880f44b873e"
