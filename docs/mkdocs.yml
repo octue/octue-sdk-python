@@ -11,6 +11,7 @@ theme:
     - navigation.instant.prefetch
     - navigation.tracking
     - navigation.path
+    - navigation.footer
     - search.suggest
     - search.highlight
     - search.share
@@ -64,3 +65,14 @@ nav:
   #  - api.md
   - license.md
   - version_history.md
+
+copyright: Copyright &copy; 2025 Octue
+
+extra:
+  social:
+    - icon: material/github
+      link: https://github.com/octue
+    - icon: material/linkedin
+      link: https://www.linkedin.com/company/octue
+    - icon: material/web
+      link: https://octue.com
