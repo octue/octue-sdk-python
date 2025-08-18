@@ -1,7 +1,7 @@
 # More information on downloading datafiles
 
 - To avoid unnecessary data transfer and costs, cloud datafiles are not
-  downloaded locally [until necessary](/datafile/#automatic-lazy-downloading)
+  downloaded locally [until necessary](/data_containers/datafile/#automatic-lazy-downloading)
 - When downloaded, they are downloaded by default to a temporary local
   file that will exist at least as long as the python session is running
 - Calling `Datafile.download` or using `Datafile.local_path` again will

@@ -199,7 +199,7 @@ exiting the context (the `with` block), it closes the datafile locally
 and, if the datafile also exists in the cloud, updates the cloud object
 with any data or metadata changes.
 
-![image](images/datafile_use_cases.png)
+![image](../images/datafile_use_cases.png)
 
 ### Example A
 

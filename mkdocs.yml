@@ -4,10 +4,11 @@ site_url: https://docs.twined.octue.com
 nav:
   - index.md
   - installation.md
-  - data_containers.md
-  - datafile.md
-  - dataset.md
-  - manifest.md
+  - Datafiles, datasets, and manifests:
+      - data_containers/index.md
+      - data_containers/datafile.md
+      - data_containers/dataset.md
+      - data_containers/manifest.md
   - services.md
   - asking_questions.md
   - creating_services.md
