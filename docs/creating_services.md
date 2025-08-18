@@ -102,7 +102,7 @@ are supported.
 
 ### Where to specify the namespace, name, and revision tag
 
-See [here](services.md/#service-names) for service naming requirements.
+See [here](/services/#service-names) for service naming requirements.
 
 **Namespace**
 

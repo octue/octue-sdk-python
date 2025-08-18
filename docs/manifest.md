@@ -46,7 +46,7 @@ child = Child(
 answer, question_uuid = child.ask(input_manifest=manifest)
 ```
 
-See [here](asking_questions.md) for more information.
+See [here](/asking_questions) for more information.
 
 ### Receive datasets from a service
 

@@ -21,7 +21,7 @@ to a child for processing/analysis. Questions can be:
     or custom logic in your own webserver.
 
 Questions are always asked to a _revision_ of a service. You can ask a
-service a question if you have its [SRUID](services.md/#service-names), project ID, and the necessary permissions.
+service a question if you have its [SRUID](/services/#service-names), project ID, and the necessary permissions.
 
 ## Asking a question
 
@@ -49,7 +49,7 @@ answer["output_manifest"]["my_dataset"].files
 
     If you're using an environment other than the `main` environment, then before asking any questions to your Twined
     services, set the `TWINED_SERVICES_TOPIC_NAME` environment variable to the name of the Twined services Pub/Sub topic
-    (this is set when [deploying a service network](deploying_services.md/#deploying-services-advanced-developers-guide).
+    (this is set when [deploying a service network](/deploying_services/#deploying-services-advanced-developers-guide).
     It will be in the form `<environment-name>.octue.twined.services`
 
 !!! note
