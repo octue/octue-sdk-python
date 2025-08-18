@@ -76,3 +76,5 @@ extra:
       link: https://www.linkedin.com/company/octue
     - icon: material/web
       link: https://octue.com
+  version:
+    provider: mike
