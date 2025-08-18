@@ -1,6 +1,38 @@
 site_name: Octue Twined
 site_url: https://docs.twined.octue.com
 
+nav:
+  - index.md
+  - installation.md
+  - data_containers.md
+  - datafile.md
+  - dataset.md
+  - manifest.md
+  - services.md
+  - asking_questions.md
+  - creating_services.md
+  - Twines:
+      - twines/index.md
+      - Quickstart: twines/quick_start_create_your_first_twine.md
+      - twines/anatomy.md
+      - About Twines:
+          - twines/about/index.md
+          - twines/about/about_digital_twins.md
+          - twines/about/about_requirements.md
+          - twines/about/about_introducing_json_schema.md
+          - twines/about/about_other_considerations.md
+  - updating_services.md
+  - running_services_locally.md
+  - deploying_services.md
+  - testing_services.md
+  - troubleshooting_services.md
+  - logging.md
+  - authentication.md
+  - inter_service_compatibility.md
+  #  - api.md
+  - license.md
+  - version_history.md
+
 theme:
   name: material
   logo: images/logos_square-dark.png
@@ -46,38 +78,6 @@ plugins:
   - privacy
   - glightbox
   - search
-
-nav:
-  - index.md
-  - installation.md
-  - data_containers.md
-  - datafile.md
-  - dataset.md
-  - manifest.md
-  - services.md
-  - asking_questions.md
-  - creating_services.md
-  - Twines:
-      - twines/index.md
-      - Quickstart: twines/quick_start_create_your_first_twine.md
-      - twines/anatomy.md
-      - About Twines:
-          - twines/about/index.md
-          - twines/about/about_digital_twins.md
-          - twines/about/about_requirements.md
-          - twines/about/about_introducing_json_schema.md
-          - twines/about/about_other_considerations.md
-  - updating_services.md
-  - running_services_locally.md
-  - deploying_services.md
-  - testing_services.md
-  - troubleshooting_services.md
-  - logging.md
-  - authentication.md
-  - inter_service_compatibility.md
-  #  - api.md
-  - license.md
-  - version_history.md
 
 copyright: Copyright &copy; 2025 Octue
 
