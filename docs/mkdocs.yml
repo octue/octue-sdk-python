@@ -4,6 +4,7 @@ site_url: https://docs.twined.octue.com
 theme:
   name: material
   logo: images/logos_square-dark.png
+  favicon: images/logos_square-dark.png
 
   features:
     - navigation.top
