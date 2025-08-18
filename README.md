@@ -85,4 +85,4 @@ python3 -m unittest
 
 ## Contributing
 
-Take a look at our [contributing](/docs/contributing.md) page.
+Take a look at our [contributing](/CONTRIBUTING.md) page.
