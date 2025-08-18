@@ -78,3 +78,6 @@ extra:
       link: https://octue.com
   version:
     provider: mike
+
+extra_css:
+  - stylesheets/extra.css
