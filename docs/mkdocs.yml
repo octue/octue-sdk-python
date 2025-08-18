@@ -11,6 +11,9 @@ theme:
     - navigation.instant.prefetch
     - navigation.tracking
     - navigation.path
+    - search.suggest
+    - search.highlight
+    - search.share
 
   palette:
     # Palette toggle for light mode
@@ -38,6 +41,7 @@ markdown_extensions:
 plugins:
   - privacy
   - glightbox
+  - search
 
 nav:
   - index.md
