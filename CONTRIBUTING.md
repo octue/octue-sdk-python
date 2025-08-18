@@ -84,36 +84,12 @@ You can run pre-commit hooks without making a commit, too, like:
 pre-commit run black --all-files
 ```
 
-or
-
-```
-# -v gives verbose output, useful for figuring out why docs won't build
-pre-commit run build-docs -v
-```
-
 ## Documentation
 
-### Building documents automatically
-
-The documentation will build automatically in a pre-configured environment when you make a commit.
-
-In fact, the way `pre-commit` works, you won't be allowed to make the commit unless the documentation builds. This way
-we avoid getting broken documentation pushed to the main repository on any commit so we can rely on builds working.
-
-### Building documents manually
-
-**If you did need to build the documentation**
-
-Install `doxygen`. On a mac, that's `brew install doxygen`; other systems may differ.
-
-Install sphinx and other requirements for building the docs:
+To serve the docs locally, run:
 
 ```
-pip install -r docs/requirements.txt
+mkdocs serve
 ```
 
-Run the build process:
-
-```
-sphinx-build -b html docs/source docs/html
-```
+This makes the docs available on `localhost` via a hot-reloading server
