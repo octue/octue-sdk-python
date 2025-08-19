@@ -1,5 +1,5 @@
 site_name: Octue Twined
-site_url: https://octue-python-sdk.readthedocs.io
+site_url: https://twined.octue.com
 
 nav:
   - index.md
