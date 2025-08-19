@@ -1,0 +1,95 @@
+site_name: Octue Twined
+site_url: https://twined.octue.com
+
+nav:
+  - index.md
+  - installation.md
+  - Datafiles, datasets, and manifests:
+      - data_containers/index.md
+      - data_containers/datafile.md
+      - data_containers/dataset.md
+      - data_containers/manifest.md
+  - services.md
+  - asking_questions.md
+  - creating_services.md
+  - Twines:
+      - twines/index.md
+      - Quickstart: twines/quick_start_create_your_first_twine.md
+      - twines/anatomy.md
+      - About Twines:
+          - twines/about/index.md
+          - twines/about/about_digital_twins.md
+          - twines/about/about_requirements.md
+          - twines/about/about_introducing_json_schema.md
+          - twines/about/about_other_considerations.md
+  - updating_services.md
+  - running_services_locally.md
+  - deploying_services.md
+  - testing_services.md
+  - troubleshooting_services.md
+  - logging.md
+  - authentication.md
+  - inter_service_compatibility.md
+  #  - api.md
+  - license.md
+  - version_history.md
+
+theme:
+  name: material
+  logo: images/logos_square-dark.png
+  favicon: images/logos_square-dark.png
+
+  features:
+    - navigation.top
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.path
+    - navigation.footer
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - search.share
+
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - pymdownx.blocks.caption
+
+plugins:
+  - privacy
+  - glightbox
+  - search
+
+copyright: Copyright &copy; 2025 Octue
+
+extra:
+  social:
+    - icon: material/github
+      link: https://github.com/octue
+    - icon: material/linkedin
+      link: https://www.linkedin.com/company/octue
+    - icon: material/web
+      link: https://octue.com
+
+extra_css:
+  - stylesheets/extra.css

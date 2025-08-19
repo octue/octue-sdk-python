@@ -25,4 +25,4 @@ for column, row in sorted_data.items():
 # Transpose the dataframe so parents are the rows and children the columns.
 df = pd.DataFrame.from_dict(sorted_data).transpose()
 
-print(tabulate.tabulate(df, headers="keys", tablefmt="grid"))
+print(tabulate.tabulate(df, headers="keys", tablefmt="pipe"))

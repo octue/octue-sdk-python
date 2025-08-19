@@ -575,7 +575,12 @@ def diagnostics(cloud_path, local_path, download_datasets):
 #     child.cancel(question_uuid=question_uuid, event_store_table_id=service_configuration.event_store_table_id)
 
 
-@twined.command()
+@twined.group()
+def service():
+    """Start or manage a Twined service."""
+
+
+@service.command()
 @click.option(
     "-c",
     "--service-config",

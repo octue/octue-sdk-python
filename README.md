@@ -6,7 +6,7 @@
 [![black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10961975.svg)](https://doi.org/10.5281/zenodo.10961975)
 
-# Octue Python SDK <img src="./docs/source/images/213_purple-fruit-snake-transparent.gif" alt="Purple Fruit Snake" width="100"/></span>
+# Octue Python SDK <img src="./docs/images/213_purple-fruit-snake-transparent.gif" alt="Purple Fruit Snake" width="100"/></span>
 
 The python SDK for running [Octue](https://octue.com) data services, digital twins, and applications - get faster data
 groundwork so you have more time for the science!
@@ -36,30 +36,20 @@ octue --help
 ```text
 Usage: octue [OPTIONS] COMMAND [ARGS]...
 
-  The CLI for the Octue SDK. Use it to start an Octue data service or digital
-  twin locally or run an analysis on one locally.
+  The CLI for Octue SDKs and APIs, most notably Twined.
 
   Read more in the docs: https://octue-python-sdk.readthedocs.io/en/latest/
 
 Options:
-  --id UUID                       UUID of the analysis being undertaken. None
-                                  (for local use) will cause a unique ID to be
-                                  generated.
   --logger-uri TEXT               Stream logs to a websocket at the given URI.
   --log-level [debug|info|warning|error]
                                   Log level used for the analysis.  [default:
                                   info]
-  --force-reset / --no-force-reset
-                                  Forces a reset of analysis cache and outputs
-                                  [For future use, currently not implemented]
-                                  [default: force-reset]
   --version                       Show the version and exit.
   -h, --help                      Show this message and exit.
 
 Commands:
-  deploy  Deploy a python app to the cloud as an Octue service or digital...
-  run     Run an analysis on the given input data using an Octue service...
-  start   Start an Octue service or digital twin locally as a child so it...
+  twined  The Twined CLI.
 ```
 
 ## Deprecated code
@@ -95,4 +85,4 @@ python3 -m unittest
 
 ## Contributing
 
-Take a look at our [contributing](/docs/contributing.md) page.
+Take a look at our [contributing](/CONTRIBUTING.md) page.

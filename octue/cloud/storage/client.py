@@ -14,12 +14,15 @@ from google.auth.transport import requests as google_requests
 from google.cloud.storage import Client
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
-from google_crc32c import Checksum
 
 from octue.cloud import storage
 from octue.exceptions import CloudStorageBucketNotFound
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=RuntimeWarning, module="google_crc32c")
+    from google_crc32c import Checksum
 
 logger = logging.getLogger(__name__)
 
