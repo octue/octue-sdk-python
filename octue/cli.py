@@ -195,7 +195,7 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
 def local(input_values, input_manifest, attributes, service_config):
     """Ask a question to a local Octue Twined service.
 
-    This command is similar to running `octue twined start` and asking the resulting local service revision a question
+    This command is similar to running `octue twined service start` and asking the resulting local service revision a question
     via Pub/Sub. Instead of starting a local Pub/Sub service revision, however, no Pub/Sub subscription or subscriber is
     created; the question is instead passed directly to local the service revision without Pub/Sub being involved.
     Everything after this runs the same, though, with the service revision emitting any events via Pub/Sub as usual.
