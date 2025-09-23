@@ -25,6 +25,7 @@ from octue.twined.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.twined.exceptions import ServiceAlreadyExists
 from octue.twined.resources import Child, service_backends
 from octue.twined.runner import Runner
+from octue.twined.templates.template import Template
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
@@ -239,6 +240,58 @@ def local(input_values, input_manifest, attributes, service_config):
     )
 
     click.echo(json.dumps(answer, cls=OctueJSONEncoder))
+
+
+@ask.command()
+@click.option(
+    "-i",
+    "--input-values",
+    type=str,
+    default=None,
+    help="Any input values for the question, serialised as a JSON-encoded string.",
+)
+@click.option(
+    "-m",
+    "--input-manifest",
+    type=str,
+    default=None,
+    help="An optional input manifest for the question, serialised as a JSON-encoded string.",
+)
+@click.option(
+    "-a",
+    "--attributes",
+    type=str,
+    default=None,
+    help="An optional full set of event attributes for the question, serialised as a JSON-encoded string. If not "
+    "provided, the question will be an originator question.",
+)
+@click.option(
+    "-c",
+    "--service-config",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
+    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
+    "is used.",
+)
+def example(input_values, input_manifest, attributes, service_config):
+    """Ask a question to a local example Twined service for demonstrating the CLI."""
+    template = Template()
+    template.set_template("template-using-manifests")
+
+    runner = Runner(
+        app_src=template.template_path,
+        twine=template.template_twine,
+        configuration_values=os.path.join(template.template_path, "data", "configuration", "values.json"),
+    )
+
+    analysis = runner.run(input_manifest=os.path.join(template.template_path, "data", "input", "manifest.json"))
+    click.echo(
+        json.dumps(
+            {"kind": "result", "output_values": analysis.output_values, "output_manifest": analysis.output_manifest},
+            cls=OctueJSONEncoder,
+        )
+    )
 
 
 @question.group()
