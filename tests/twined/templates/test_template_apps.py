@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 import sys
 import time
@@ -204,7 +203,4 @@ class TemplateAppsTestCase(BaseTestCase):
     def tearDown(self):
         """Remove the temporary template app directories."""
         super().tearDown()
-        os.chdir(self.template.start_path)
-        for path in self.template.teardown_templates:
-            sys.path.remove(path)
-            shutil.rmtree(path)
+        self.template.cleanup()

@@ -29,3 +29,9 @@ class Template:
 
         # Run from within the app folder context
         os.chdir(self.app_test_path)
+
+    def cleanup(self):
+        os.chdir(self.start_path)
+        for path in self.teardown_templates:
+            sys.path.remove(path)
+            shutil.rmtree(path)

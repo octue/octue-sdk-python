@@ -295,6 +295,8 @@ def example(input_values, input_manifest, attributes, service_config):
         )
     )
 
+    template.cleanup()
+
 
 @question.group()
 def events():
