@@ -11,7 +11,7 @@
 The python SDK for running [Octue](https://octue.com) data services, digital twins, and applications - get faster data
 groundwork so you have more time for the science!
 
-Read the docs [here.](https://octue-python-sdk.readthedocs.io/en/latest/)
+Read the docs [here.](https://twined.octue.com/)
 
 Uses our [twined](https://twined.readthedocs.io/en/latest/) library for data validation.
 
