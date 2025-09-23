@@ -46,7 +46,7 @@ global_cli_context = {}
 def octue_cli(logger_uri, log_level):
     """The CLI for Octue SDKs and APIs, most notably Twined.
 
-    Read more in the docs: https://octue-python-sdk.readthedocs.io/en/latest/
+    Read more in the docs: https://twined.octue.com
     """
     global_cli_context["logger_uri"] = logger_uri
     global_cli_context["log_handler"] = None
