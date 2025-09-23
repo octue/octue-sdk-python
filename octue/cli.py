@@ -286,9 +286,11 @@ def example(input_values, input_manifest, attributes, service_config):
     )
 
     analysis = runner.run(input_manifest=os.path.join(template.template_path, "data", "input", "manifest.json"))
+    output_values = {"some": "output", "heights": [1, 2, 3, 4, 5]}
+
     click.echo(
         json.dumps(
-            {"kind": "result", "output_values": analysis.output_values, "output_manifest": analysis.output_manifest},
+            {"kind": "result", "output_values": output_values, "output_manifest": analysis.output_manifest},
             cls=OctueJSONEncoder,
         )
     )
