@@ -1,59 +1,54 @@
-# Introduction
+# Getting started
 
-The python SDK for [Octue](https://octue.com) Twined scientific data services and digital twins - get faster data
-groundwork so you have more time for the science!
+Create and use data services with Twined, a framework from Octue.
 
-!!! info "Definition"
+This guide walks you through getting started with Twined to use an existing data service deployed in Google Cloud.
 
-    **Twined service**
+By the end, you will be able to use the Twined CLI to run an analysis on an example data service, sending it input data and receiving its output.
 
-    A data service or digital twin built with the Twined framework that can be asked questions, process them, and
-    return answers. Twined services can communicate with each other with minimal extra setup.
+## Prerequisites
 
-## Key features
+Before you begin, ensure you:
 
-**Unified cloud/local file, dataset, and manifest operations**
+- Are familiar with Python
+- Have the following tools installed:
+  - Python >= 3.10
+  - The `octue` python library (see [installation instructions](installation.md))
 
-- Create and build datasets easily
-- Organise them with timestamps, labels, and tags
-- Filter and combine them using this metadata
-- Store them locally or in the cloud (or both for low-latency reading/writing with cloud-guaranteed data availability)
-- Use internet/cloud-based datasets as if they were local e.g.
-  - `https://example.com/important_dataset.dat`
-  - `gs://example-bucket/important_dataset.dat`
-- Create manifests (a set of datasets needed for a particular analysis) to modularise your dataset input/output
+## Authentication
 
-**Ask existing services questions from anywhere**
+No authentication is needed to run the example data service. To authenticate for real data services, see [here](authentication.md).
 
-- Send them data to process from anywhere
-- Automatically have their logs, monitor messages, and any errors forwarded to you and displayed as if they were local
-- Receive their output data as JSON
-- Receive a manifest of any output datasets they produce for you to download or access as you wish
+## Run your first analysis
 
-**Create, run, and deploy your apps as services**
+### Request
 
-- No need to change your app - just wrap it
-- Use the `octue` CLI to run your service locally or deploy it to Google Kubernetes Engine (GKE)
-- Create JSON-schema interfaces to explicitly define the form of configuration, input, and output data
-- Ask other services questions as part of your app (i.e. build trees of services)
-- Automatically display readable, colourised logs, or use your own log handler
-- Avoid time-consuming and confusing devops, cloud configuration, and backend maintenance
+The following command runs an analysis in the local example data service:
 
-**High standards, quick responses, and good intentions**
+```shell
+octue twined question ask example --input-values='{"some": "data"}'
+```
 
-- Open-source and transparent on GitHub - anyone can see the code and raise an issue
-- Automated testing, standards, releases, and deployment
-- High test coverage
-- Works on MacOS, Linux, and Windows
-- Developed not-for-profit for the renewable energy industry
+### Response
 
-## Need help, found a bug, or want to request a new feature?
+The response contains log messages in `stderr` followed by the result as JSON in `stdout`:
 
-We use [GitHub Issues](https://github.com/octue/octue-sdk-python/issues) to manage:
+```text
+[2025-09-23 18:20:13,513 | WARNING | octue.resources.dataset] <Dataset('cleaned_met_mast_data')> is empty at instantiation time (path 'cleaned_met_mast_data').
+[2025-09-23 18:20:13,649 | INFO | app] [fb85f10d-4428-4239-9543-f7650104b43c] Starting clean up of files in <Manifest(8ead7669-8162-4f64-8cd5-4abe92509e17)>
+[2025-09-23 18:20:13,649 | INFO | app] [fb85f10d-4428-4239-9543-f7650104b43c] Averaging window set to 600s
+[2025-09-23 18:20:13,673 | INFO | octue.twined.resources.analysis] [fb85f10d-4428-4239-9543-f7650104b43c] The analysis didn't produce output values.
+[2025-09-23 18:20:13,673 | INFO | octue.twined.resources.analysis] [fb85f10d-4428-4239-9543-f7650104b43c] The analysis produced an output manifest.
+[2025-09-23 18:20:13,673 | INFO | octue.twined.resources.analysis] [fb85f10d-4428-4239-9543-f7650104b43c] No output location was set in the service configuration - can't upload output datasets.
+[2025-09-23 18:20:13,726 | INFO | octue.twined.resources.analysis] [fb85f10d-4428-4239-9543-f7650104b43c] Validated outputs against the twine.
+{"kind": "result", "output_values": {"some": "output", "heights": [1, 2, 3, 4, 5]}, "output_manifest": {"id": "2e1fb3e4-2f86-4eb2-9c2f-5785d36c6df9", "name": null, "datasets": {"cleaned_met_mast_data": "/var/folders/9p/25hhsy8j4wv66ck3yylyz97c0000gn/T/tmps_qcb4yw"}}}
+```
 
-- Bug reports
-- Feature requests
-- Support requests
+## Next steps
 
-Bug reports, feature requests and support requests, may also be made directly to your Octue support contact, or via the
-[support pages](https://www.octue.com/contact).
+Congratulations on running your first analysis! For additional information, check out the following resources:
+
+- {Link to other relevant documentation such as API Reference}
+- {Link to other features that are available in the API}
+- {Provide links to additional tutorials and articles about the API}
+- {Provide links to community and support groups, FAQs, troubleshooting guides, etc.}
