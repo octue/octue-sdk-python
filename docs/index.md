@@ -1,10 +1,11 @@
 # Getting started
 
-Create and use data services with Twined, a framework from Octue.
+Twined is a python framework for creating and using data services and digital twins.
 
-This guide walks you through getting started with Twined to use an existing data service deployed in Google Cloud.
+This guide walks you through using an example Twined data service locally (the process for using a real one is almost
+identical).
 
-By the end, you will be able to use the Twined CLI to run an analysis on an example data service, sending it input data and receiving its output.
+By the end, you will be able to use the Twined CLI to run an analysis on a data service, sending it input data and receiving its output.
 
 ## Prerequisites
 
@@ -23,11 +24,19 @@ No authentication is needed to run the example data service. To authenticate for
 
 ### Request
 
-The following command runs an analysis in the local example data service:
+The following shell command runs an analysis in the local example data service:
 
 ```shell
 octue twined question ask example --input-values='{"some": "data"}'
 ```
+
+!!! info
+
+    To ask a question to a real data service, the command is almost the same:
+
+    ```shell
+    octue twined question ask remote --input-values='{"some": "data"}'
+    ```
 
 ### Response
 
