@@ -32,7 +32,6 @@ Usage: octue [OPTIONS] COMMAND [ARGS]...
   Read more in the docs: https://twined.octue.com
 
 Options:
-  --logger-uri TEXT               Stream logs to a websocket at the given URI.
   --log-level [debug|info|warning|error]
                                   Log level used for the analysis.  [default:
                                   info]

@@ -11,7 +11,7 @@ from google import auth
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.definitions import LOCAL_SDK_VERSION
-from octue.log_handlers import apply_log_handler, get_remote_handler
+from octue.log_handlers import apply_log_handler
 from octue.resources import Manifest
 from octue.twined.cloud.events.answer_question import answer_question
 from octue.twined.cloud.events.question import make_question_event
@@ -35,7 +35,6 @@ global_cli_context = {}
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("--logger-uri", default=None, show_default=True, help="Stream logs to a websocket at the given URI.")
 @click.option(
     "--log-level",
     default="info",
@@ -44,19 +43,13 @@ global_cli_context = {}
     help="Log level used for the analysis.",
 )
 @click.version_option(version=LOCAL_SDK_VERSION)
-def octue_cli(logger_uri, log_level):
+def octue_cli(log_level):
     """The CLI for Octue SDKs and APIs, most notably Twined.
 
     Read more in the docs: https://twined.octue.com
     """
-    global_cli_context["logger_uri"] = logger_uri
-    global_cli_context["log_handler"] = None
     global_cli_context["log_level"] = log_level.upper()
-
     apply_log_handler(log_level=log_level.upper())
-
-    if global_cli_context["logger_uri"]:
-        global_cli_context["log_handler"] = get_remote_handler(logger_uri=global_cli_context["logger_uri"])
 
 
 @octue_cli.group()
@@ -694,7 +687,6 @@ def start(service_config, revision_tag, timeout, no_rm):
     run_function = functools.partial(
         runner.run,
         analysis_log_level=global_cli_context["log_level"],
-        analysis_log_handler=global_cli_context["log_handler"],
     )
 
     backend_configuration_values = (service_configuration.configuration_values or {}).get("backend")

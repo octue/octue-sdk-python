@@ -1,7 +1,6 @@
 import logging
 import logging.handlers
 import os
-from urllib.parse import urlparse
 
 from octue.definitions import GOOGLE_COMPUTE_PROVIDERS
 
@@ -147,43 +146,6 @@ def apply_log_handler(
             local_logger.removeHandler(temporary_handler)
             break
 
-    return handler
-
-
-def get_remote_handler(
-    logger_uri,
-    formatter=None,
-    include_line_number=False,
-    include_process_name=False,
-    include_thread_name=False,
-):
-    """Get a log handler for streaming logs to a remote URI accessed via HTTP or HTTPS. The default octue log formatter
-    is used if no formatter is provided.
-
-    :param str logger_uri: the URI to stream the logs to
-    :param logging.Formatter|None formatter: if provided, this formatter is used and the other formatting options are ignored
-    :param bool include_line_number: if `True`, include the line number in the log context
-    :param bool include_process_name: if `True`, include the process name in the log context
-    :param bool include_thread_name: if `True`, include the thread name in the log context
-    :return logging.Handler:
-    """
-    parsed_uri = urlparse(logger_uri)
-
-    if parsed_uri.scheme not in {"ws", "wss"}:
-        raise ValueError(
-            f"Only WS and WSS protocols currently supported for remote logger URI. Received {logger_uri!r}."
-        )
-
-    handler = logging.handlers.SocketHandler(host=parsed_uri.hostname, port=parsed_uri.port)
-
-    formatter = formatter or create_octue_formatter(
-        get_log_record_attributes_for_environment(),
-        include_line_number=include_line_number,
-        include_process_name=include_process_name,
-        include_thread_name=include_thread_name,
-    )
-
-    handler.setFormatter(formatter)
     return handler
 
 

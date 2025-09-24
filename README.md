@@ -41,7 +41,6 @@ Usage: octue [OPTIONS] COMMAND [ARGS]...
   Read more in the docs: https://octue-python-sdk.readthedocs.io/en/latest/
 
 Options:
-  --logger-uri TEXT               Stream logs to a websocket at the given URI.
   --log-level [debug|info|warning|error]
                                   Log level used for the analysis.  [default:
                                   info]
