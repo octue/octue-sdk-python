@@ -11,10 +11,14 @@ By the end, you will be able to use the Twined CLI to run an analysis on a data 
 
 Before you begin, ensure you:
 
+<!-- prettier-ignore-start -->
+
 - Are familiar with Python
 - Have the following tools installed:
-  - Python >= 3.10
-  - The `octue` python library (see [installation instructions](installation.md))
+    - Python >= 3.10
+    - The `octue` python library (see [installation instructions](installation.md))
+
+<!-- prettier-ignore-end -->
 
 ## Authentication
 
