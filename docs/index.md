@@ -28,15 +28,20 @@ No authentication is needed to run the example data service. To authenticate for
 
 ## Run your first analysis
 
-### Request
+!!! info
 
-The following shell command runs an analysis in the local example data service:
+    In Twined, sending input data to a service is called "asking a question". The service will run an analysis on the
+    question and send back any output data - this is called called "receiving an answer".
+
+### Send a question
+
+The following shell command asks a question to the local example data service:
 
 ```shell
 octue twined question ask example --input-values='{"some": "data"}'
 ```
 
-!!! info
+!!! tip
 
     To ask a question to a real data service, the command is almost the same:
 
@@ -44,9 +49,9 @@ octue twined question ask example --input-values='{"some": "data"}'
     octue twined question ask remote --input-values='{"some": "data"}'
     ```
 
-### Response
+### Receive an answer
 
-The response contains log messages in `stderr` followed by the result as JSON in `stdout`:
+The output from asking a question usually contains log messages in `stderr` followed by the answer as JSON in `stdout`:
 
 ```text
 [2025-09-23 18:20:13,513 | WARNING | octue.resources.dataset] <Dataset('cleaned_met_mast_data')> is empty at instantiation time (path 'cleaned_met_mast_data').
