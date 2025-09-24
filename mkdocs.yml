@@ -52,6 +52,7 @@ theme:
     - search.highlight
     - search.share
     - content.tabs.link
+    - content.code.copy
 
   palette:
     # Palette toggle for light mode
