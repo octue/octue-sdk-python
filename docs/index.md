@@ -51,7 +51,7 @@ octue twined question ask example --input-values='{"some": "data"}'
 
 ### Receive an answer
 
-The output from asking a question usually contains log messages in `stderr` followed by the answer as JSON in `stdout`:
+The output from asking a question usually contains log messages followed by the answer as [JSON](https://en.wikipedia.org/wiki/JSON):
 
 ```text
 [2025-09-23 18:20:13,513 | WARNING | octue.resources.dataset] <Dataset('cleaned_met_mast_data')> is empty at instantiation time (path 'cleaned_met_mast_data').
@@ -63,6 +63,18 @@ The output from asking a question usually contains log messages in `stderr` foll
 [2025-09-23 18:20:13,726 | INFO | octue.twined.resources.analysis] [fb85f10d-4428-4239-9543-f7650104b43c] Validated outputs against the twine.
 {"kind": "result", "output_values": {"some": "output", "heights": [1, 2, 3, 4, 5]}, "output_manifest": {"id": "2e1fb3e4-2f86-4eb2-9c2f-5785d36c6df9", "name": null, "datasets": {"cleaned_met_mast_data": "/var/folders/9p/25hhsy8j4wv66ck3yylyz97c0000gn/T/tmps_qcb4yw"}}}
 ```
+
+!!! tip
+
+    You can pipe the output JSON into other CLI tools or redirect it to a file:
+
+    ```shell
+    # Fromat the result using the `jq` command line tool
+    octue twined question ask example --input-values='{"some": "data"}' | jq
+
+    # Store the result in a file
+    octue twined question ask example --input-values='{"some": "data"}' > result.json
+    ```
 
 ## Next steps
 
