@@ -2,10 +2,11 @@
 
 Twined is a python framework for creating and using data services and digital twins.
 
-This guide walks you through using an example Twined data service locally (the process for using a real one is almost
-identical).
+This guide walks you through using an example Twined service locally. The process for using a real one is almost
+identical.
 
-By the end, you will be able to use the Twined CLI to run an analysis on a data service, sending it input data and receiving its output.
+By the end, you will be able to use the Twined CLI to run an analysis on a data service, sending it input data and
+receiving output data.
 
 ## Prerequisites
 
@@ -22,7 +23,8 @@ Before you begin, ensure you:
 
 ## Authentication
 
-No authentication is needed to run the example data service. To authenticate for real data services, see [here](authentication.md).
+No authentication is needed to run the example data service. To authenticate for real data services, see
+[authentication instructions](authentication.md).
 
 ## Run your first analysis
 
