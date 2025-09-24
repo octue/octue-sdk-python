@@ -43,12 +43,18 @@ The following shell command asks a question to the local example data service:
     octue twined question ask example --input-values='{"some": "data"}'
     ```
 
-!!! tip
+    !!! tip
 
-    To ask a question to a real data service, the command is almost the same:
+        To ask a question to a real data service, the command is almost the same:
+
+        ```shell
+        octue twined question ask remote --input-values='{"some": "data"}'
+        ```
+
+=== "Python"
 
     ```shell
-    octue twined question ask remote --input-values='{"some": "data"}'
+
     ```
 
 ### Receive an answer
@@ -79,6 +85,12 @@ The following shell command asks a question to the local example data service:
         # Store the result in a file
         octue twined question ask example --input-values='{"some": "data"}' > result.json
         ```
+
+=== "Python"
+
+    ```shell
+
+    ```
 
 ## Next steps
 
