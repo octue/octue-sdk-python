@@ -14,7 +14,7 @@ Before you begin, ensure you:
 
 <!-- prettier-ignore-start -->
 
-- Are familiar with Python
+- Are familiar with Python and/or the command line
 - Have the following tools installed:
     - Python >= 3.10
     - The `octue` python library / CLI (see [installation instructions](installation.md))
@@ -33,9 +33,9 @@ No authentication is needed to run the example data service. To authenticate for
     In Twined, sending input data to a service is called "asking a question". The service will run an analysis on the
     question and send back any output data - this is called called "receiving an answer".
 
-### Send a question
+### Ask a question
 
-The following shell command asks a question to the local example data service:
+The following command asks a question to the local example data service.
 
 === "CLI"
 
@@ -45,23 +45,57 @@ The following shell command asks a question to the local example data service:
 
     !!! tip
 
-        To ask a question to a real data service, the command is almost the same:
+        To ask a question to a real data service, use the `remote` subcommand and specify the ID of the service:
 
         ```shell
-        octue twined question ask remote --input-values='{"some": "data"}'
+        octue twined question ask remote some-org/a-service:1.2.0 --input-values='{"some": "data"}'
         ```
 
 === "Python"
 
-    ```shell
+    !!! info
 
+        A child is a Twined service you ask a question to (in the sense of child and parent nodes in a tree; this only
+        becomes important when services use other Twined services as part of their analysis).
+
+    ```python
+    from octue.twined.resources import Child
+
+    child = Child(
+        id="local/example:latest",
+        backend={
+            "name": "GCPPubSubBackend",
+            "project_id": "example-project",
+        },
+    )
+
+    answer, question_uuid = child.ask(input_values={"some": "data"})
     ```
+
+    !!! tip
+
+        To ask a question to a real data service, just specify its ID and project ID:
+
+        ```python
+        from octue.twined.resources import Child
+
+        child = Child(
+            id="some-org/a-service:1.2.0",
+            backend={
+                "name": "GCPPubSubBackend",
+                "project_id": "some-org",
+            },
+        )
+
+        answer, question_uuid = child.ask(input_values={"some": "data"})
+        ```
 
 ### Receive an answer
 
 === "CLI"
 
-    The output from asking a question usually contains log messages followed by the answer as [JSON](https://en.wikipedia.org/wiki/JSON):
+    The output is automatically written to the command line. It contains log messages followed by the answer as
+    [JSON](https://en.wikipedia.org/wiki/JSON):
 
     ```text
     [2025-09-23 18:20:13,513 | WARNING | octue.resources.dataset] <Dataset('cleaned_met_mast_data')> is empty at instantiation time (path 'cleaned_met_mast_data').
@@ -88,8 +122,14 @@ The following shell command asks a question to the local example data service:
 
 === "Python"
 
-    ```shell
+    ```python
+    answer
 
+    >>> {
+        "kind": "result",
+        "output_values": {"some": "output", "heights": [1, 2, 3, 4, 5]},
+        "output_manifest": {"id": "2e1fb3e4-2f86-4eb2-9c2f-5785d36c6df9", "name": null, "datasets": {"cleaned_met_mast_data": "/var/folders/9p/25hhsy8j4wv66ck3yylyz97c0000gn/T/tmps_qcb4yw"}},
+    }
     ```
 
 ## Next steps
