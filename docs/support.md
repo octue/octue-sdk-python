@@ -1,4 +1,5 @@
-Need help, found a bug, or want to request a new feature? We use GitHub Issues to manage:
+Need help, found a bug, or want to request a new feature? We use
+[GitHub Issues](https://github.com/octue/octue-sdk-python/issues) to manage:
 
 - Feature requests
 - Bug reports
