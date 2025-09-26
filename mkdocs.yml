@@ -34,6 +34,7 @@ nav:
   #  - api.md
   - license.md
   - version_history.md
+  - support.md
 
 theme:
   name: material
