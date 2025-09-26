@@ -136,7 +136,8 @@ The following command asks a question to the local example data service.
 
 Congratulations on running your first analysis! For additional information, check out the following resources:
 
-- {Link to other relevant documentation such as API Reference}
-- {Link to other features that are available in the API}
-- {Provide links to additional tutorials and articles about the API}
-- {Provide links to community and support groups, FAQs, troubleshooting guides, etc.}
+- Set up infrastructure for a data service(s) using Terraform
+- Create a data service
+- Run a data service locally
+- See the library and CLI reference
+- Get support
