@@ -2,8 +2,8 @@
 
 Twined is a python framework for creating and using data services and digital twins.
 
-This guide walks you through using an example Twined service locally. The process for using a real one is almost
-identical.
+This guide walks you through using an example Twined service locally. The process for using a real one (deployed locally
+or in the cloud) is almost identical.
 
 By the end, you will be able to use the Twined CLI to run an analysis on a data service, sending it input data and
 receiving output data.
@@ -113,7 +113,7 @@ The following command asks a question to the local example data service.
         You can pipe the output JSON into other CLI tools or redirect it to a file:
 
         ```shell
-        # Fromat the result using the `jq` command line tool
+        # Format the result using the `jq` command line tool
         octue twined question ask example --input-values='{"some": "data"}' | jq
 
         # Store the result in a file
