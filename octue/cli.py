@@ -24,8 +24,8 @@ from octue.twined.configuration import ServiceConfiguration
 from octue.twined.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.twined.exceptions import ServiceAlreadyExists
 from octue.twined.resources import Child, service_backends
+from octue.twined.resources.example import ExampleChild
 from octue.twined.runner import Runner
-from octue.twined.templates.template import Template
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
 
@@ -269,26 +269,17 @@ def local(input_values, input_manifest, attributes, service_config):
 )
 def example(input_values, input_manifest, attributes, service_config):
     """Ask a question to a local example Twined service for demonstrating the CLI."""
-    template = Template()
-    template.set_template("template-using-manifests")
+    example_child = ExampleChild()
 
-    runner = Runner(
-        app_src=template.template_path,
-        twine=template.template_twine,
-        configuration_values=os.path.join(template.template_path, "data", "configuration", "values.json"),
-    )
-
-    analysis = runner.run(input_manifest=os.path.join(template.template_path, "data", "input", "manifest.json"))
-    output_values = {"some": "output", "heights": [1, 2, 3, 4, 5]}
+    with example_child:
+        analysis = example_child.ask()
 
     click.echo(
         json.dumps(
-            {"kind": "result", "output_values": output_values, "output_manifest": analysis.output_manifest},
+            {"kind": "result", "output_values": analysis.output_values, "output_manifest": analysis.output_manifest},
             cls=OctueJSONEncoder,
         )
     )
-
-    template.cleanup()
 
 
 @question.group()
