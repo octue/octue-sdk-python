@@ -1,10 +1,10 @@
 # License
 
-## The Boring Bit
+## The boring bit
 
-See [the octue-sdk-python license](https://github.com/octue/octue-sdk-python/blob/main/LICENSE).
+See the Twined license [here](https://github.com/octue/octue-sdk-python/blob/main/LICENSE).
 
-## Third Party Libraries
+## Third party libraries
 
-**octue-sdk-python** includes or is linked against code from third party
-libraries - see [our attributions page](https://github.com/octue/octue-sdk-python/blob/main/ATTRIBUTIONS.md).
+**Twined** includes or is linked against code from third party libraries - see
+[our attributions page](https://github.com/octue/octue-sdk-python/blob/main/ATTRIBUTIONS.md).
