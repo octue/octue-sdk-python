@@ -4,6 +4,7 @@ site_url: https://twined.octue.com
 nav:
   - index.md
   - installation.md
+  - Setting up infrastructure: infrastructure.md
   - Datafiles, datasets, and manifests:
       - data_containers/index.md
       - data_containers/datafile.md
