@@ -3,6 +3,8 @@ import os
 
 import yaml
 
+from octue.twined.definitions import DISALLOWED_SERVICE_NAMESPACES
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +51,12 @@ class ServiceConfiguration:
         **kwargs,
     ):
         self.name = name
-        self.namespace = namespace
+
+        if namespace in DISALLOWED_SERVICE_NAMESPACES:
+            raise ValueError(f"{namespace!r} is not an allowed Twined service namespace.")
+        else:
+            self.namespace = namespace
+
         self.diagnostics_cloud_path = diagnostics_cloud_path
         self.service_registries = service_registries
         self.event_store_table_id = event_store_table_id
