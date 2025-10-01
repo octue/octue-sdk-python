@@ -8,9 +8,8 @@ from octue.twined.templates.template import Template
 
 
 class ExampleChild(Child):
-    def __init__(self):
-        self.id = "local/example:latest"
-        self.template = Template()
+    def __init__(self, id, backend):
+        pass
 
     def ask(
         self,

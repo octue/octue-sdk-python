@@ -61,14 +61,20 @@ The following command asks a question to the local example data service.
     ```python
     from octue.twined.resources.example import ExampleChild
 
-    child = ExampleChild()
+    child = ExampleChild(
+        id="example/service:latest",
+        backend={
+            "name": "GCPPubSubBackend",
+            "project_id": "example",
+        },
+    )
     answer, question_uuid = child.ask(input_values={"some": "data"})
     ```
 
     !!! tip
 
-        To ask a question to a real data service, use `Child` instead of `ExampleChild` and specify the service's ID and
-        project ID:
+        To ask a question to a real data service, use `Child` instead of `ExampleChild` and specify the service's
+        ID and project ID:
 
         ```python
         from octue.twined.resources import Child

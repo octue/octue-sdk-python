@@ -115,7 +115,7 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
         octue question ask remote your-org/example-service:1.2.0
     """
     if sruid.startswith("example/"):
-        example_child = ExampleChild()
+        example_child = ExampleChild("", {})
         answer, _ = example_child.ask()
         click.echo(json.dumps(answer, cls=OctueJSONEncoder))
         return
