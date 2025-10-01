@@ -53,11 +53,6 @@ The following command asks a question to the local example data service.
 
 === "Python"
 
-    !!! info
-
-        A child is a Twined service you ask a question to (in the sense of child and parent nodes in a tree; this only
-        becomes important when services use other Twined services as part of their analysis).
-
     ```python
     from octue.twined.resources import Child
 
@@ -71,6 +66,11 @@ The following command asks a question to the local example data service.
 
     answer, question_uuid = child.ask(input_values={"some": "data"})
     ```
+
+    !!! info
+
+        A child is a Twined service you ask a question to, in the sense of child and parent nodes in a tree. This only
+        becomes important when services use other Twined services as part of their analysis, forming a tree of services.
 
     !!! tip
 
