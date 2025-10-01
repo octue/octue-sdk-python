@@ -63,12 +63,7 @@ def question():
     """Ask a new question to an Octue Twined data service or interact with a previous question."""
 
 
-@question.group()
-def ask():
-    """Ask a new question to an Octue Twined data service."""
-
-
-@ask.command()
+@question.command()
 @click.argument("sruid", type=str)
 @click.option(
     "-i",
@@ -107,7 +102,7 @@ def ask():
     "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
     "is used.",
 )
-def remote(sruid, input_values, input_manifest, project_id, asynchronous, service_config):
+def ask(sruid, input_values, input_manifest, project_id, asynchronous, service_config):
     """Ask a question to a remote Octue Twined service.
 
     SRUID should be a valid service revision unique identifier for an existing Octue Twined service e.g.
@@ -159,7 +154,7 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
     click.echo(json.dumps(answer, cls=OctueJSONEncoder))
 
 
-@ask.command()
+@question.command()
 @click.option(
     "-i",
     "--input-values",
@@ -191,7 +186,7 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
     "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
     "is used.",
 )
-def local(input_values, input_manifest, attributes, service_config):
+def ask_local(input_values, input_manifest, attributes, service_config):
     """Ask a question to a local Octue Twined service.
 
     This command is similar to running `octue twined service start` and asking the resulting local service revision a question

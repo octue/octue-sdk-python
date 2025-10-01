@@ -36,4 +36,4 @@ RUN if [ -f "pyproject.toml" ]; then poetry install --only main;  \
 
 ENV USE_OCTUE_LOG_HANDLER=1
 ENV COMPUTE_PROVIDER=GOOGLE_KUEUE
-CMD ["octue", "twined", "question", "ask", "local"]
+CMD ["octue", "twined", "question", "ask-local"]

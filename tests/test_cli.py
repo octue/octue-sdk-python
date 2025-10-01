@@ -57,7 +57,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                         "twined",
                         "question",
                         "ask",
-                        "remote",
                         self.SRUID,
                         '--input-values={"height": 3}',
                     ],
@@ -78,7 +77,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                         "twined",
                         "question",
                         "ask",
-                        "remote",
                         self.SRUID,
                         f"--input-manifest={input_manifest.serialise()}",
                     ],
@@ -100,7 +98,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                         "twined",
                         "question",
                         "ask",
-                        "remote",
                         self.SRUID,
                         f"--input-values={json.dumps(input_values)}",
                         f"--input-manifest={input_manifest.serialise()}",
@@ -123,7 +120,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                         "twined",
                         "question",
                         "ask",
-                        "remote",
                         self.SRUID,
                         f"--input-values={json.dumps({'height': 3})}",
                     ],
@@ -145,7 +141,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                         "twined",
                         "question",
                         "ask",
-                        "remote",
                         self.SRUID,
                         '--input-values={"height": 3}',
                         "--asynchronous",
@@ -164,7 +159,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                     "twined",
                     "question",
                     "ask",
-                    "remote",
                     self.SRUID,
                     '--input-values={"height": 3}',
                 ],
@@ -186,8 +180,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     [
                         "twined",
                         "question",
-                        "ask",
-                        "local",
+                        "ask-local",
                         '--input-values={"height": 3}',
                     ],
                 )
@@ -225,8 +218,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     [
                         "twined",
                         "question",
-                        "ask",
-                        "local",
+                        "ask-local",
                         f"--input-manifest={input_manifest.serialise()}",
                     ],
                 )
@@ -266,8 +258,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     [
                         "twined",
                         "question",
-                        "ask",
-                        "local",
+                        "ask-local",
                         f"--input-values={json.dumps(input_values)}",
                         f"--input-manifest={input_manifest.serialise()}",
                     ],
@@ -306,8 +297,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     [
                         "twined",
                         "question",
-                        "ask",
-                        "local",
+                        "ask-local",
                         f"--input-values={json.dumps({'height': 3})}",
                     ],
                 )
@@ -347,8 +337,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     [
                         "twined",
                         "question",
-                        "ask",
-                        "local",
+                        "ask-local",
                         '--input-values={"height": 3}',
                         f"--attributes={json.dumps(original_attributes)}",
                     ],
