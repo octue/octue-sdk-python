@@ -1,5 +1,4 @@
 import os
-import uuid
 
 from octue.twined.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.twined.resources import Child
@@ -38,19 +37,18 @@ class ExampleChild(Child):
         timeout=86400,
         maximum_heartbeat_interval=DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL,
     ):
-        self.template.set_template("template-using-manifests")
+        template = Template()
+        template.set_template("template-using-manifests")
 
         runner = Runner(
-            app_src=self.template.template_path,
-            twine=self.template.template_twine,
-            configuration_values=os.path.join(self.template.template_path, "data", "configuration", "values.json"),
+            app_src=template.template_path,
+            twine=template.template_twine,
+            configuration_values=os.path.join(template.template_path, "data", "configuration", "values.json"),
         )
 
-        analysis = runner.run(
-            input_manifest=os.path.join(self.template.template_path, "data", "input", "manifest.json")
-        )
+        analysis = runner.run(input_manifest=os.path.join(template.template_path, "data", "input", "manifest.json"))
 
-        self.template.cleanup()
+        template.cleanup()
         analysis.output_values = {"some": "output", "heights": [1, 2, 3, 4, 5]}
 
         answer = {
@@ -59,4 +57,4 @@ class ExampleChild(Child):
             "output_manifest": analysis.output_manifest,
         }
 
-        return answer, str(uuid.uuid4())
+        return answer, analysis.id
