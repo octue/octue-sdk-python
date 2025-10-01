@@ -59,36 +59,23 @@ The following command asks a question to the local example data service.
         becomes important when services use other Twined services as part of their analysis).
 
     ```python
-    from octue.twined.resources.example import ExampleChild
+    from octue.twined.resources import Child
 
-    child = ExampleChild(
+    child = Child(
         id="example/service:latest",
         backend={
             "name": "GCPPubSubBackend",
             "project_id": "example",
         },
     )
+
     answer, question_uuid = child.ask(input_values={"some": "data"})
     ```
 
     !!! tip
 
-        To ask a question to a real data service, use `Child` instead of `ExampleChild` and specify the service's
-        ID and project ID:
-
-        ```python
-        from octue.twined.resources import Child
-
-        child = Child(
-            id="some-org/a-service:1.2.0",
-            backend={
-                "name": "GCPPubSubBackend",
-                "project_id": "some-org",
-            },
-        )
-
-        answer, question_uuid = child.ask(input_values={"some": "data"})
-        ```
+        To ask a question to a real data service, specify its ID and project ID e.g. `some-org/real-service:1.2.0`
+        instead of `example/service:latest`.
 
 ### Receive an answer
 

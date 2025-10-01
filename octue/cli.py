@@ -24,7 +24,7 @@ from octue.twined.configuration import ServiceConfiguration
 from octue.twined.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.twined.exceptions import ServiceAlreadyExists
 from octue.twined.resources import Child, service_backends
-from octue.twined.resources.example import ExampleChild
+from octue.twined.resources.example import run_example
 from octue.twined.runner import Runner
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
@@ -115,8 +115,7 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
         octue question ask remote your-org/example-service:1.2.0
     """
     if sruid.startswith("example/"):
-        example_child = ExampleChild("", {})
-        answer, _ = example_child.ask()
+        answer, _ = run_example()
         click.echo(json.dumps(answer, cls=OctueJSONEncoder))
         return
 
