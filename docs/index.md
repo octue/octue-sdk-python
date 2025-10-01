@@ -40,12 +40,12 @@ The following command asks a question to the local example data service.
 === "CLI"
 
     ```shell
-    octue twined question ask example --input-values='{"some": "data"}'
+    octue twined question ask remote example/service:latest --input-values='{"some": "data"}'
     ```
 
     !!! tip
 
-        To ask a question to a real data service, use the `remote` subcommand and specify the ID of the service:
+        To ask a question to a real data service, just specify its ID:
 
         ```shell
         octue twined question ask remote some-org/a-service:1.2.0 --input-values='{"some": "data"}'
@@ -108,10 +108,10 @@ The following command asks a question to the local example data service.
 
         ```shell
         # Format the result using the `jq` command line tool
-        octue twined question ask example --input-values='{"some": "data"}' | jq
+        octue twined question ask remote example/service:latest --input-values='{"some": "data"}' | jq
 
         # Store the result in a file
-        octue twined question ask example --input-values='{"some": "data"}' > result.json
+        octue twined question ask remote example/service:latest --input-values='{"some": "data"}' > result.json
         ```
 
 === "Python"

@@ -114,6 +114,24 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
 
         octue question ask remote your-org/example-service:1.2.0
     """
+    if sruid.startswith("example/"):
+        example_child = ExampleChild()
+
+        with example_child:
+            analysis = example_child.ask()
+
+        click.echo(
+            json.dumps(
+                {
+                    "kind": "result",
+                    "output_values": analysis.output_values,
+                    "output_manifest": analysis.output_manifest,
+                },
+                cls=OctueJSONEncoder,
+            )
+        )
+        return
+
     service_configuration = ServiceConfiguration.from_file(service_config, allow_not_found=True)
 
     if service_configuration:
@@ -233,53 +251,6 @@ def local(input_values, input_manifest, attributes, service_config):
     )
 
     click.echo(json.dumps(answer, cls=OctueJSONEncoder))
-
-
-@ask.command()
-@click.option(
-    "-i",
-    "--input-values",
-    type=str,
-    default=None,
-    help="Any input values for the question, serialised as a JSON-encoded string.",
-)
-@click.option(
-    "-m",
-    "--input-manifest",
-    type=str,
-    default=None,
-    help="An optional input manifest for the question, serialised as a JSON-encoded string.",
-)
-@click.option(
-    "-a",
-    "--attributes",
-    type=str,
-    default=None,
-    help="An optional full set of event attributes for the question, serialised as a JSON-encoded string. If not "
-    "provided, the question will be an originator question.",
-)
-@click.option(
-    "-c",
-    "--service-config",
-    type=click.Path(dir_okay=False),
-    default=None,
-    help="The path to an `octue.yaml` file defining the service to run. If not provided, the "
-    "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
-    "is used.",
-)
-def example(input_values, input_manifest, attributes, service_config):
-    """Ask a question to a local example Twined service for demonstrating the CLI."""
-    example_child = ExampleChild()
-
-    with example_child:
-        analysis = example_child.ask()
-
-    click.echo(
-        json.dumps(
-            {"kind": "result", "output_values": analysis.output_values, "output_manifest": analysis.output_manifest},
-            cls=OctueJSONEncoder,
-        )
-    )
 
 
 @question.group()
