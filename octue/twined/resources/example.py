@@ -1,6 +1,5 @@
 import os
 
-from octue.twined.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.twined.resources import Child
 from octue.twined.runner import Runner
 from octue.twined.templates.template import Template
@@ -10,33 +9,7 @@ class ExampleChild(Child):
     def __init__(self, id, backend):
         pass
 
-    def ask(
-        self,
-        input_values=None,
-        input_manifest=None,
-        children=None,
-        subscribe_to_logs=True,
-        allow_local_files=False,
-        handle_monitor_message=None,
-        record_events=True,
-        save_diagnostics="SAVE_DIAGNOSTICS_ON_CRASH",
-        question_uuid=None,
-        parent_question_uuid=None,
-        originator_question_uuid=None,
-        originator=None,
-        push_endpoint=None,
-        asynchronous=False,
-        retry_count=0,
-        cpus=None,
-        memory=None,
-        ephemeral_storage=None,
-        raise_errors=True,
-        max_retries=0,
-        prevent_retries_when=None,
-        log_errors=True,
-        timeout=86400,
-        maximum_heartbeat_interval=DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL,
-    ):
+    def ask(self, *args, **kwargs):
         template = Template()
         template.set_template("template-using-manifests")
 
