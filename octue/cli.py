@@ -116,10 +116,7 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
     """
     if sruid.startswith("example/"):
         example_child = ExampleChild()
-
-        with example_child:
-            answer, _ = example_child.ask()
-
+        answer, _ = example_child.ask()
         click.echo(json.dumps(answer, cls=OctueJSONEncoder))
         return
 

@@ -12,12 +12,6 @@ class ExampleChild(Child):
         self.id = "local/example:latest"
         self.template = Template()
 
-    def __enter__(self):
-        pass
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.template.cleanup()
-
     def ask(
         self,
         input_values=None,
@@ -57,6 +51,7 @@ class ExampleChild(Child):
             input_manifest=os.path.join(self.template.template_path, "data", "input", "manifest.json")
         )
 
+        self.template.cleanup()
         analysis.output_values = {"some": "output", "heights": [1, 2, 3, 4, 5]}
 
         answer = {
