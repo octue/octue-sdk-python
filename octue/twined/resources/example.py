@@ -1,4 +1,5 @@
 import os
+import uuid
 
 from octue.twined.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.twined.resources import Child
@@ -55,5 +56,13 @@ class ExampleChild(Child):
         analysis = runner.run(
             input_manifest=os.path.join(self.template.template_path, "data", "input", "manifest.json")
         )
+
         analysis.output_values = {"some": "output", "heights": [1, 2, 3, 4, 5]}
-        return analysis
+
+        answer = {
+            "kind": "result",
+            "output_values": analysis.output_values,
+            "output_manifest": analysis.output_manifest,
+        }
+
+        return answer, str(uuid.uuid4())

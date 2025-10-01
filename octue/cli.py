@@ -118,18 +118,9 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
         example_child = ExampleChild()
 
         with example_child:
-            analysis = example_child.ask()
+            answer, _ = example_child.ask()
 
-        click.echo(
-            json.dumps(
-                {
-                    "kind": "result",
-                    "output_values": analysis.output_values,
-                    "output_manifest": analysis.output_manifest,
-                },
-                cls=OctueJSONEncoder,
-            )
-        )
+        click.echo(json.dumps(answer, cls=OctueJSONEncoder))
         return
 
     service_configuration = ServiceConfiguration.from_file(service_config, allow_not_found=True)
