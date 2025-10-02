@@ -2,36 +2,9 @@ site_name: Octue Twined
 site_url: https://twined.octue.com
 
 nav:
-  - index.md
   - installation.md
+  - index.md
   - Setting up infrastructure: infrastructure.md
-  - Datafiles, datasets, and manifests:
-      - data_containers/index.md
-      - data_containers/datafile.md
-      - data_containers/dataset.md
-      - data_containers/manifest.md
-  - services.md
-  - asking_questions.md
-  - creating_services.md
-  - Twines:
-      - twines/index.md
-      - Quickstart: twines/quick_start_create_your_first_twine.md
-      - twines/anatomy.md
-      - About Twines:
-          - twines/about/index.md
-          - twines/about/about_digital_twins.md
-          - twines/about/about_requirements.md
-          - twines/about/about_introducing_json_schema.md
-          - twines/about/about_other_considerations.md
-  - updating_services.md
-  - running_services_locally.md
-  - deploying_services.md
-  - testing_services.md
-  - troubleshooting_services.md
-  - logging.md
-  - authentication.md
-  - inter_service_compatibility.md
-  #  - api.md
   - license.md
   - version_history.md
   - support.md
