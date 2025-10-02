@@ -8,6 +8,7 @@ nav:
   - license.md
   - version_history.md
   - support.md
+  - glossary.md
 
 theme:
   name: material
