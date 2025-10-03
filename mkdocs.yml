@@ -2,8 +2,8 @@ site_name: Octue Twined
 site_url: https://twined.octue.com
 
 nav:
+  - Overview: index.md
   - installation.md
-  - index.md
   - Setting up infrastructure: infrastructure.md
   - Creating a service: creating.md
   - license.md
