@@ -5,6 +5,7 @@ nav:
   - installation.md
   - index.md
   - Setting up infrastructure: infrastructure.md
+  - Creating a service: creating.md
   - license.md
   - version_history.md
   - support.md

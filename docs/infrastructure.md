@@ -27,4 +27,4 @@ Follow the instructions [here](https://github.com/octue/terraform-octue-twined-c
 
 ## Next steps
 
-Congratulations on setting up a Twined services network! Next up, create your first data service.
+Congratulations on setting up a Twined services network! Next up, [create your first data service](creating.md).
