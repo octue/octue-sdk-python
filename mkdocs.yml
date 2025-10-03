@@ -4,12 +4,16 @@ site_url: https://twined.octue.com
 nav:
   - Overview: index.md
   - installation.md
-  - Setting up infrastructure: infrastructure.md
-  - Creating a service: creating.md
+  - Using services:
+      - using_services/getting_started.md
+  - Creating services:
+      - creating_services/getting_started.md
+  - Managing infrastructure:
+      - managing_infrastructure/getting_started.md
+  - glossary.md
   - license.md
   - version_history.md
   - support.md
-  - glossary.md
 
 theme:
   name: material
