@@ -1,6 +1,7 @@
 # Getting started
 
-Twined is a python framework for creating and using data services and digital twins.
+Run analyses instantly on ready-made services - no cloud setup, DevOps, or coding required. Run once or thousands of
+times, and add them to automation pipelines.
 
 This guide walks you through using an example Twined service locally. The process for using a real one (deployed locally
 or in the cloud) is almost identical.

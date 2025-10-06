@@ -1,3 +1,6 @@
+Allow your team to run services in your own private cloud, with just two pre-configured Terraform modules. Control
+costs, limit access and integrate with your other systems.
+
 Twined data services can be run locally, but deploying them in the cloud is generally preferable for reliability and
 performance. Twined makes it easy to do this with two [Terraform](https://terraform.io) modules (ready-made
 infrastructure as code / IaC) that deploy a managed Kubernetes cluster to run services on. The combined infrastructure
