@@ -1,7 +1,7 @@
 Turn your analysis code into production-ready services - no infrastructure or DevOps skills needed - and share with
 your team and beyond.
 
-# Prerequisites
+## Prerequisites
 
 Before you begin, ensure you:
 
