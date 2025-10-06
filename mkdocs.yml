@@ -6,8 +6,10 @@ nav:
   - installation.md
   - Using services:
       - using_services/getting_started.md
+      - using_services/authentication.md
   - Creating services:
       - creating_services/getting_started.md
+      - creating_services/authentication.md
   - Managing infrastructure:
       - managing_infrastructure/getting_started.md
   - glossary.md
