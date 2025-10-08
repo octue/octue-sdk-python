@@ -14,10 +14,10 @@ Before you begin, ensure you:
 - Have the following tools installed:
     - Python >= 3.10
     - The `octue` python library / CLI (see [installation instructions](../installation.md))
-- Have access to an existing Twined services network - see [authentication instructions](/creating_services/authentication)
 - Have the ability to create a GitHub repository under the same GitHub account or organisation as used for the
   [`github_account` variable](https://github.com/octue/terraform-octue-twined-core?tab=readme-ov-file#input-reference)
   used for the Twined services network
+- Have access to an existing Twined services network - see [authentication instructions](/using_services/authentication)
 
 <!-- prettier-ignore-end -->
 
