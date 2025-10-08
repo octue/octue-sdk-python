@@ -29,10 +29,12 @@ for the Twined services network. This variable is an input to the
 and should be stated in a `variables.tf` or another `.tf` file in the Terraform configuration used to deploy the services
 network. Ask the person who created or manages your infrastructure if you're not sure.
 
-Clone this repository to your computer
+Clone this repository to your computer and checkout a new branch called `add-new-service`
 
 ```shell
 git clone <my-repository>
+cd <my-repository>
+git checkout -b `add-new-service`
 ```
 
 ## Install the python dependencies
@@ -60,6 +62,12 @@ build-backend = "poetry.core.masonry.api"
 
     We use Poetry in this example but you can use Pip or another package manager with either a `setup.py` or
     `pyproject.toml` file.
+
+Now install the dependencies:
+
+```shell
+poetry install
+```
 
 ## Write the service python code
 
@@ -131,9 +139,10 @@ Create a file at the top level of the repository called `twine.json`:
 ## Add the service configuration file
 
 The service configuration file names the service and tells it things like where to store output data. Create an
-`octue.yaml` file, replacing `<handle>` with the value of `github_account` mentioned above. Check the other values with
-whoever manages your Twined service network (they can find them in the outputs of the Terraform modules used to deploy
-the service network).
+`octue.yaml` file, replacing `<handle>` with the value of `github_account` mentioned above and `<gcp-project-name>` with
+the name of the Google Cloud Platform project the Twined service network is deployed in. Check this and the other
+values with whoever manages your Twined service network, as they may be different (they can find them in the outputs of
+the Terraform modules used to deploy the service network).
 
 ```yaml
 services:
@@ -143,15 +152,90 @@ services:
 
     # Get these from whoever manages your Twined service network.
     event_store_table_id: octue_twined.service-events
-    diagnostics_cloud_path: gs://<GCP project name>-octue-twined/example-service/diagnostics
-    output_location: "gs://<GCP project name>-octue-twined/example-service/outputs"
+    diagnostics_cloud_path: gs://<gcp-project-name>-octue-twined/example-service/diagnostics
+    output_location: "gs://<gcp-project-name>-octue-twined/example-service/outputs"
     service_registries:
       - name: <handle>'s services
         endpoint: https://europe-west9-octue-twined-services.cloudfunctions.net/<environment>-octue-twined-service-registry
 ```
 
+## Enable GitHub Actions in the repository
+
+Go back to your repository on GitHub and open [its Actions settings](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#managing-github-actions-permissions-for-your-repository)
+(Settings -> Actions -> General). Set the "Actions permissions" option to "Allow all actions and reusable workflows".
+
 ## Add the GitHub Actions reusable workflow
+
+A GitHub Actions reusable workflow is used to automatically deploy the service when its code is merged into `main`.
+Create a file called `.github/workflows/release.yml` and add the following, replacing `<handle>` and
+`<gcp-project-name>` as before:
+
+```yaml
+name: release
+
+# Only trigger when a pull request into main branch is merged.
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  deploy:
+    uses: octue/workflows/.github/workflows/build-twined-service.yml@0.11.0
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      gcp_project_name: <gcp-project-name>
+      gcp_project_number: <gcp-project-number>
+      gcp_region: <gcp-project-region>
+      service_namespace: <handle>
+      service_name: example-service
+```
+
+See [here](https://github.com/octue/workflows?tab=readme-ov-file#deploying-a-kuberneteskueue-octue-twined-service-revision)
+for more information.
+
+## Merge the code into `main`
+
+To deploy the service, we need to merge the code we've added into the `main` branch. Make sure any sensitive and
+irrelevant files are listed in a `.gitignore` file and run:
+
+```shell
+git add .
+git commit -m "Add example Twined service"
+git push
+```
+
+For best practice, open a pull request for your branch into `main`, review it, and merge it. For a simpler route:
+
+```shell
+git checkout main
+git merge add-new-service
+git push
+```
+
+Navigate to your repository's page on GitHub and you should see the release workflow progressing after a few seconds. An
+in-progress indicator (currently a small orange circle) will be shown against the most recent commit.
 
 ## Send the service its first question
 
+Once the release workflow has completed (which should take only a couple of minutes for this simple example service), a
+green tick should show next to the most recent commit. You can now communicate with the service over the internet to ask
+it a question! From the command where you ran `poetry install`, run
+
+```shell
+octue twined question ask <handle>/example-service:0.1.0 --input-values='{"some_input": 1}'
+```
+
+After a couple of minutes (while the Kubernetes cluster is spinning up a container to run the service), you should see
+log messages start to appear and finally see `[1, 2, 3, 4, 5]` returned as output values.
+
+See the [using services getting started guide](/using_services/getting_started) to see how to ask questions in python
+instead.
+
 ## Next steps
+
+- [Read about the core concepts of Twined](/core_concepts)
+- [Create infrastructure for a Twined service network](/managing_infrastructure/getting_started)
