@@ -4,18 +4,18 @@ everything securely in your own environment**, Twined streamlines the process so
 
 ## Where to start
 
-### Using services
+### 1 - Using services
 
 Access ready-made scientific analyses instantly, with no coding, cloud setup, or DevOps required. Run them once or
 thousands of times, and connect them directly into your research workflows and pipelines. Try the [getting started
 guide](using_services/getting_started.md).
 
-### Creating services
+### 2 - Creating services
 
 Package your analysis code or models as production-ready services, without needing infrastructure expertise. Share them
 with colleagues, collaborators, or the wider community. Try the [getting started guide](creating_services/getting_started.md).
 
-### Managing infrastructure
+### 3 - Managing infrastructure
 
 Deploy Twined services in your private cloud with just two pre-configured Terraform modules. Control costs, manage
 access, and integrate with your existing scientific data and digital tools. Try the [getting started guide](managing_infrastructure/getting_started.md).
