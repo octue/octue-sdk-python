@@ -34,7 +34,7 @@ Clone this repository to your computer and checkout a new branch called `add-new
 ```shell
 git clone <my-repository>
 cd <my-repository>
-git checkout -b `add-new-service`
+git checkout -b add-new-service
 ```
 
 ## Install the python dependencies
