@@ -11,6 +11,12 @@ nav:
       - creating_services/getting_started.md
   - Managing infrastructure:
       - managing_infrastructure/getting_started.md
+  - Core concepts:
+      - Datafiles, datasets, and manifests:
+          - core_concepts/data_containers/index.md
+          - core_concepts/data_containers/datafiles.md
+          - core_concepts/data_containers/datasets.md
+          - core_concepts/data_containers/manifests.md
   - glossary.md
   - license.md
   - version_history.md
