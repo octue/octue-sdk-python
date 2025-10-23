@@ -29,8 +29,8 @@ Create a GitHub repository for the service. Clone this repository to your comput
 `add-new-service`.
 
 ```shell
-git clone <my-repository>
-cd <my-repository>
+git clone https://github.com/<my-account>/example-service.git
+cd example-service
 git checkout -b add-new-service
 ```
 
@@ -98,11 +98,11 @@ def run(analysis):
     logger.info("Finished example analysis.")
 ```
 
-## Add the twine file
+## Add the Twine file
 
-The Twine file is a JSON file stating what kind of data is expected as inputs and outputs of the service. It shows users
-what can be sent to the service and what to expect as output. Inputs and outputs that violate the schemas won't be
-processed and will cause an error.
+The Twine file is a JSON file containing schemas stating what kind of data is expected as inputs and outputs of the
+service. It shows users what can be sent to the service and what to expect to receive. Inputs and outputs that violate
+the schemas won't be processed and will cause an error.
 
 Create a file at the top level of the repository called `twine.json`:
 
@@ -135,11 +135,10 @@ Create a file at the top level of the repository called `twine.json`:
 
 ## Add the service configuration file
 
-The service configuration file names the service and tells it things like where to store output data. Create an
-`octue.yaml` file, replacing `<handle>` with the value of `github_account` mentioned above and `<gcp-project-name>` with
-the name of the Google Cloud Platform project the Twined service network is deployed in. Check this and the other
-values with whoever manages your Twined service network, as they may be different (they can find them in the outputs of
-the Terraform modules used to deploy the service network).
+The service configuration file names the service and sets details like where to store output data. Create an
+`octue.yaml` file, replacing `<handle>` with your GitHub account handle and `<gcp-project-name>` with
+the name of the Google Cloud Platform project the Twined service network is deployed in. `<environment>` is "main" by
+default, but check with whoever deployed the Twined service network.
 
 ```yaml
 services:
@@ -216,11 +215,11 @@ git push
 Navigate to your repository's page on GitHub and you should see the release workflow progressing after a few seconds. An
 in-progress indicator (currently a small orange circle) will be shown against the most recent commit.
 
-## Send the service its first question
+## Ask the service its first question
 
 Once the release workflow has completed (which should take only a couple of minutes for this simple example service), a
 green tick should show next to the most recent commit. You can now communicate with the service over the internet to ask
-it a question! From the command where you ran `poetry install`, run
+it a question! From the terminal where you ran `poetry install`, run
 
 ```shell
 octue twined question ask <handle>/example-service:0.1.0 --input-values='{"some_input": 1}'
