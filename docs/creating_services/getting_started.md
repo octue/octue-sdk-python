@@ -14,22 +14,19 @@ Before you begin, ensure you:
 - Have the following tools installed:
     - Python >= 3.10
     - The `octue` python library / CLI (see [installation instructions](../installation.md))
-- Have the ability to create a GitHub repository under the same GitHub account or organisation as used for the
-  [`github_account` variable](https://github.com/octue/terraform-octue-twined-core?tab=readme-ov-file#input-reference)
-  used for the Twined services network
 - Have access to an existing Twined services network - see [authentication instructions](/using_services/authentication)
 
 <!-- prettier-ignore-end -->
 
 ## Create and clone a GitHub repository
 
-Create a GitHub repository for the service. It must be owned by the GitHub account used as the `github_account` variable
-for the Twined services network. This variable is an input to the
-[Twined core Terraform module](https://github.com/octue/terraform-octue-twined-core?tab=readme-ov-file#input-reference)
-and should be stated in a `variables.tf` or another `.tf` file in the Terraform configuration used to deploy the services
-network. Ask the person who created or manages your infrastructure if you're not sure.
+!!! warning
 
-Clone this repository to your computer and checkout a new branch called `add-new-service`
+    The repository must be created in the same GitHub account used for your Twined services network. See
+    [this issue](https://github.com/octue/octue-sdk-python/issues/740) for more details.
+
+Create a GitHub repository for the service. Clone this repository to your computer and checkout a new branch called
+`add-new-service`.
 
 ```shell
 git clone <my-repository>
