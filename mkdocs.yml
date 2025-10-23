@@ -17,6 +17,9 @@ nav:
           - core_concepts/data_containers/datafiles.md
           - core_concepts/data_containers/datasets.md
           - core_concepts/data_containers/manifests.md
+      - core_concepts/services.md
+      - core_concepts/asking_questions.md
+      - core_concepts/creating_services.md
   - glossary.md
   - license.md
   - version_history.md
