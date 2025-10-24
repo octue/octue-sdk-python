@@ -38,6 +38,7 @@ pydash = "^8.0.4"
 grpcio = "^1.71.0"
 jsonschema = "^4"
 python-dotenv = ">=0,<=2"
+stringcase = "1.2.0"
 
 [tool.poetry.extras]
 hdf5 = ["h5py"]
@@ -57,7 +58,6 @@ ruff = "^0.6.9"
 numpy = "^2.2.1"
 pandas = "^2.2.3"
 dateparser = "1.1.1"
-stringcase = "1.2.0"
 # Documentation
 mkdocs-material = "^9.6.17"
 mkdocs-glightbox = "^0.4.0"

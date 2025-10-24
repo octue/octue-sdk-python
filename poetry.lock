@@ -2093,7 +2093,7 @@ version = "1.2.0"
 description = "String case converter."
 optional = false
 python-versions = "*"
-groups = ["dev"]
+groups = ["main"]
 files = [
     {file = "stringcase-1.2.0.tar.gz", hash = "sha256:48a06980661908efe8d9d34eab2b6c13aefa2163b3ced26972902e3bdfd87008"},
 ]
@@ -2396,4 +2396,4 @@ hdf5 = ["h5py"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "42da87c7b35bc255a87855d6f2d54b3220cad8e126cc09634b607ae3a1ef344c"
+content-hash = "0fa70b3f4b872a7066c4bbc2bc91a289857acba9ae8ed158c2b23d6351ab8e11"
