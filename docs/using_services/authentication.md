@@ -17,7 +17,7 @@ created with the required permissions.
 
 1.  Access your service accounts
     [here](https://console.cloud.google.com/iam-admin/serviceaccounts),
-    making sure the correct project is selected
+    making sure the correct project is selected, or ask your Twined service network administrator
 2.  Click on the relevant service account, go to the "Keys" tab, and
     create (download) a JSON key for it - it will be called
     `<project-name>-XXXXX.json`.

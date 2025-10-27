@@ -15,6 +15,7 @@ Before you begin, ensure you:
     - Python >= 3.10
     - The `octue` python library / CLI (see [installation instructions](../installation.md))
 - Have access to an existing Twined services network - see [authentication instructions](/using_services/authentication)
+  and [managing infrastructure](../../managing_infrastructure/getting_started)
 
 <!-- prettier-ignore-end -->
 
@@ -26,10 +27,10 @@ Before you begin, ensure you:
     [this issue](https://github.com/octue/octue-sdk-python/issues/740) for more details.
 
 Create a GitHub repository for the service. Clone this repository to your computer and checkout a new branch called
-`add-new-service`.
+`add-new-service`. Replacing `<handle>` with your GitHub account handle.
 
 ```shell
-git clone https://github.com/<my-account>/example-service.git
+git clone https://github.com/<handle>/example-service.git
 cd example-service
 git checkout -b add-new-service
 ```
@@ -133,26 +134,31 @@ Create a file at the top level of the repository called `twine.json`:
 }
 ```
 
-## Add the service configuration file
+## Add the `octue.yaml` file
 
-The service configuration file names the service and sets details like where to store output data. Create an
-`octue.yaml` file, replacing `<handle>` with your GitHub account handle and `<gcp-project-name>` with
-the name of the Google Cloud Platform project the Twined service network is deployed in. `<environment>` is "main" by
-default, but check with whoever deployed the Twined service network.
+The service configuration file (called `octue.yaml`) names the service and sets details like where to store output data.
+Create an `octue.yaml` file at the top level of the repository, replacing:
+
+- `<handle>` with your GitHub account handle
+- `<gcp-project-id>` with the ID of the Google Cloud Platform (GCP) project the Twined service network is deployed in
+- `<region>` with the name of the GCP region the service network is deployed in (e.g. `europe-west1`)
+- `<environment>` with the name of the environment the service network is deployed in (`main` by default)
+
+!!! tip
+
+    Ask the manager of your Twined service network to help you with these values!
 
 ```yaml
 services:
   - namespace: <handle>
     name: example-service
     app_source_path: example_service
-
-    # Get these from whoever manages your Twined service network.
     event_store_table_id: octue_twined.service-events
-    diagnostics_cloud_path: gs://<gcp-project-name>-octue-twined/example-service/diagnostics
-    output_location: "gs://<gcp-project-name>-octue-twined/example-service/outputs"
+    diagnostics_cloud_path: gs://<gcp-project-id>-octue-twined/example-service/diagnostics
+    output_location: gs://<gcp-project-id>-octue-twined/example-service/outputs
     service_registries:
       - name: <handle>'s services
-        endpoint: https://europe-west9-octue-twined-services.cloudfunctions.net/<environment>-octue-twined-service-registry
+        endpoint: https://<region>-<gcp-project-id>.cloudfunctions.net/<environment>-octue-twined-service-registry
 ```
 
 ## Enable GitHub Actions in the repository
@@ -160,19 +166,18 @@ services:
 Go back to your repository on GitHub and open [its Actions settings](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#managing-github-actions-permissions-for-your-repository)
 (Settings -> Actions -> General). Set the "Actions permissions" option to "Allow all actions and reusable workflows".
 
-## Add the GitHub Actions reusable workflow
+## Add the GitHub Actions release workflow
 
 A GitHub Actions reusable workflow is used to automatically deploy the service when its code is merged into `main`.
 Create a file called `.github/workflows/release.yml` and add the following, replacing `<handle>` and
-`<gcp-project-name>` as before:
+`<gcp-project-id>` as before:
 
 ```yaml
-name: release
+name: deploy
 
 # Only trigger when a pull request into main branch is merged.
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
       - main
 
@@ -183,15 +188,17 @@ jobs:
       id-token: write
       contents: read
     with:
-      gcp_project_name: <gcp-project-name>
+      gcp_project_name: <gcp-project-id>
       gcp_project_number: <gcp-project-number>
       gcp_region: <gcp-project-region>
       service_namespace: <handle>
       service_name: example-service
 ```
 
-See [here](https://github.com/octue/workflows?tab=readme-ov-file#deploying-a-kuberneteskueue-octue-twined-service-revision)
-for more information.
+!!! tip
+
+    See [here](https://github.com/octue/workflows?tab=readme-ov-file#deploying-a-kuberneteskueue-octue-twined-service-revision)
+    for more information, including how to use custom dockerfiles for your service.
 
 ## Merge the code into `main`
 
@@ -219,7 +226,7 @@ in-progress indicator (currently a small orange circle) will be shown against th
 
 Once the release workflow has completed (which should take only a couple of minutes for this simple example service), a
 green tick should show next to the most recent commit. You can now communicate with the service over the internet to ask
-it a question! From the terminal where you ran `poetry install`, run
+it a question! From the terminal where you ran `poetry install`, replace `<handle>` as before and run:
 
 ```shell
 octue twined question ask <handle>/example-service:0.1.0 --input-values='{"some_input": 1}'

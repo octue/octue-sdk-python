@@ -124,8 +124,8 @@ The following command asks a question to the local example data service.
 
 Congratulations on running your first analysis! For additional information, check out the following resources:
 
-- [Set up infrastructure for a data service(s) using Terraform](../managing_infrastructure/getting_started.md)
-- [Create a data service](../creating_services/getting_started.md)
+- [Create your own data service](../creating_services/getting_started.md)
+- [Set up infrastructure to host your data service(s) in the cloud](../managing_infrastructure/getting_started.md)
 - Run a data service locally
 - See the library and CLI reference
 - [Get support](../support.md)
