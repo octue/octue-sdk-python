@@ -138,6 +138,10 @@ Create a file at the top level of the repository called `twine.json`:
 }
 ```
 
+!!! tip
+
+    Learn more about `twine.json` files [here](../../core_concepts/creating_services/#twinejson).
+
 ## Add the `octue.yaml` file
 
 The service configuration file (called `octue.yaml`) names the service and sets details like where to store output data.
@@ -164,6 +168,10 @@ services:
       - name: <handle>'s services
         endpoint: https://<region>-<gcp-project-id>.cloudfunctions.net/<environment>-octue-twined-service-registry
 ```
+
+!!! tip
+
+    Learn more about `octue.yaml` files [here](../../core_concepts/creating_services/#octueyaml).
 
 ## Enable GitHub Actions in the repository
 
