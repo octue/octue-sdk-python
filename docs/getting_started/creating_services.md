@@ -178,7 +178,7 @@ services:
 Go back to your repository on GitHub and open [its Actions settings](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#managing-github-actions-permissions-for-your-repository)
 (Settings -> Actions -> General). Set the "Actions permissions" option to "Allow all actions and reusable workflows".
 
-## Add the GitHub Actions release workflow
+## Add the GitHub Actions deploy workflow
 
 A GitHub Actions reusable workflow is used to automatically deploy the service when its code is merged into `main`.
 Create a file called `.github/workflows/deploy.yml` and add the following, replacing `<handle>` and
@@ -249,13 +249,23 @@ git merge add-new-service
 git push
 ```
 
-Navigate to your repository's page on GitHub and you should see the release workflow progressing after a few seconds. An
-in-progress indicator (currently a small orange circle) will be shown against the most recent commit.
+Navigate to your repository's page on GitHub and you should see the deploy workflow progressing after a few seconds. An
+in-progress indicator (currently a small orange circle) will be shown against the most recent commit. Once the workflow
+has completed (which should take only a couple of minutes for this simple example service), a green tick should show
+next to the most recent commit.
+
+<br/>
+<figure markdown="span">
+  ![GitHub repository "Actions" tab](../../images/actions_tab.png)
+  <figcaption>The "Actions" tab of the GitHub repository. A successful workflow run is shown at the top with a green
+   tick while a failed one is shown below it with a red cross. Note that the workflow in the image is called
+   "release.yaml" but yours is called "deploy.yaml".
+  </figcaption>
+</figure>
 
 ## Ask the service its first question
 
-Once the release workflow has completed (which should take only a couple of minutes for this simple example service), a
-green tick should show next to the most recent commit. You can now communicate with the service over the internet to ask
+You can now communicate with the service over the internet to ask
 it a question! Follow the [authentication instructions](../../authentication) in the terminal where you ran `poetry install`, replace
 `<handle>` as before, and run:
 
