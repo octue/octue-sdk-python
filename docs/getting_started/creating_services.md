@@ -69,6 +69,8 @@ Now install the dependencies:
 poetry install
 ```
 
+Note that this will create a `poetry.lock` file with the locked dependency versions in. Keep this file.
+
 ## Write the service python code
 
 We'll make the example service do the most basic thing possible - return dummy output values and a dummy output dataset.
@@ -171,7 +173,7 @@ Go back to your repository on GitHub and open [its Actions settings](https://doc
 ## Add the GitHub Actions release workflow
 
 A GitHub Actions reusable workflow is used to automatically deploy the service when its code is merged into `main`.
-Create a file called `.github/workflows/release.yml` and add the following, replacing `<handle>` and
+Create a file called `.github/workflows/deploy.yml` and add the following, replacing `<handle>` and
 `<gcp-project-id>` as before:
 
 ```yaml
@@ -201,6 +203,24 @@ jobs:
 
     See [here](https://github.com/octue/workflows?tab=readme-ov-file#deploying-a-kuberneteskueue-octue-twined-service-revision)
     for more information, including how to use custom dockerfiles for your service.
+
+## Check your files
+
+Once you've finished the steps above, your repository should have a file structure like this:
+
+```
+.
+├── .github
+│   └── workflows
+│       └── deploy.yml
+├── example_service
+│   ├── __init__.py
+│   └── app.py
+├── octue.yaml
+├── poetry.lock
+├── pyproject.toml
+└── twine.json
+```
 
 ## Merge the code into `main`
 
