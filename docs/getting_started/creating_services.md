@@ -249,10 +249,10 @@ git merge add-new-service
 git push
 ```
 
-Navigate to your repository's page on GitHub and you should see the deploy workflow progressing after a few seconds. An
-in-progress indicator (currently a small orange circle) will be shown against the most recent commit. Once the workflow
-has completed (which should take only a couple of minutes for this simple example service), a green tick should show
-next to the most recent commit.
+Navigate to your repository's "Actions" tab on GitHub and you should see the deploy workflow progressing after a few
+seconds. An in-progress indicator (currently a small orange circle) will be shown against the most recent commit. Once
+the workflow has completed (which should take only a couple of minutes for this simple example service), a green tick
+should show next to the most recent commit.
 
 <br/>
 <figure markdown="span">
