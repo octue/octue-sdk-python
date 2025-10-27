@@ -1,4 +1,4 @@
-# Getting started
+# Getting started - using services
 
 Run analyses instantly on ready-made services - no cloud setup, DevOps, or coding required. Run once or thousands of
 times, and add them to automation pipelines.
@@ -25,7 +25,7 @@ Before you begin, ensure you:
 ## Authentication
 
 No authentication is needed to run the example data service. To authenticate for real data services, see
-[authentication instructions](authentication.md).
+[authentication instructions](../../authentication.md).
 
 ## Run your first analysis
 
@@ -124,8 +124,8 @@ The following command asks a question to the local example data service.
 
 Congratulations on running your first analysis! For additional information, check out the following resources:
 
-- [Create your own data service](../creating_services/getting_started.md)
-- [Set up infrastructure to host your data service(s) in the cloud](../managing_infrastructure/getting_started.md)
+- [Create your own data service](../getting_started/creating_services.md)
+- [Set up infrastructure to host your data service(s) in the cloud](../getting_started/managing_infrastructure.md)
 - Run a data service locally
 - See the library and CLI reference
 - [Get support](../support.md)

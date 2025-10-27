@@ -1,3 +1,5 @@
+# Getting started - managing infrastructure
+
 Allow your team to run services in your own private cloud, with just two pre-configured Terraform modules. Control
 costs, limit access and integrate with your other systems.
 
@@ -30,4 +32,4 @@ Follow the instructions [here](https://github.com/octue/terraform-octue-twined-c
 
 ## Next steps
 
-Congratulations on setting up a Twined services network! Next up, [create your first data service](../creating_services/getting_started.md).
+Congratulations on setting up a Twined services network! Next up, [create your first data service](../getting_started/creating_services.md).

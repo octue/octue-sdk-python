@@ -4,13 +4,11 @@ site_url: https://twined.octue.com
 nav:
   - Overview: index.md
   - installation.md
-  - Using services:
-      - using_services/getting_started.md
-      - using_services/authentication.md
-  - Creating services:
-      - creating_services/getting_started.md
-  - Managing infrastructure:
-      - managing_infrastructure/getting_started.md
+  - authentication.md
+  - Getting started:
+      - Using services: getting_started/using_services.md
+      - Creating services: getting_started/creating_services.md
+      - Managing infrastructure: getting_started/managing_infrastructure.md
   - Core concepts:
       - Datafiles, datasets, and manifests:
           - core_concepts/data_containers/index.md

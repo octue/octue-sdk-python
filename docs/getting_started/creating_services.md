@@ -1,3 +1,5 @@
+# Getting started - creating services
+
 Turn your analysis code into production-ready services - no infrastructure or DevOps skills needed - and share with
 your team and beyond.
 
@@ -14,8 +16,8 @@ Before you begin, ensure you:
 - Have the following tools installed:
     - Python >= 3.10
     - The `octue` python library / CLI (see [installation instructions](../installation.md))
-- Have access to an existing Twined services network - see [authentication instructions](/using_services/authentication)
-  and [managing infrastructure](../../managing_infrastructure/getting_started)
+- Have access to an existing Twined services network - see [authentication instructions](../../authentication)
+  and [managing infrastructure](../../getting_started/managing_infrastructure)
 
 <!-- prettier-ignore-end -->
 
@@ -235,10 +237,10 @@ octue twined question ask <handle>/example-service:0.1.0 --input-values='{"some_
 After a couple of minutes (while the Kubernetes cluster is spinning up a container to run the service), you should see
 log messages start to appear and finally see `[1, 2, 3, 4, 5]` returned as output values.
 
-See the [using services getting started guide](/using_services/getting_started) to see how to ask questions in python
+See the [using services getting started guide](/getting_started/using_services) to see how to ask questions in python
 instead.
 
 ## Next steps
 
 - [Read about the core concepts of Twined](/core_concepts)
-- [Create infrastructure for a Twined service network](/managing_infrastructure/getting_started)
+- [Create infrastructure for a Twined service network](/getting_started/managing_infrastructure)
