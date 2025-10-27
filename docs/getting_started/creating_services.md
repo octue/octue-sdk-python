@@ -228,7 +228,8 @@ in-progress indicator (currently a small orange circle) will be shown against th
 
 Once the release workflow has completed (which should take only a couple of minutes for this simple example service), a
 green tick should show next to the most recent commit. You can now communicate with the service over the internet to ask
-it a question! From the terminal where you ran `poetry install`, replace `<handle>` as before and run:
+it a question! Follow the [authentication instructions](../../authentication) in the terminal where you ran `poetry install`, replace
+`<handle>` as before, and run:
 
 ```shell
 octue twined question ask <handle>/example-service:0.1.0 --input-values='{"some_input": 1}'
