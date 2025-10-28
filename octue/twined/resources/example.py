@@ -6,6 +6,14 @@ logger = logging.getLogger(__name__)
 
 
 def run_example(n):
+    error_message = f"`n` must be an integer >= 0. Received {n!r}."
+
+    if not isinstance(n, int):
+        raise TypeError(error_message)
+
+    if n < 0:
+        raise ValueError(error_message)
+
     logger.info("Starting Fibonacci sequence calculation.")
 
     answer = {
@@ -25,12 +33,6 @@ def _calculate_fibonacci(n):
     :param int n: the position in the sequence in the sequence to calculate the value of (must be more than 0)
     :return int: the value of the sequence at the nth position
     """
-    if not isinstance(n, int):
-        raise TypeError(f"`n` must be an integer. Received {n!r}.")
-
-    if n < 0:
-        raise ValueError(f"`n` must be an integer >= 0. Received {n!r}.")
-
     if n == 0:
         return 0
 
