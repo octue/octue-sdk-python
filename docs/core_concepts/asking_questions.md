@@ -64,7 +64,7 @@ You can also set the following options when you call `Child.ask`:
 
 - `children` - If the child has children of its own (i.e. grandchildren of the parent), this optional argument can be
   used to override the child's "default" children. This allows you to specify particular versions of grandchildren to
-  use (see [this subsection below](#overriding-a-childs-children).
+  use (see [this subsection below](#overriding-a-childs-children)).
 - `subscribe_to_logs` - if true, the child will forward its logs to you
 - `allow_local_files` - if true, local files/datasets are allowed in any input manifest you supply
 - `handle_monitor_message` - if provided a function, it will be called on any monitor messages from the child
@@ -314,7 +314,7 @@ you want it to use (dynamic children) to the
 children will instead go to the dynamic children. Note that:
 
 - You must provide the children in the same format as they're provided
-  in the [service configuration](/creating_services/#octueyaml)
+  in the [service configuration](../../core_concepts/creating_services/#octueyaml)
 - If you override one static child, you must override others, too
 - The dynamic children must have the same keys as the static children
   (so the child knows which service to ask which questions)

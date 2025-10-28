@@ -18,6 +18,13 @@ nav:
       - core_concepts/services.md
       - core_concepts/asking_questions.md
       - core_concepts/creating_services.md
+      - core_concepts/updating_services.md
+      - core_concepts/running_services_locally.md
+      - Deploying services: core_concepts/deploying_services.md
+      - core_concepts/testing_services.md
+      - core_concepts/troubleshooting_services.md
+      - core_concepts/logging.md
+      - core_concepts/inter_service_compatibility.md
   - glossary.md
   - license.md
   - version_history.md
