@@ -36,12 +36,13 @@ No authentication is needed to run the example data service. To authenticate for
 
 ### Ask a question
 
-The following command asks a question to the local example data service.
+The following command asks a question to the local example data service, which calculates the first `n` values of the
+[Fibonacci sequence](https://en.wikipedia.org/wiki/Fibonacci_sequence).
 
 === "CLI"
 
     ```shell
-    octue twined question ask example/service:latest --input-values='{"some": "data"}'
+    octue twined question ask example/service:latest --input-values='{"n": 10}'
     ```
 
     !!! tip
@@ -49,7 +50,7 @@ The following command asks a question to the local example data service.
         To ask a question to a real data service, just specify its ID:
 
         ```shell
-        octue twined question ask some-org/a-service:1.2.0 --input-values='{"some": "data"}'
+        octue twined question ask some-org/a-service:1.2.0 --input-values='{"n": 10}'
         ```
 
 === "Python"
@@ -65,7 +66,7 @@ The following command asks a question to the local example data service.
         },
     )
 
-    answer, question_uuid = child.ask(input_values={"some": "data"})
+    answer, question_uuid = child.ask(input_values={"n": 10})
     ```
 
     !!! info
@@ -86,14 +87,9 @@ The following command asks a question to the local example data service.
     [JSON](https://en.wikipedia.org/wiki/JSON):
 
     ```text
-    [2025-09-23 18:20:13,513 | WARNING | octue.resources.dataset] <Dataset('cleaned_met_mast_data')> is empty at instantiation time (path 'cleaned_met_mast_data').
-    [2025-09-23 18:20:13,649 | INFO | app] [fb85f10d-4428-4239-9543-f7650104b43c] Starting clean up of files in <Manifest(8ead7669-8162-4f64-8cd5-4abe92509e17)>
-    [2025-09-23 18:20:13,649 | INFO | app] [fb85f10d-4428-4239-9543-f7650104b43c] Averaging window set to 600s
-    [2025-09-23 18:20:13,673 | INFO | octue.twined.resources.analysis] [fb85f10d-4428-4239-9543-f7650104b43c] The analysis didn't produce output values.
-    [2025-09-23 18:20:13,673 | INFO | octue.twined.resources.analysis] [fb85f10d-4428-4239-9543-f7650104b43c] The analysis produced an output manifest.
-    [2025-09-23 18:20:13,673 | INFO | octue.twined.resources.analysis] [fb85f10d-4428-4239-9543-f7650104b43c] No output location was set in the service configuration - can't upload output datasets.
-    [2025-09-23 18:20:13,726 | INFO | octue.twined.resources.analysis] [fb85f10d-4428-4239-9543-f7650104b43c] Validated outputs against the twine.
-    {"kind": "result", "output_values": {"some": "output", "heights": [1, 2, 3, 4, 5]}, "output_manifest": {"id": "2e1fb3e4-2f86-4eb2-9c2f-5785d36c6df9", "name": null, "datasets": {"cleaned_met_mast_data": "/var/folders/9p/25hhsy8j4wv66ck3yylyz97c0000gn/T/tmps_qcb4yw"}}}
+    [2025-10-28 15:36:52,377 | INFO | octue.twined.resources.example] Starting Fibonacci sequence calculation.
+    [2025-10-28 15:36:52,377 | INFO | octue.twined.resources.example] Finished Fibonacci sequence calculation.
+    {"kind": "result", "output_values": {"fibonacci": [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]}, "output_manifest": null}
     ```
 
     !!! tip
@@ -102,10 +98,10 @@ The following command asks a question to the local example data service.
 
         ```shell
         # Format the result using the `jq` command line tool
-        octue twined question ask example/service:latest --input-values='{"some": "data"}' | jq
+        octue twined question ask example/service:latest --input-values='{"n": 10}' | jq
 
         # Store the result in a file
-        octue twined question ask example/service:latest --input-values='{"some": "data"}' > result.json
+        octue twined question ask example/service:latest --input-values='{"n": 10}' > result.json
         ```
 
 === "Python"
@@ -115,8 +111,8 @@ The following command asks a question to the local example data service.
 
     >>> {
         "kind": "result",
-        "output_values": {"some": "output", "heights": [1, 2, 3, 4, 5]},
-        "output_manifest": {"id": "2e1fb3e4-2f86-4eb2-9c2f-5785d36c6df9", "name": null, "datasets": {"cleaned_met_mast_data": "/var/folders/9p/25hhsy8j4wv66ck3yylyz97c0000gn/T/tmps_qcb4yw"}},
+        "output_values": {"fibonacci": [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]},
+        "output_manifest": None,
     }
     ```
 
