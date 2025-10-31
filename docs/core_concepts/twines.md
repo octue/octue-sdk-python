@@ -18,17 +18,17 @@ Here, we describe the parts of a twine and what they mean.
 
 A twine has several sections, called strands. Each defines a different kind of data required (or produced) by the service.
 
-| Strand                 | Describes the service's requirements for...                                                                       |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Configuration values   | Data, in JSON form, used for configuration of the service                                                         |
-| Configuration manifest | Files/datasets required by the service at configuration/startup                                                   |
-| Input values           | Data, in JSON form, passed to the service in order to trigger an analysis                                         |
-| Input manifest         | Files/datasets passed with input values to trigger an analysis                                                    |
-| Output values          | Data, in JSON form, that will be produced by the service (in response to inputs)                                  |
-| Output manifest        | Files/datasets that will be produced by the service (in response to inputs)                                       |
-| Credentials            | interpreted-text role="ref"} Credentials that are required by the service in order to access third party services |
-| Children               | Other twins, access to which are required for this service to function                                            |
-| Monitors               | Visual and progress outputs from an analysis                                                                      |
+| Strand                 | Describes the service's requirements for...                                          |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| Configuration values   | Data, in JSON form, used for configuration of the service                            |
+| Configuration manifest | Files/datasets required by the service at configuration/startup                      |
+| Input values           | Data, in JSON form, passed to the service in order to trigger an analysis            |
+| Input manifest         | Files/datasets passed with input values to trigger an analysis                       |
+| Output values          | Data, in JSON form, that will be produced by the service (in response to inputs)     |
+| Output manifest        | Files/datasets that will be produced by the service (in response to inputs)          |
+| Credentials            | Credentials that are required by the service in order to access third party services |
+| Children               | Other twins, access to which are required for this service to function               |
+| Monitors               | Visual and progress outputs from an analysis                                         |
 
 ## Twine file schema
 
