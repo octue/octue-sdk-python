@@ -105,9 +105,9 @@ def run(analysis):
 
 ## Add the Twine file
 
-The Twine file is a JSON file containing schemas stating what kind of data is expected as inputs and outputs of the
-service. It shows users what can be sent to the service and what to expect to receive. Inputs and outputs that violate
-the schemas won't be processed and will cause an error.
+The Twine file is a JSON file containing [JSON schemas](https://json-schema.org/) stating what kind of data is expected
+as inputs and outputs of the service. It shows users what can be sent to the service and what to expect to receive.
+Inputs and outputs that violate the schemas won't be processed and will cause an error.
 
 Create a file at the top level of the repository called `twine.json`:
 
@@ -281,5 +281,5 @@ instead.
 
 ## Next steps
 
-- [Read about the core concepts of Twined](/core_concepts)
+- [Read about the core concepts of Twined](../../core_concepts/creating_services)
 - [Create infrastructure for a Twined service network](/getting_started/managing_infrastructure)
