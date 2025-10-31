@@ -25,6 +25,8 @@ nav:
       - core_concepts/troubleshooting_services.md
       - core_concepts/logging.md
       - core_concepts/inter_service_compatibility.md
+      - Twines: core_concepts/twines.md
+      - core_concepts/twine_file_quickstart.md
   - glossary.md
   - license.md
   - version_history.md

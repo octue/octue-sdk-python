@@ -12,8 +12,7 @@ run locally on any machine or be deployed to the cloud. Currently:
 
 ## Anatomy of a Twined service
 
-A Twined service is defined by the following files (located in the
-repository root by default).
+A Twined service is defined by the following files (located in the repository root by default).
 
 ### app.py
 
@@ -21,10 +20,8 @@ This is the entrypoint into your code - read more [here](../creating_apps).
 
 ### twine.json
 
-This file defines the schema for the service's configuration, input,
-and output data. Read more
-[here](https://twined.readthedocs.io/en/latest/) and see an example
-[here](https://twined.readthedocs.io/en/latest/quick_start_create_your_first_twine.html).
+This file defines the schema for the service's configuration, input, and output data. Read more [here](../twines) and
+see an example [here](../twine_file_quickstart).
 
 ### Dependencies file
 
