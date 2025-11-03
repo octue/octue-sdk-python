@@ -5,7 +5,12 @@ import uuid
 logger = logging.getLogger(__name__)
 
 
-def run_example(n):
+def run_fibonacci_example(n):
+    """Run an example analysis that calculates the first `n` values of the Fibonacci sequence.
+
+    :param int n: the number of values in the Fibonacci sequence to calculate the value of (must be more than 0)
+    :return (dict, str): the result event and a random question UUID
+    """
     error_message = f"`n` must be an integer >= 0. Received {n!r}."
 
     if not isinstance(n, int):
@@ -30,7 +35,7 @@ def run_example(n):
 def _calculate_fibonacci(n):
     """Calculate the nth value of the Fibonacci sequence.
 
-    :param int n: the position in the sequence in the sequence to calculate the value of (must be more than 0)
+    :param int n: the position in the sequence to calculate the value of (must be more than 0)
     :return int: the value of the sequence at the nth position
     """
     if n == 0:

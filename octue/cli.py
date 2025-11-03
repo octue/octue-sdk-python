@@ -24,7 +24,7 @@ from octue.twined.configuration import ServiceConfiguration
 from octue.twined.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.twined.exceptions import ServiceAlreadyExists
 from octue.twined.resources import Child, service_backends
-from octue.twined.resources.example import run_example
+from octue.twined.resources.example import run_fibonacci_example
 from octue.twined.runner import Runner
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
@@ -113,7 +113,7 @@ def ask(sruid, input_values, input_manifest, project_id, asynchronous, service_c
         input_values = json.loads(input_values, cls=OctueJSONDecoder)
 
     if sruid.startswith("example/"):
-        answer, _ = run_example(n=input_values.get("n"))
+        answer, _ = run_fibonacci_example(n=input_values.get("n"))
         click.echo(json.dumps(answer, cls=OctueJSONEncoder))
         return
 
