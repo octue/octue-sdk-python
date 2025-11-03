@@ -107,7 +107,7 @@ def ask(sruid, input_values, input_manifest, project_id, asynchronous, service_c
 
     SRUID should be a valid service revision unique identifier for an existing Octue Twined service e.g.
 
-        octue question ask your-org/example-service:1.2.0
+        octue twined question ask your-org/example-service:1.2.0
     """
     if input_values:
         input_values = json.loads(input_values, cls=OctueJSONDecoder)

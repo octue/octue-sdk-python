@@ -159,7 +159,7 @@ class Child:
 
         except Exception as e:
             logger.error(
-                "Question %r failed. Run 'octue question diagnostics gs://<diagnostics-cloud-path>/%s "
+                "Question %r failed. Run 'octue twined question diagnostics gs://<diagnostics-cloud-path>/%s "
                 "--download-datasets' to get the crash diagnostics.",
                 question_uuid,
                 question_uuid,
