@@ -303,5 +303,9 @@ instead.
 
 ## Next steps
 
-- [Read about the core concepts of Twined](../../core_concepts/creating_services)
-- [Create infrastructure for a Twined service network](/getting_started/managing_infrastructure)
+!!! success
+
+    Congratulations on creating your first service! For additional information, check out the following resources:
+
+    - [Read about the core concepts of Twined](../../core_concepts/creating_services)
+    - [Create infrastructure for a Twined service network](/getting_started/managing_infrastructure)

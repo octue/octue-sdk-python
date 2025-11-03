@@ -118,10 +118,12 @@ The following command asks a question to the local example data service, which c
 
 ## Next steps
 
-Congratulations on running your first analysis! For additional information, check out the following resources:
+!!! success
 
-- [Create your own data service](../getting_started/creating_services.md)
-- [Set up infrastructure to host your data service(s) in the cloud](../getting_started/managing_infrastructure.md)
-- Run a data service locally
-- See the library and CLI reference
-- [Get support](../support.md)
+    Congratulations on running your first analysis! For additional information, check out the following resources:
+
+    - [Create your own data service](../getting_started/creating_services.md)
+    - [Set up infrastructure to host your data service(s) in the cloud](../getting_started/managing_infrastructure.md)
+    - Run a data service locally
+    - See the library and CLI reference
+    - [Get support](../support.md)
