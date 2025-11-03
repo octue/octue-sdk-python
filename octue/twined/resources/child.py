@@ -115,7 +115,7 @@ class Child:
         :return dict|octue.twined.cloud.pub_sub.subscription.Subscription|Exception|None, str: for a synchronous question, a dictionary containing the keys "output_values" and "output_manifest" from the result (or just an exception if the question fails), and the question UUID; for a question with a push endpoint, the push subscription and the question UUID; for an asynchronous question, `None` and the question UUID
         """
         if self.id.startswith("example/"):
-            return run_example()
+            return run_example(n=input_values.get("n"))
 
         prevent_retries_when = prevent_retries_when or []
 
