@@ -272,6 +272,14 @@ it a question! Follow the [authentication instructions](../../authentication) in
 octue twined question ask <handle>/example-service:0.1.0 --input-values='{"some_input": 1}'
 ```
 
+!!! tip
+
+    If you get this error, double check you've followed the [authentication instructions](../../authentication) fully.
+
+    ```
+    octue.exceptions.CloudLocationNotSpecified: `project_id` must be specified for a service to connect to the correct service - received None.
+    ```
+
 After a couple of minutes (while the Kubernetes cluster is spinning up a container to run the service), you should see
 log messages start to appear and finally see `[1, 2, 3, 4, 5]` returned as output values.
 
