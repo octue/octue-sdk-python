@@ -80,9 +80,11 @@ add the following code:
 
 ```python
 import logging
+import json
 import time
 
 from octue.resources import Datafile, Dataset
+from octue.twined.resources.example import calculate_fibonacci_sequence
 
 logger = logging.getLogger(__name__)
 
@@ -90,19 +92,21 @@ logger = logging.getLogger(__name__)
 def run(analysis):
     logger.info("Started example analysis.")
 
+    # Get your input values...
+    n = analysis.input_values["n"]
+
     # Do your calculations here...
+    sequence = calculate_fibonacci_sequence(n)
     time.sleep(2)
 
     # Return results by assigning output values...
-    analysis.output_values = [1, 2, 3, 4, 5]
+    analysis.output_values = {"fibonacci": sequence}
 
     # If output values are too large, or custom/binary file outputs
     # are required, you can save them as Datafiles and add them to
     # the output manifest...
-    filename = "output.txt"
-
-    with Datafile(filename, mode="w") as (datafile, f):
-        f.write("This is some example service output.")
+    with Datafile("fibonacci.json", mode="w") as (datafile, f):
+        json.dump(analysis.output_values, f)
 
     analysis.output_manifest.datasets["example_dataset"] = Dataset(files={datafile})
     logger.info("Finished example analysis.")
@@ -120,19 +124,24 @@ Create a file at the top level of the repository called `twine.json`:
 {
   "input_values_schema": {
     "type": "object",
-    "required": ["some_input"],
+    "required": ["n"],
     "properties": {
-      "some_input": {
-        "type": "integer"
+      "n": {
+        "type": "integer",
+        "minimum": 0
       }
     }
   },
   "output_values_schema": {
-    "title": "Output values",
-    "description": "Some dummy output data.",
-    "type": "array",
-    "items": {
-      "type": "number"
+    "type": "object",
+    "required": ["fibonacci"],
+    "properties": {
+      "fibonacci": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
     }
   },
   "output_manifest": {
