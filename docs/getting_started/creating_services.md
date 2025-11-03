@@ -81,7 +81,6 @@ add the following code:
 ```python
 import logging
 import os
-import tempfile
 import time
 
 from octue.resources import Datafile, Dataset
@@ -93,12 +92,12 @@ def run(analysis):
     logger.info("Started example analysis.")
     time.sleep(2)
     analysis.output_values = [1, 2, 3, 4, 5]
+    filename = "output.txt"
 
-    with tempfile.TemporaryDirectory() as temporary_directory:
-        with Datafile(os.path.join(temporary_directory, "output.dat"), mode="w") as (datafile, f):
-            f.write("This is some example service output.")
+    with Datafile(filename, mode="w") as (datafile, f):
+        f.write("This is some example service output.")
 
-        analysis.output_manifest.datasets["example_dataset"] = Dataset(path=temporary_directory, files={datafile})
+    analysis.output_manifest.datasets["example_dataset"] = Dataset(path=filename, files={datafile})
 
     logger.info("Finished example analysis.")
 ```
