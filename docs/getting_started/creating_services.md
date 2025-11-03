@@ -89,15 +89,22 @@ logger = logging.getLogger(__name__)
 
 def run(analysis):
     logger.info("Started example analysis.")
+
+    # Do your calculations here...
     time.sleep(2)
+
+    # Return results by assigning output values...
     analysis.output_values = [1, 2, 3, 4, 5]
+
+    # If output values are too large, or custom/binary file outputs
+    # are required, you can save them as Datafiles and add them to
+    # the output manifest...
     filename = "output.txt"
 
     with Datafile(filename, mode="w") as (datafile, f):
         f.write("This is some example service output.")
 
-    analysis.output_manifest.datasets["example_dataset"] = Dataset(path=filename, files={datafile})
-
+    analysis.output_manifest.datasets["example_dataset"] = Dataset(files={datafile})
     logger.info("Finished example analysis.")
 ```
 
