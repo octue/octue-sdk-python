@@ -8,8 +8,7 @@ performance. Twined makes it easy to do this with two [Terraform](https://terraf
 infrastructure as code / IaC) that deploy a managed Kubernetes cluster to run services on. The combined infrastructure
 is called a **Twined services network**.
 
-This guide walks you through setting up a Twined services network - the infrastructure needed to deploy a Twined
-service. It only takes a few commands.
+This guide walks you through setting up a Twined services network, which only takes a few commands.
 
 ## Prerequisites
 
@@ -32,4 +31,6 @@ Follow the instructions [here](https://github.com/octue/terraform-octue-twined-c
 
 ## Next steps
 
-Congratulations on setting up a Twined services network! Next up, [create your first data service](../getting_started/creating_services.md).
+!!! success
+
+    Congratulations on setting up a Twined services network! Next up, [create your first data service](../getting_started/creating_services.md).

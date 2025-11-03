@@ -73,14 +73,14 @@ Note that this will create a `poetry.lock` file with the locked dependency versi
 
 ## Write the service python code
 
-We'll make the example service do the most basic thing possible - return dummy output values and a dummy output dataset.
+We'll make the example service calculate the first `n` numbers in the Fibonacci sequence.
 
 Create a directory called `example_service` with an empty `__init__.py` file and an `app.py` file inside. In `app.py`,
 add the following code:
 
 ```python
-import logging
 import json
+import logging
 import time
 
 from octue.resources import Datafile, Dataset
