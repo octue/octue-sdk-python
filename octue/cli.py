@@ -113,7 +113,7 @@ def ask(sruid, input_values, input_manifest, project_id, asynchronous, service_c
         input_values = json.loads(input_values, cls=OctueJSONDecoder)
 
     if sruid.startswith("example/"):
-        answer, _ = run_example(n=input_values["n"])
+        answer, _ = run_example(n=input_values.get("n"))
         click.echo(json.dumps(answer, cls=OctueJSONEncoder))
         return
 
