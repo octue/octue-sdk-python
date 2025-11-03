@@ -80,7 +80,6 @@ add the following code:
 
 ```python
 import logging
-import os
 import time
 
 from octue.resources import Datafile, Dataset
