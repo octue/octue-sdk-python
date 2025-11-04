@@ -16,7 +16,7 @@ Before you begin, ensure you:
 - Have the following tools installed:
     - Python >= 3.10
     - The `octue` python library / CLI (see [installation instructions](../installation.md))
-- Have access to an existing Twined services network - see [authentication instructions](../../authentication)
+- Have access to an existing Twined service network - see [authentication instructions](../../authentication)
   and [managing infrastructure](../../getting_started/managing_infrastructure)
 
 <!-- prettier-ignore-end -->
@@ -25,7 +25,7 @@ Before you begin, ensure you:
 
 !!! warning
 
-    The repository must be created in the same GitHub account used for your Twined services network. See
+    The repository must be created in the same GitHub account used for your Twined service network. See
     [this issue](https://github.com/octue/octue-sdk-python/issues/740) for more details.
 
 Create a GitHub repository for the service. Clone this repository to your computer and checkout a new branch called
