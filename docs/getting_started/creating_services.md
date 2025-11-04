@@ -29,7 +29,7 @@ Before you begin, ensure you:
     [this issue](https://github.com/octue/octue-sdk-python/issues/740) for more details.
 
 Create a GitHub repository for the service. Clone this repository to your computer and checkout a new branch called
-`add-new-service`. Replacing `<handle>` with your GitHub account handle.
+`add-new-service`. Replace `<handle>` with your GitHub account handle.
 
 ```shell
 git clone https://github.com/<handle>/example-service.git
