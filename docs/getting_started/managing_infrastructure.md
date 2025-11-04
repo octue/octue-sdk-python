@@ -1,14 +1,16 @@
 # Getting started - managing infrastructure
 
 Allow your team to run services in your own private cloud, with just two pre-configured Terraform modules. Control
-costs, limit access and integrate with your other systems.
+costs, limit access, and integrate with your other systems.
 
-Twined data services can be run locally, but deploying them in the cloud is generally preferable for reliability and
+Twined data services can be run locally, but deploying them in the cloud is preferable for reliability and
 performance. Twined makes it easy to do this with two [Terraform](https://terraform.io) modules (ready-made
-infrastructure as code / IaC) that deploy a managed Kubernetes cluster to run services on. The combined infrastructure
+infrastructure as code (IaC)) that deploy a managed Kubernetes cluster to run services on. The combined infrastructure
 is called a **Twined service network**.
 
-This guide walks you through setting up a Twined service network.
+This guide walks you through setting up a Twined service network. By the end, you will have created a Kubernetes
+cluster, cloud storage buckets, and all other infrastructure needed to run one or more Twined services in your Google
+Cloud project.
 
 ## Prerequisites
 
