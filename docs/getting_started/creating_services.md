@@ -6,6 +6,10 @@ your team and beyond.
 This guide walks you through creating an example Twined service deployed in the cloud. By the end, you'll have a real
 service and be able to ask it questions from your computer and receive answers from it over the internet.
 
+!!! tip
+
+    You can see our deployed example service [here on GitHub](https://github.com/octue/example-service-kueue).
+
 ## Prerequisites
 
 Before you begin, ensure you:
