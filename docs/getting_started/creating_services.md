@@ -308,3 +308,18 @@ log messages start to appear. Finally, the first 10 values in the Fibonacci sequ
 
     - [Read about the core concepts of Twined](../../core_concepts/creating_services)
     - [Create infrastructure for a Twined service network](/getting_started/managing_infrastructure)
+
+## Troubleshooting
+
+!!! failure
+
+    If you get this error, double check you've followed the [authentication instructions](../../authentication) fully.
+
+    ```
+    octue.exceptions.CloudLocationNotSpecified: `project_id` must be specified for a service to connect to the correct service - received None.
+    ```
+
+!!! failure
+
+    If your question gets stuck with a log message saying `Waiting for question to be accepted...`, take a look at the
+    [troubleshooting infrastructure guide](../../core_concepts/troubleshooting_infrastructure).

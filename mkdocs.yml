@@ -23,6 +23,7 @@ nav:
       - Deploying services: core_concepts/deploying_services.md
       - core_concepts/testing_services.md
       - core_concepts/troubleshooting_services.md
+      - core_concepts/troubleshooting_infrastructure.md
       - core_concepts/logging.md
       - core_concepts/inter_service_compatibility.md
       - Twines: core_concepts/twines.md
