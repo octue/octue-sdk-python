@@ -126,9 +126,10 @@ variable "github_account" {
 
 ## Create the core infrastructure
 
-In the command line, Change directory into `terraform_core` and run:
+In the command line, Change directory into `terraform_core` and generate the Terraform plan:
 
 ```shell
+cd terraform_core
 terraform init
 terraform plan
 ```
@@ -243,9 +244,10 @@ variable "cluster_queue" {
 
 ## Create the cluster
 
-In the command line, change directory into `terraform_cluster` and run:
+In the command line, change directory into `terraform_cluster` and generate the Terraform plan:
 
 ```shell
+cd ../terraform_cluster
 terraform init
 terraform plan
 ```
