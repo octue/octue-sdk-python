@@ -284,22 +284,21 @@ it a question! Follow the [authentication instructions](../../authentication) in
 `<handle>` as before, and run:
 
 ```shell
-octue twined question ask <handle>/example-service:0.1.0 --input-values='{"some_input": 1}'
+octue twined question ask <handle>/example-service:0.1.0 --input-values='{"n": 10}'
+```
+
+After a couple of minutes (while the Kubernetes cluster is spinning up a container to run the service), you should see
+log messages start to appear. Finally, the first 10 values in the Fibonacci sequence are returned as output values:
+
+```
+[2025-11-05 12:45:29,861 | INFO | octue.twined.resources.example] Starting Fibonacci sequence calculation.
+[2025-11-05 12:45:29,861 | INFO | octue.twined.resources.example] Finished Fibonacci sequence calculation.
+{"kind": "result", "output_values": {"fibonacci": [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]}, "output_manifest": null}
 ```
 
 !!! tip
 
-    If you get this error, double check you've followed the [authentication instructions](../../authentication) fully.
-
-    ```
-    octue.exceptions.CloudLocationNotSpecified: `project_id` must be specified for a service to connect to the correct service - received None.
-    ```
-
-After a couple of minutes (while the Kubernetes cluster is spinning up a container to run the service), you should see
-log messages start to appear and finally see `[1, 2, 3, 4, 5]` returned as output values.
-
-See the [using services getting started guide](/getting_started/using_services) to see how to ask questions in python
-instead.
+    See the [using services getting started guide](/getting_started/using_services) to see how to ask questions in python instead.
 
 ## Next steps
 
