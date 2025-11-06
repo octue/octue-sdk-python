@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 def calculate_fibonacci_sequence(n):
     """Run an example analysis that calculates the first `n` values of the Fibonacci sequence.
 
-    :param int n: the number of values in the Fibonacci sequence to calculate the value of (must be more than 0)
-    :return (dict, str): the result event and a random question UUID
+    :param int n: the number of values in the Fibonacci sequence to calculate (must be >= 0)
+    :return list(int): the sequence
     """
     error_message = f"`n` must be an integer >= 0. Received {n!r}."
 
@@ -28,7 +28,7 @@ def calculate_fibonacci_sequence(n):
 def _calculate_fibonacci_value(n):
     """Calculate the nth value of the Fibonacci sequence.
 
-    :param int n: the position in the sequence to calculate the value of (must be more than 0)
+    :param int n: the position in the sequence to calculate the value of (must be >= 0)
     :return int: the value of the sequence at the nth position
     """
     if n == 0:
