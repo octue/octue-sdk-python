@@ -13,7 +13,7 @@ processing). You can:
 ### Via the CLI
 
 1.  Ensure you've created a valid
-    [`octue.yaml`](../../core_concepts/creating_services/#octueyaml)
+    [`octue.yaml`](../core_concepts/creating_services.md/#octueyaml)
     file for your service
 
 2.  Run:
@@ -50,7 +50,7 @@ See the `Runner` API documentation for more advanced usage including providing c
 ### Via the CLI
 
 1.  Ensure you've created a valid
-    [`octue.yaml`](../../core_concepts/creating_services/#octueyaml)
+    [`octue.yaml`](../core_concepts/creating_services.md/#octueyaml)
     file for your service
 
 2.  Run:

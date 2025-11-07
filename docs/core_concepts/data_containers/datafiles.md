@@ -51,7 +51,7 @@ Datafile content isn't downloaded until you:
 - Call its `download` method
 - Use its `local_path` property
 
-Read more about downloading files [here](../../downloading_datafiles).
+Read more about downloading files [here](downloading_datafiles.md).
 
 ### CLI command friendly
 

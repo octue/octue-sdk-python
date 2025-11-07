@@ -71,7 +71,7 @@ doesn't have to be).
     it. This enables asking questions to, for example, the service
     `octue/my-service` and automatically having them routed to its
     default (usually latest) revision.
-    [See here for more info](../asking_questions/#asking-a-question)
+    [See here for more info](asking_questions.md/#asking-a-question)
 
 ## Service communication standard
 

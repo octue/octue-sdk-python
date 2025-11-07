@@ -2,7 +2,7 @@
 
 !!! tip
 
-    Use a manifest to send [datasets](../datasets) to a Twined service as a question (for processing) - the
+    Use a manifest to send [datasets](datasets.md) to a Twined service as a question (for processing) - the
     service will send an output manifest back with its answer if the answer includes output datasets.
 
 ## Key features
@@ -39,7 +39,7 @@ child = Child(
 answer, question_uuid = child.ask(input_manifest=manifest)
 ```
 
-See [here](../../asking_questions) for more information.
+See [here](../asking_questions.md) for more information.
 
 ### Receive datasets from a service
 

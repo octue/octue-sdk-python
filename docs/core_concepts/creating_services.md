@@ -16,12 +16,12 @@ A Twined service is defined by the following files (located in the repository ro
 
 ### app.py
 
-This is the entrypoint into your code - read more [here](../creating_apps).
+This is the entrypoint into your code - read more [here](creating_apps.md).
 
 ### twine.json
 
-This file defines the schema for the service's configuration, input, and output data. Read more [here](../twines) and
-see an example [here](../twine_file_quickstart).
+This file defines the schema for the service's configuration, input, and output data. Read more [here](twines.md) and
+see an example [here](twine_file_quickstart.md).
 
 ### Dependencies file
 
@@ -98,7 +98,7 @@ are supported.
 
 ### Where to specify the namespace, name, and revision tag
 
-See [here](../services/#service-names) for service naming requirements.
+See [here](services.md/#service-names) for service naming requirements.
 
 **Namespace**
 
@@ -149,4 +149,4 @@ Automated deployment with Octue means:
   other services are sent to it, meaning there are minimal costs to
   having it deployed but not in use.
 
-If you'd like help deploying services, [contact us](../../support). To do it yourself, see [here](../deploying_services).
+If you'd like help deploying services, [contact us](../support.md). To do it yourself, see [here](deploying_services.md).

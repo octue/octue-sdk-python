@@ -20,8 +20,8 @@ Before you begin, ensure you:
 - Have the following tools installed:
     - Python >= 3.10
     - The `octue` python library / CLI (see [installation instructions](../installation.md))
-- Have access to an existing Twined service network - see [authentication instructions](../../authentication)
-  and [managing infrastructure](../../getting_started/managing_infrastructure)
+- Have access to an existing Twined service network - see [authentication instructions](../authentication.md)
+  and [managing infrastructure](../getting_started/managing_infrastructure.md)
 
 <!-- prettier-ignore-end -->
 
@@ -159,7 +159,7 @@ Create a file at the top level of the repository called `twine.json`:
 
 !!! tip
 
-    Learn more about `twine.json` files [here](../../core_concepts/creating_services/#twinejson).
+    Learn more about `twine.json` files [here](../core_concepts/creating_services.md/#twinejson).
 
 ## Add the `octue.yaml` file
 
@@ -190,7 +190,7 @@ services:
 
 !!! tip
 
-    Learn more about `octue.yaml` files [here](../../core_concepts/creating_services/#octueyaml).
+    Learn more about `octue.yaml` files [here](../core_concepts/creating_services.md/#octueyaml).
 
 ## Enable GitHub Actions in the repository
 
@@ -285,7 +285,7 @@ should show next to the most recent commit.
 ## Ask the service its first question
 
 You can now communicate with the service over the internet to ask
-it a question! Follow the [authentication instructions](../../authentication) in the terminal where you ran `poetry install`, replace
+it a question! Follow the [authentication instructions](../authentication.md) in the terminal where you ran `poetry install`, replace
 `<handle>` as before, and run:
 
 ```shell
@@ -303,7 +303,7 @@ log messages start to appear. Finally, the first 10 values in the Fibonacci sequ
 
 !!! tip
 
-    See the [using services getting started guide](/getting_started/using_services) to see how to ask questions in python instead.
+    See the [using services getting started guide](using_services.md) to see how to ask questions in python instead.
 
 ## Next steps
 
@@ -311,14 +311,14 @@ log messages start to appear. Finally, the first 10 values in the Fibonacci sequ
 
     Congratulations on creating your first service! For additional information, check out the following resources:
 
-    - [Read about the core concepts of Twined](../../core_concepts/creating_services)
-    - [Create infrastructure for a Twined service network](/getting_started/managing_infrastructure)
+    - [Read about the core concepts of Twined](../core_concepts/creating_services.md)
+    - [Create infrastructure for a Twined service network](managing_infrastructure.md)
 
 ## Troubleshooting
 
 !!! failure
 
-    If you get this error, double check you've followed the [authentication instructions](../../authentication) fully.
+    If you get this error, double check you've followed the [authentication instructions](../authentication.md) fully.
 
     ```
     octue.exceptions.CloudLocationNotSpecified: `project_id` must be specified for a service to connect to the correct service - received None.
@@ -327,4 +327,4 @@ log messages start to appear. Finally, the first 10 values in the Fibonacci sequ
 !!! failure
 
     If your question gets stuck with a log message saying `Waiting for question to be accepted...`, take a look at the
-    [troubleshooting infrastructure guide](../../core_concepts/troubleshooting_infrastructure).
+    [troubleshooting infrastructure guide](../core_concepts/troubleshooting_infrastructure.md).

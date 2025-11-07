@@ -42,7 +42,7 @@ done automatically:
   including automated pre-deployment testing and creation of a GitHub
   release
 
-You can now [ask your service some questions](../asking_questions)! It will be available in the service network as
+You can now [ask your service some questions](asking_questions.md)! It will be available in the service network as
 `<namespace>/<name>:<version>` (e.g. `octue/example-service-kueue:0.1.1`).
 
 ## Deploying the infrastructure

@@ -285,4 +285,4 @@ result
 ```
 
 You can also create test fixtures from
-[downloaded service crash diagnostics](../troubleshooting_services/#creating-test-fixtures-from-diagnostics)
+[downloaded service crash diagnostics](troubleshooting_services.md/#creating-test-fixtures-from-diagnostics).

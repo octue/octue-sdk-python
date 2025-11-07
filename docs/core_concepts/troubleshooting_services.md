@@ -17,7 +17,7 @@ default):
 
     For this feature to be enabled, the child must have the
     `diagnostics_cloud_path` field in its service configuration
-    ([`octue.yaml`](../creating_services/#octueyaml) file) set to a Google Cloud Storage path.
+    ([`octue.yaml`](creating_services.md/#octueyaml) file) set to a Google Cloud Storage path.
 
 ## Accessing diagnostics
 
@@ -53,7 +53,7 @@ Options:
   -h, --help              Show this message and exit.
 ```
 
-## Creating test fixtures from diagnostics {#test_fixtures_from_diagnostics}
+## Creating test fixtures from diagnostics
 
 You can create test fixtures directly from diagnostics, allowing you to
 recreate the exact conditions that caused your service to fail.

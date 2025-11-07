@@ -202,7 +202,7 @@ dataset.files.filter(extension="csv", labels__contains="a")
 >>> <FilterSet({<Datafile('my_file.csv')>})>
 ```
 
-For the full list of available filters, [click here](../../available_filters).
+For the full list of available filters, [click here](available_filters.md).
 
 ### Order datasets
 

@@ -267,7 +267,7 @@ and approve the run.
 
     Congratulations on setting up a Twined service network! Next up:
 
-    - [Create the first Twined service on your new service network](../getting_started/creating_services.md)
+    - [Create the first Twined service on your new service network](creating_services.md)
     - Learn more about the Terraform modules used in this guide:
         - [Core module](https://github.com/octue/terraform-octue-twined-core)
         - [Cluster module](https://github.com/octue/terraform-octue-twined-cluster)

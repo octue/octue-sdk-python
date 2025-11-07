@@ -21,7 +21,7 @@ to a child for processing/analysis. Questions can be:
     or custom logic in your own webserver.
 
 Questions are always asked to a _revision_ of a service. You can ask a
-service a question if you have its [SRUID](../services/#service-names), project ID, and the necessary permissions.
+service a question if you have its [SRUID](services.md/#service-names), project ID, and the necessary permissions.
 
 ## Asking a question
 
@@ -49,7 +49,7 @@ answer["output_manifest"]["my_dataset"].files
 
     If you're using an environment other than the `main` environment, then before asking any questions to your Twined
     services, set the `TWINED_SERVICES_TOPIC_NAME` environment variable to the name of the Twined services Pub/Sub topic
-    (this is set when [deploying a service network](../deploying_services/#deploying-services-advanced-developers-guide).
+    (this is set when [deploying a service network](deploying_services.md).
     It will be in the form `<environment-name>.octue.twined.services`
 
 !!! note
@@ -242,10 +242,10 @@ at once instead of one after another.
 ## Asking a question within a service
 
 If you have
-[created your own Twined service](../creating_services) and want to ask children questions, you can do this more
+[created your own Twined service](creating_services.md) and want to ask children questions, you can do this more
 easily than above. Children are accessible from the `analysis` object by
 the keys you give them in the
-[service configuration](../creating_services/#octueyaml) file. For example, you can ask an `elevation` service a
+[service configuration](creating_services.md/#octueyaml) file. For example, you can ask an `elevation` service a
 question like this:
 
 ```python
@@ -314,7 +314,7 @@ you want it to use (dynamic children) to the
 children will instead go to the dynamic children. Note that:
 
 - You must provide the children in the same format as they're provided
-  in the [service configuration](../../core_concepts/creating_services/#octueyaml)
+  in the [service configuration](../core_concepts/creating_services.md/#octueyaml)
 - If you override one static child, you must override others, too
 - The dynamic children must have the same keys as the static children
   (so the child knows which service to ask which questions)

@@ -12,7 +12,7 @@ Here, we describe the parts of a twine and what they mean.
 
 !!! tip
 
-    To just get started building a twine, check out the [quickstart](../twine_file_quickstart).
+    To just get started building a twine, check out the [quickstart](twine_file_quickstart.md).
 
 ## Strands
 

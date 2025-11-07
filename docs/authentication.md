@@ -8,7 +8,7 @@ Authentication is provided by a GCP service account.
 ## Creating a service account
 
 By setting up your Twined service network with the
-[Twined Terraform modules](/deploying_services), a set of maintainer service accounts have already been
+[Twined Terraform modules](core_concepts/deploying_services.md), a set of maintainer service accounts have already been
 created with the required permissions. These will have names starting with `maintainer-`.
 
 ## Using a service account
