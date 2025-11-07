@@ -275,7 +275,7 @@ should show next to the most recent commit.
 
 <br/>
 <figure markdown="span">
-  ![GitHub repository "Actions" tab](../../images/actions_tab.png)
+  ![GitHub repository "Actions" tab](../images/actions_tab.png)
   <figcaption>The "Actions" tab of the GitHub repository. A successful workflow run is shown at the top with a green
    tick while a failed one is shown below it with a red cross. Note that the workflow in the image is called
    "release.yaml" but yours is called "deploy.yaml".

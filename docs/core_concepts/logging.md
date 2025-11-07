@@ -30,7 +30,7 @@ Another advantage to using the Octue log handler is that each Twined
 service is coloured according to its position in the tree, making it
 much easier to read log messages from multiple levels of children.
 
-![image](../../images/coloured_logs.png)
+![image](../images/coloured_logs.png)
 
 In this example:
 

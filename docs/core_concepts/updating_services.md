@@ -69,7 +69,7 @@ We assume that:
 7.  Run the tests locally using `pytest` and fix anything that makes
     them fail
 
-    ![image](../../images/updating_services/pytest.png)
+    ![image](../images/updating_services/pytest.png)
 
 8.  Update the [semantic version](https://semver.org/) of your app. This
     communicates to anyone updating from a previous version of the
@@ -89,13 +89,13 @@ We assume that:
     forget to push a commit). Ask your colleagues to review the code if
     required.
 
-    ![image](../../images/updating_services/diff.png)
+    ![image](../images/updating_services/diff.png)
 
 10. When you're ready to release the new version of your service, check
     that the GitHub checks have passed. These ensure code quality, that
     the tests pass, and that the new version number is correct.
 
-    ![image](../../images/updating_services/checks.png)
+    ![image](../images/updating_services/checks.png)
 
 11. Merge the pull request into `main`. This will run the deployment
     workflow (usually called `cd` - continuous deployment), making the
@@ -104,4 +104,4 @@ We assume that:
     take a few minutes). You can check the progress in the "Actions"
     tab of the GitHub repository
 
-    ![image](../../images/updating_services/deployment.png)
+    ![image](../images/updating_services/deployment.png)
