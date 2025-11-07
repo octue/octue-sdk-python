@@ -149,4 +149,4 @@ Automated deployment with Octue means:
   other services are sent to it, meaning there are minimal costs to
   having it deployed but not in use.
 
-If you'd like help deploying services, contact us. To do it yourself, see [here](../deploying_services).
+If you'd like help deploying services, [contact us](../../support). To do it yourself, see [here](../deploying_services).
