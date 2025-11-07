@@ -1,7 +1,7 @@
 You need authentication while using Twined to:
 
 - Use or run services
-- Access output data from analyses run on services
+- Access input and output data from analyses run on services
 
 Authentication is provided by a GCP service account.
 
