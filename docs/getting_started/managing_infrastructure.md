@@ -63,7 +63,8 @@ Create two directories at the top level of the repository:
 !!! danger
 
     Be careful storing the key file in your repository - you don't want to accidentally commit it or build it into a
-    docker image layer. Double check that both copies of the key file are ignored by Git.
+    docker image layer. Make sure to follow step 6 and double check that both copies of the key file are ignored by Git
+    by checking the output of `git status`.
 
 ## Add the core infrastructure Terraform configuration
 
@@ -200,7 +201,7 @@ locals {
 
 
 module "octue_twined_cluster" {
-  source = "git::github.com/octue/terraform-octue-twined-cluster.git?ref=0.2.1"
+  source = "git::github.com/octue/terraform-octue-twined-cluster.git?ref=0.2.2"
   google_cloud_project_id = var.google_cloud_project_id
   google_cloud_region = var.google_cloud_region
   environment = local.environment
