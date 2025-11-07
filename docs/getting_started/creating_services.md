@@ -32,8 +32,9 @@ Before you begin, ensure you:
     The repository must be created in the same GitHub account used for your Twined service network. See
     [this issue](https://github.com/octue/octue-sdk-python/issues/740) for more details.
 
-Create a GitHub repository for the service. Clone this repository to your computer and checkout a new branch called
-`add-new-service`. Replace `<handle>` with your GitHub account handle.
+Create a git repository for the service in the GitHub account linked to the Twined service network. Clone this
+repository to your computer and checkout a new branch called `add-new-service`. Replace `<handle>` with the handle of
+the GitHub account.
 
 ```shell
 git clone https://github.com/<handle>/example-service.git
@@ -165,7 +166,7 @@ Create a file at the top level of the repository called `twine.json`:
 The service configuration file (called `octue.yaml`) names the service and sets details like where to store output data.
 Create an `octue.yaml` file at the top level of the repository, replacing:
 
-- `<handle>` with your GitHub account handle
+- `<handle>` with the GitHub account handle
 - `<gcp-project-id>` with the ID of the Google Cloud Platform (GCP) project the Twined service network is deployed in
 - `<region>` with the name of the GCP region the service network is deployed in (e.g. `europe-west1`)
 - `<environment>` with the name of the environment the service network is deployed in (`main` by default)
