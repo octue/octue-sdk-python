@@ -30,8 +30,14 @@ nav:
       - core_concepts/troubleshooting_infrastructure.md
       - core_concepts/logging.md
       - core_concepts/inter_service_compatibility.md
-      - Twines: core_concepts/twines.md
-      - core_concepts/twine_file_quickstart.md
+      - Twines:
+          - core_concepts/twines/twines.md
+          - core_concepts/twines/values.md
+          - core_concepts/twines/manifest.md
+          - core_concepts/twines/credentials.md
+          - core_concepts/twines/monitors.md
+          - core_concepts/twines/twine_file_quickstart.md
+
   - glossary.md
   - license.md
   - version_history.md
