@@ -37,6 +37,7 @@ nav:
           - core_concepts/twines/credentials.md
           - core_concepts/twines/monitors.md
           - core_concepts/twines/twine_file_quickstart.md
+          - core_concepts/twines/examples.md
 
   - glossary.md
   - license.md
