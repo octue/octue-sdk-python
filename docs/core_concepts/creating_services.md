@@ -20,7 +20,7 @@ This is the entrypoint into your code - read more [here](creating_apps.md).
 
 ### twine.json
 
-This file defines the schema for the service's configuration, input, and output data. Read more [here](twines/twines.md) and
+This file defines the schema for the service's configuration, input, and output data. Read more [here](twines/anatomy.md) and
 see an example [here](twines/twine_file_quickstart.md).
 
 ### Dependencies file

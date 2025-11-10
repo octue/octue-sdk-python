@@ -31,7 +31,7 @@ nav:
       - core_concepts/logging.md
       - core_concepts/inter_service_compatibility.md
       - Twines:
-          - core_concepts/twines/twines.md
+          - core_concepts/twines/anatomy.md
           - core_concepts/twines/values.md
           - core_concepts/twines/manifest.md
           - core_concepts/twines/credentials.md
