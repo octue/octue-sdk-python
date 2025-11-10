@@ -1,4 +1,4 @@
-# app.py file {#creating_apps}
+# The `app.py` file
 
 The `app.py` file is, as you might expect, the entrypoint to your app.
 It can contain any valid python including imports and use of any number

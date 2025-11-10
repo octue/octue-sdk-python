@@ -15,9 +15,13 @@ nav:
           - core_concepts/data_containers/datafiles.md
           - core_concepts/data_containers/datasets.md
           - core_concepts/data_containers/manifests.md
+          - More:
+              - Downloading datafiles: core_concepts/data_containers/downloading_datafiles.md
+              - core_concepts/data_containers/available_filters.md
       - core_concepts/services.md
       - core_concepts/asking_questions.md
       - core_concepts/creating_services.md
+      - core_concepts/creating_apps.md
       - core_concepts/updating_services.md
       - core_concepts/running_services_locally.md
       - Deploying services: core_concepts/deploying_services.md
