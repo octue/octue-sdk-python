@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 import sys
 import time
@@ -15,6 +14,7 @@ from octue.resources.manifest import Manifest
 from octue.twined.cloud.emulators import ChildEmulator
 from octue.twined.cloud.service_id import create_sruid
 from octue.twined.runner import Runner
+from octue.twined.templates.template import Template
 from octue.utils.processes import ProcessesContextManager
 from tests import MOCK_SERVICE_REVISION_TAG, TEST_BUCKET_NAME
 from tests.base import BaseTestCase
@@ -25,11 +25,11 @@ class TemplateAppsTestCase(BaseTestCase):
 
     def test_fractal_template_with_default_configuration(self):
         """Ensure the `fractal` app can be configured with its default configuration and run."""
-        self.set_template("template-fractal")
+        self.template.set_template("template-fractal")
 
         runner = Runner(
-            app_src=self.template_path,
-            twine=self.template_twine,
+            app_src=self.template.template_path,
+            twine=self.template.template_twine,
             configuration_values=os.path.join("data", "configuration", "configuration_values.json"),
         )
 
@@ -37,12 +37,12 @@ class TemplateAppsTestCase(BaseTestCase):
 
     def test_using_manifests_template(self):
         """Ensure the `using-manifests` template app works correctly."""
-        self.set_template("template-using-manifests")
+        self.template.set_template("template-using-manifests")
         output_location = f"gs://{TEST_BUCKET_NAME}"
 
         runner = Runner(
-            app_src=self.template_path,
-            twine=self.template_twine,
+            app_src=self.template.template_path,
+            twine=self.template.template_twine,
             configuration_values=os.path.join("data", "configuration", "values.json"),
             output_location=output_location,
         )
@@ -70,9 +70,9 @@ class TemplateAppsTestCase(BaseTestCase):
         parent sends coordinates to both children, receiving the elevation and wind speed from them at these locations.
         """
         cli_path = os.path.join(REPOSITORY_ROOT, "octue", "cli.py")
-        self.set_template("template-child-services")
+        self.template.set_template("template-child-services")
 
-        elevation_service_path = os.path.join(self.template_path, "elevation_service")
+        elevation_service_path = os.path.join(self.template.template_path, "elevation_service")
         elevation_service_revision_tag = str(uuid.uuid4())
 
         elevation_process = subprocess.Popen(
@@ -88,7 +88,7 @@ class TemplateAppsTestCase(BaseTestCase):
             env={**os.environ, "OCTUE_SERVICE_REVISION_TAG": elevation_service_revision_tag},
         )
 
-        wind_speed_service_path = os.path.join(self.template_path, "wind_speed_service")
+        wind_speed_service_path = os.path.join(self.template.template_path, "wind_speed_service")
         wind_speed_service_revision_tag = str(uuid.uuid4())
 
         wind_speed_process = subprocess.Popen(
@@ -104,7 +104,7 @@ class TemplateAppsTestCase(BaseTestCase):
             env={**os.environ, "OCTUE_SERVICE_REVISION_TAG": wind_speed_service_revision_tag},
         )
 
-        parent_service_path = os.path.join(self.template_path, "parent_service")
+        parent_service_path = os.path.join(self.template.template_path, "parent_service")
         namespace = "template-child-services"
 
         with open(os.path.join(parent_service_path, "octue.yaml")) as f:
@@ -140,8 +140,8 @@ class TemplateAppsTestCase(BaseTestCase):
 
     def test_child_services_template_using_emulated_children(self):
         """Test the child services template app using emulated children."""
-        self.set_template("template-child-services")
-        parent_service_path = os.path.join(self.template_path, "parent_service")
+        self.template.set_template("template-child-services")
+        parent_service_path = os.path.join(self.template.template_path, "parent_service")
 
         with open(os.path.join(parent_service_path, "octue.yaml")) as f:
             children = yaml.safe_load(f)["services"][0]["children"]
@@ -198,36 +198,9 @@ class TemplateAppsTestCase(BaseTestCase):
         :return None:
         """
         super().setUp()
-        self.start_path = os.getcwd()
-
-        # Initialise so these variables are assigned on the instance
-        self.template_twine = None
-        self.template_path = None
-        self.app_test_path = None
-        self.teardown_templates = []
-
-        def set_template(template):
-            """Set up the working directory and data paths to run one of the provided templates."""
-            self.template_path = os.path.join(self.templates_path, template)
-            self.template_twine = os.path.join(self.templates_path, template, "twine.json")
-
-            # Duplicate the template's data/ directory to a test-specific replica
-            self.app_test_path = os.path.join(self.data_path, str(uuid.uuid4()))
-            shutil.copytree(self.template_path, self.app_test_path)
-
-            # Add this template to the list to remove in teardown
-            self.teardown_templates.append(self.app_test_path)
-            sys.path.insert(0, self.app_test_path)
-
-            # Run from within the app folder context
-            os.chdir(self.app_test_path)
-
-        self.set_template = set_template
+        self.template = Template()
 
     def tearDown(self):
         """Remove the temporary template app directories."""
         super().tearDown()
-        os.chdir(self.start_path)
-        for path in self.teardown_templates:
-            sys.path.remove(path)
-            shutil.rmtree(path)
+        self.template.cleanup()

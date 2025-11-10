@@ -2,37 +2,47 @@ site_name: Octue Twined
 site_url: https://twined.octue.com
 
 nav:
-  - index.md
+  - Overview: index.md
   - installation.md
-  - Datafiles, datasets, and manifests:
-      - data_containers/index.md
-      - data_containers/datafile.md
-      - data_containers/dataset.md
-      - data_containers/manifest.md
-  - services.md
-  - asking_questions.md
-  - creating_services.md
-  - Twines:
-      - twines/index.md
-      - Quickstart: twines/quick_start_create_your_first_twine.md
-      - twines/anatomy.md
-      - About Twines:
-          - twines/about/index.md
-          - twines/about/about_digital_twins.md
-          - twines/about/about_requirements.md
-          - twines/about/about_introducing_json_schema.md
-          - twines/about/about_other_considerations.md
-  - updating_services.md
-  - running_services_locally.md
-  - deploying_services.md
-  - testing_services.md
-  - troubleshooting_services.md
-  - logging.md
   - authentication.md
-  - inter_service_compatibility.md
-  #  - api.md
+  - Getting started:
+      - Using services: getting_started/using_services.md
+      - Creating services: getting_started/creating_services.md
+      - Managing infrastructure: getting_started/managing_infrastructure.md
+  - Core concepts:
+      - Datafiles, datasets, and manifests:
+          - core_concepts/data_containers/index.md
+          - core_concepts/data_containers/datafiles.md
+          - core_concepts/data_containers/datasets.md
+          - core_concepts/data_containers/manifests.md
+          - More:
+              - Downloading datafiles: core_concepts/data_containers/downloading_datafiles.md
+              - core_concepts/data_containers/available_filters.md
+      - core_concepts/services.md
+      - core_concepts/asking_questions.md
+      - core_concepts/creating_services.md
+      - core_concepts/creating_apps.md
+      - core_concepts/updating_services.md
+      - core_concepts/running_services_locally.md
+      - Deploying services: core_concepts/deploying_services.md
+      - core_concepts/testing_services.md
+      - core_concepts/troubleshooting_services.md
+      - core_concepts/troubleshooting_infrastructure.md
+      - core_concepts/logging.md
+      - core_concepts/inter_service_compatibility.md
+      - Twines:
+          - core_concepts/twines/anatomy.md
+          - core_concepts/twines/values.md
+          - core_concepts/twines/manifest.md
+          - core_concepts/twines/credentials.md
+          - core_concepts/twines/monitors.md
+          - core_concepts/twines/twine_file_quickstart.md
+          - core_concepts/twines/examples.md
+
+  - glossary.md
   - license.md
   - version_history.md
+  - support.md
 
 theme:
   name: material
@@ -51,6 +61,8 @@ theme:
     - search.suggest
     - search.highlight
     - search.share
+    - content.tabs.link
+    - content.code.copy
 
   palette:
     # Palette toggle for light mode
@@ -74,6 +86,11 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - pymdownx.blocks.caption
+  - pymdownx.tabbed:
+      alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
 
 plugins:
   - privacy

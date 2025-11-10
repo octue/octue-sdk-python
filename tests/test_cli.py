@@ -48,7 +48,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
     QUESTION_UUID = "81f35b28-068b-4314-9eeb-e55e60d0fe8a"
 
     def test_with_input_values(self):
-        """Test that the `octue twined question ask remote` CLI command works with just input values."""
+        """Test that the `octue twined question ask` CLI command works with just input values."""
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
             with mock.patch("octue.cli.Child.ask", return_value=(RESULT, self.QUESTION_UUID)) as mock_ask:
                 result = CliRunner().invoke(
@@ -57,7 +57,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                         "twined",
                         "question",
                         "ask",
-                        "remote",
                         self.SRUID,
                         '--input-values={"height": 3}',
                     ],
@@ -67,7 +66,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
         self.assertIn(json.dumps(RESULT), result.output)
 
     def test_with_input_manifest(self):
-        """Test that the `octue twined question ask remote` CLI command works with just an input manifest."""
+        """Test that the `octue twined question ask` CLI command works with just an input manifest."""
         input_manifest = self.create_valid_manifest()
 
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
@@ -78,7 +77,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                         "twined",
                         "question",
                         "ask",
-                        "remote",
                         self.SRUID,
                         f"--input-manifest={input_manifest.serialise()}",
                     ],
@@ -88,7 +86,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
         self.assertIn(json.dumps(RESULT), result.output)
 
     def test_with_input_values_and_manifest(self):
-        """Test that the `octue twined question ask remote` CLI command works with input values and input manifest."""
+        """Test that the `octue twined question ask` CLI command works with input values and input manifest."""
         input_values = {"height": 3}
         input_manifest = self.create_valid_manifest()
 
@@ -100,7 +98,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                         "twined",
                         "question",
                         "ask",
-                        "remote",
                         self.SRUID,
                         f"--input-values={json.dumps(input_values)}",
                         f"--input-manifest={input_manifest.serialise()}",
@@ -112,7 +109,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
         self.assertIn(json.dumps(RESULT), result.output)
 
     def test_with_output_manifest(self):
-        """Test that the `octue twined question ask remote` CLI command returns output manifests in a useful form."""
+        """Test that the `octue twined question ask` CLI command returns output manifests in a useful form."""
         result = {"output_values": {"some": "data"}, "output_manifest": self.create_valid_manifest()}
 
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
@@ -123,7 +120,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                         "twined",
                         "question",
                         "ask",
-                        "remote",
                         self.SRUID,
                         f"--input-values={json.dumps({'height': 3})}",
                     ],
@@ -134,7 +130,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
         self.assertEqual(len(output["output_manifest"]["datasets"]), 2)
 
     def test_asynchronous(self):
-        """Test that the `octue twined question ask remote` CLI command works with the `--asynchronous` option and returns the
+        """Test that the `octue twined question ask` CLI command works with the `--asynchronous` option and returns the
         question UUID.
         """
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
@@ -145,7 +141,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                         "twined",
                         "question",
                         "ask",
-                        "remote",
                         self.SRUID,
                         '--input-values={"height": 3}',
                         "--asynchronous",
@@ -164,7 +159,6 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
                     "twined",
                     "question",
                     "ask",
-                    "remote",
                     self.SRUID,
                     '--input-values={"height": 3}',
                 ],
@@ -176,7 +170,7 @@ class TestQuestionAskRemoteCommand(BaseTestCase):
 
 class TestQuestionAskLocalCommand(BaseTestCase):
     def test_with_input_values(self):
-        """Test that the `octue twined question ask local` CLI command works with just input values and sends an originator
+        """Test that the `octue twined question ask-local` CLI command works with just input values and sends an originator
         question.
         """
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
@@ -186,8 +180,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     [
                         "twined",
                         "question",
-                        "ask",
-                        "local",
+                        "ask-local",
                         '--input-values={"height": 3}',
                     ],
                 )
@@ -214,7 +207,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         self.assertIn(json.dumps(RESULT), result.output)
 
     def test_with_input_manifest(self):
-        """Test that the `octue twined question ask local` CLI command works with just an input manifest and sends an
+        """Test that the `octue twined question ask-local` CLI command works with just an input manifest and sends an
         originator question.
         """
         input_manifest = self.create_valid_manifest()
@@ -225,8 +218,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     [
                         "twined",
                         "question",
-                        "ask",
-                        "local",
+                        "ask-local",
                         f"--input-manifest={input_manifest.serialise()}",
                     ],
                 )
@@ -253,7 +245,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         self.assertIn(json.dumps(RESULT), result.output)
 
     def test_with_input_values_and_manifest(self):
-        """Test that the `octue twined question ask local` CLI command works with input values and input manifest and sends an
+        """Test that the `octue twined question ask-local` CLI command works with input values and input manifest and sends an
         originator question.
         """
         input_values = {"height": 3}
@@ -266,8 +258,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     [
                         "twined",
                         "question",
-                        "ask",
-                        "local",
+                        "ask-local",
                         f"--input-values={json.dumps(input_values)}",
                         f"--input-manifest={input_manifest.serialise()}",
                     ],
@@ -296,7 +287,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         self.assertIn(json.dumps(RESULT), result.output)
 
     def test_with_output_manifest(self):
-        """Test that the `octue twined question ask local` CLI command returns output manifests in a useful form."""
+        """Test that the `octue twined question ask-local` CLI command returns output manifests in a useful form."""
         result = {"output_values": {"some": "data"}, "output_manifest": self.create_valid_manifest()}
 
         with mock.patch("octue.cli.ServiceConfiguration.from_file", return_value=MOCK_CONFIGURATION):
@@ -306,8 +297,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     [
                         "twined",
                         "question",
-                        "ask",
-                        "local",
+                        "ask-local",
                         f"--input-values={json.dumps({'height': 3})}",
                     ],
                 )
@@ -317,7 +307,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
         self.assertEqual(len(output["output_manifest"]["datasets"]), 2)
 
     def test_with_attributes(self):
-        """Test that the `octue twined question ask remote` CLI command can be passed question attributes which are passed
+        """Test that the `octue twined question ask-local` CLI command can be passed question attributes which are passed
         along to the answering `Service` instance.
         """
         original_attributes = {
@@ -347,8 +337,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
                     [
                         "twined",
                         "question",
-                        "ask",
-                        "local",
+                        "ask-local",
                         '--input-values={"height": 3}',
                         f"--attributes={json.dumps(original_attributes)}",
                     ],

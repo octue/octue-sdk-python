@@ -11,7 +11,7 @@ from google import auth
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
 from octue.definitions import LOCAL_SDK_VERSION
-from octue.log_handlers import apply_log_handler, get_remote_handler
+from octue.log_handlers import apply_log_handler
 from octue.resources import Manifest
 from octue.twined.cloud.events.answer_question import answer_question
 from octue.twined.cloud.events.question import make_question_event
@@ -24,6 +24,7 @@ from octue.twined.configuration import ServiceConfiguration
 from octue.twined.definitions import MANIFEST_FILENAME, VALUES_FILENAME
 from octue.twined.exceptions import ServiceAlreadyExists
 from octue.twined.resources import Child, service_backends
+from octue.twined.resources.example import calculate_fibonacci_sequence
 from octue.twined.runner import Runner
 from octue.utils.decoders import OctueJSONDecoder
 from octue.utils.encoders import OctueJSONEncoder
@@ -34,7 +35,6 @@ global_cli_context = {}
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("--logger-uri", default=None, show_default=True, help="Stream logs to a websocket at the given URI.")
 @click.option(
     "--log-level",
     default="info",
@@ -43,19 +43,13 @@ global_cli_context = {}
     help="Log level used for the analysis.",
 )
 @click.version_option(version=LOCAL_SDK_VERSION)
-def octue_cli(logger_uri, log_level):
+def octue_cli(log_level):
     """The CLI for Octue SDKs and APIs, most notably Twined.
 
-    Read more in the docs: https://octue-python-sdk.readthedocs.io/en/latest/
+    Read more in the docs: https://twined.octue.com
     """
-    global_cli_context["logger_uri"] = logger_uri
-    global_cli_context["log_handler"] = None
     global_cli_context["log_level"] = log_level.upper()
-
     apply_log_handler(log_level=log_level.upper())
-
-    if global_cli_context["logger_uri"]:
-        global_cli_context["log_handler"] = get_remote_handler(logger_uri=global_cli_context["logger_uri"])
 
 
 @octue_cli.group()
@@ -69,12 +63,7 @@ def question():
     """Ask a new question to an Octue Twined data service or interact with a previous question."""
 
 
-@question.group()
-def ask():
-    """Ask a new question to an Octue Twined data service."""
-
-
-@ask.command()
+@question.command()
 @click.argument("sruid", type=str)
 @click.option(
     "-i",
@@ -113,22 +102,34 @@ def ask():
     "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
     "is used.",
 )
-def remote(sruid, input_values, input_manifest, project_id, asynchronous, service_config):
+def ask(sruid, input_values, input_manifest, project_id, asynchronous, service_config):
     """Ask a question to a remote Octue Twined service.
 
     SRUID should be a valid service revision unique identifier for an existing Octue Twined service e.g.
 
-        octue question ask remote your-org/example-service:1.2.0
+        octue twined question ask your-org/example-service:1.2.0
     """
+    if input_values:
+        input_values = json.loads(input_values, cls=OctueJSONDecoder)
+
+    if sruid.startswith("example/"):
+        sequence = calculate_fibonacci_sequence(n=input_values.get("n"))
+
+        answer = {
+            "kind": "result",
+            "output_values": {"fibonacci": sequence},
+            "output_manifest": None,
+        }
+
+        click.echo(json.dumps(answer, cls=OctueJSONEncoder))
+        return
+
     service_configuration = ServiceConfiguration.from_file(service_config, allow_not_found=True)
 
     if service_configuration:
         service_registries = service_configuration.service_registries
     else:
         service_registries = None
-
-    if input_values:
-        input_values = json.loads(input_values, cls=OctueJSONDecoder)
 
     if input_manifest:
         input_manifest = Manifest.deserialise(input_manifest, from_string=True)
@@ -160,7 +161,7 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
     click.echo(json.dumps(answer, cls=OctueJSONEncoder))
 
 
-@ask.command()
+@question.command()
 @click.option(
     "-i",
     "--input-values",
@@ -192,10 +193,10 @@ def remote(sruid, input_values, input_manifest, project_id, asynchronous, servic
     "`OCTUE_SERVICE_CONFIGURATION_PATH` environment variable is used if present, otherwise the local path `octue.yaml` "
     "is used.",
 )
-def local(input_values, input_manifest, attributes, service_config):
+def ask_local(input_values, input_manifest, attributes, service_config):
     """Ask a question to a local Octue Twined service.
 
-    This command is similar to running `octue twined start` and asking the resulting local service revision a question
+    This command is similar to running `octue twined service start` and asking the resulting local service revision a question
     via Pub/Sub. Instead of starting a local Pub/Sub service revision, however, no Pub/Sub subscription or subscriber is
     created; the question is instead passed directly to local the service revision without Pub/Sub being involved.
     Everything after this runs the same, though, with the service revision emitting any events via Pub/Sub as usual.
@@ -637,7 +638,6 @@ def start(service_config, revision_tag, timeout, no_rm):
     run_function = functools.partial(
         runner.run,
         analysis_log_level=global_cli_context["log_level"],
-        analysis_log_handler=global_cli_context["log_handler"],
     )
 
     backend_configuration_values = (service_configuration.configuration_values or {}).get("backend")

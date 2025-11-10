@@ -1,17 +1,15 @@
-# Authentication
+You need authentication while using Twined to:
 
-You need authentication while using `octue` to:
-
-- Access data from Google Cloud Storage
-- Use, run, or deploy Twined services
+- Use or run services
+- Access input and output data from analyses run on services
 
 Authentication is provided by a GCP service account.
 
 ## Creating a service account
 
 By setting up your Twined service network with the
-[Twined Terraform modules](/deploying_services), a set of maintainer service accounts have already been
-created with the required permissions.
+[Twined Terraform modules](core_concepts/deploying_services.md), a set of maintainer service accounts have already been
+created with the required permissions. These will have names starting with `maintainer-`.
 
 ## Using a service account
 
@@ -19,19 +17,19 @@ created with the required permissions.
 
 1.  Access your service accounts
     [here](https://console.cloud.google.com/iam-admin/serviceaccounts),
-    making sure the correct project is selected
+    making sure the correct project is selected, or ask your Twined service network administrator
 2.  Click on the relevant service account, go to the "Keys" tab, and
     create (download) a JSON key for it - it will be called
     `<project-name>-XXXXX.json`.
 
     !!! danger
 
-        It's best not to store this in your project to prevent accidentally
+        It's best not to store this in your repository to prevent accidentally
         committing it or building it into a docker image layer. Instead, keep it
         somewhere else on your local system with any other service account keys
         you already have.
 
-        If you must keep within your project, it's good practice to name the
+        If you must keep within your repository, it's good practice to name the
         file `gcp-credentials.json` and make sure that `gcp-cred*` is in your
         `.gitignore` and `.dockerignore` files.
 
@@ -46,8 +44,7 @@ created with the required permissions.
 
 ### On GCP infrastructure / deployed services
 
-- Credentials are automatically provided when running code or services
-  on GCP infrastructure, including the Kubernetes cluster
-- `octue` uses these when when running on these platforms, so there's
-  no need to upload a service account key or include one in service
-  docker images
+- Credentials are automatically provided when running code or services on GCP infrastructure, including the Kubernetes
+  cluster
+- Twined uses these when running on these platforms, so there's no need to upload a service account key or include one
+  in service docker images

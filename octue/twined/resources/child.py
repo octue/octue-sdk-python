@@ -2,10 +2,12 @@ import concurrent.futures
 import copy
 import logging
 import os
+import uuid
 
 from octue.twined.cloud.pub_sub.service import Service
 from octue.twined.definitions import DEFAULT_MAXIMUM_HEARTBEAT_INTERVAL
 from octue.twined.resources import service_backends
+from octue.twined.resources.example import calculate_fibonacci_sequence
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +115,17 @@ class Child:
         :raise Exception: if the question raises an error and `raise_errors=True`
         :return dict|octue.twined.cloud.pub_sub.subscription.Subscription|Exception|None, str: for a synchronous question, a dictionary containing the keys "output_values" and "output_manifest" from the result (or just an exception if the question fails), and the question UUID; for a question with a push endpoint, the push subscription and the question UUID; for an asynchronous question, `None` and the question UUID
         """
+        if self.id.startswith("example/"):
+            sequence = calculate_fibonacci_sequence(n=input_values.get("n"))
+
+            answer = {
+                "kind": "result",
+                "output_values": {"fibonacci": sequence},
+                "output_manifest": None,
+            }
+
+            return answer, str(uuid.uuid4())
+
         prevent_retries_when = prevent_retries_when or []
 
         inputs = {
@@ -155,7 +168,7 @@ class Child:
 
         except Exception as e:
             logger.error(
-                "Question %r failed. Run 'octue question diagnostics gs://<diagnostics-cloud-path>/%s "
+                "Question %r failed. Run 'octue twined question diagnostics gs://<diagnostics-cloud-path>/%s "
                 "--download-datasets' to get the crash diagnostics.",
                 question_uuid,
                 question_uuid,

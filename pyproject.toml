@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "octue"
-version = "0.68.0"
+version = "0.69.0"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 readme = "README.md"
 authors = ["Marcus Lugg <marcus@octue.com>", "Thomas Clark <support@octue.com>"]

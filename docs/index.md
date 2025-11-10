@@ -1,59 +1,38 @@
-# Introduction
+Twined helps scientists and engineers focus on their analyses instead of wrestling with infrastructure. Whether you need
+to **run published analyses out of the box**, **share your own models and code as reusable services**, or **deploy
+everything securely in your own environment**, Twined streamlines the process so you can spend more time on the science.
 
-The python SDK for [Octue](https://octue.com) Twined scientific data services and digital twins - get faster data
-groundwork so you have more time for the science!
+## Where to start
 
-!!! info "Definition"
+### 1 - Using services
 
-    **Twined service**
+Access ready-made scientific analyses instantly, with no coding, cloud setup, or DevOps required. Run them once or
+thousands of times, and connect them directly into your research workflows and pipelines. Try the [getting started
+guide](getting_started/using_services.md).
 
-    A data service or digital twin built with the Twined framework that can be asked questions, process them, and
-    return answers. Twined services can communicate with each other with minimal extra setup.
+### 2 - Creating services
 
-## Key features
+Package your analysis code or models as production-ready services, without needing infrastructure expertise. Share them
+with colleagues, collaborators, or the wider community. Try the [getting started guide](getting_started/creating_services.md).
 
-**Unified cloud/local file, dataset, and manifest operations**
+### 3 - Managing infrastructure
 
-- Create and build datasets easily
-- Organise them with timestamps, labels, and tags
-- Filter and combine them using this metadata
-- Store them locally or in the cloud (or both for low-latency reading/writing with cloud-guaranteed data availability)
-- Use internet/cloud-based datasets as if they were local e.g.
-  - `https://example.com/important_dataset.dat`
-  - `gs://example-bucket/important_dataset.dat`
-- Create manifests (a set of datasets needed for a particular analysis) to modularise your dataset input/output
+Deploy Twined services in your private cloud with just two pre-configured Terraform modules. Control costs, manage
+access, and integrate with your existing scientific data and digital tools. Try the [getting started guide](getting_started/managing_infrastructure.md).
 
-**Ask existing services questions from anywhere**
+## Stats
 
-- Send them data to process from anywhere
-- Automatically have their logs, monitor messages, and any errors forwarded to you and displayed as if they were local
-- Receive their output data as JSON
-- Receive a manifest of any output datasets they produce for you to download or access as you wish
+- 250,000+ analyses run
+- 100s of services built
+- 6 years in development
+- 12 countries - users across the world
 
-**Create, run, and deploy your apps as services**
+## Twined in the wild
 
-- No need to change your app - just wrap it
-- Use the `octue` CLI to run your service locally or deploy it to Google Kubernetes Engine (GKE)
-- Create JSON-schema interfaces to explicitly define the form of configuration, input, and output data
-- Ask other services questions as part of your app (i.e. build trees of services)
-- Automatically display readable, colourised logs, or use your own log handler
-- Avoid time-consuming and confusing devops, cloud configuration, and backend maintenance
+- WindPioneers - [WindQuest](https://wind-pioneers.com/what-we-do/windquest-smarter-tools/): Twined powers the simulation infrastructure behind the WindQuest application, supporting design of hundreds of wind farms worldwide with over 250,000 Energy Yield Assessment (EYA) scenarios run to date.
+- OST Zurich - [Aerosense](https://rtdt.ai/) (now part of RTDT Labs): The Twined framework was used to underpin digital twin and data infrastructure, enabling a novel turbine blade sensing technology to reach commercial readiness, now spun out and deployed internationally.
 
-**High standards, quick responses, and good intentions**
+## Twined by example
 
-- Open-source and transparent on GitHub - anyone can see the code and raise an issue
-- Automated testing, standards, releases, and deployment
-- High test coverage
-- Works on MacOS, Linux, and Windows
-- Developed not-for-profit for the renewable energy industry
-
-## Need help, found a bug, or want to request a new feature?
-
-We use [GitHub Issues](https://github.com/octue/octue-sdk-python/issues) to manage:
-
-- Bug reports
-- Feature requests
-- Support requests
-
-Bug reports, feature requests and support requests, may also be made directly to your Octue support contact, or via the
-[support pages](https://www.octue.com/contact).
+- [Elevation service](https://github.com/octue/windeurope72hours-elevations-api)
+- [Example service](https://github.com/octue/example-service-kueue)

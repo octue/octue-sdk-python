@@ -1,4 +1,4 @@
-# Version History {#chapter-version-history}
+# Version history
 
 See our [releases on GitHub.](https://github.com/octue/octue-sdk-python/releases)
 

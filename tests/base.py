@@ -5,6 +5,7 @@ import coolname
 
 from octue.cloud import storage
 from octue.cloud.storage import GoogleCloudStorageClient
+from octue.definitions import DATA_PATH
 from octue.resources import Datafile, Dataset, Manifest
 from tests import TEST_BUCKET_NAME
 from tests.twined.base import TestResultModifier
@@ -19,23 +20,9 @@ class BaseTestCase(unittest.TestCase):
     setattr(unittest.TestResult, "startTestRun", test_result_modifier.startTestRun)
     setattr(unittest.TestResult, "stopTestRun", test_result_modifier.stopTestRun)
 
-    def setUp(self):
-        """Set up the test case by:
-        - Adding the paths to the test data and app templates directories to the test case
-        - Making `unittest` ignore excess ResourceWarnings so tests' console outputs are clearer. This has to be done
-        even if these warnings are ignored elsewhere as unittest forces warnings to be displayed by default.
-
-        :return None:
-        """
-        root_dir = os.path.dirname(os.path.abspath(__file__))
-        self.data_path = os.path.join(root_dir, "data")
-        self.templates_path = os.path.join(os.path.dirname(root_dir), "octue", "twined", "templates")
-
-        super().setUp()
-
     def create_valid_dataset(self, **kwargs):
         """Create a valid dataset with two valid datafiles (they're the same file in this case)."""
-        path = os.path.join(self.data_path, "basic_files", "configuration", "test-dataset")
+        path = os.path.join(DATA_PATH, "basic_files", "configuration", "test-dataset")
 
         return Dataset(
             path=path,

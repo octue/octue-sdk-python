@@ -1,9 +1,11 @@
 # Installation
 
+The Twined framework is provided through the [Octue SDK](https://github.com/octue/octue-sdk-python).
+
 ## Pip
 
 ```shell
-pip install octue==x.y.z
+pip install octue
 ```
 
 ## Poetry
@@ -11,17 +13,31 @@ pip install octue==x.y.z
 Read more about Poetry [here](https://python-poetry.org).
 
 ```shell
-poetry add octue=x.y.z
+poetry add octue
 ```
 
-## Add to your dependencies
+## Check installation
 
-To use a specific version of Twined in your python application,
-simply add:
+If the installation worked correctly, the `octue` CLI will be available:
 
 ```shell
-octue==x.y.z
+octue --help
 ```
 
-to your `requirements.txt` or `setup.py` file, where `x.y.z` is your
-preferred version of the SDK (we recommend the latest stable version).
+```text
+Usage: octue [OPTIONS] COMMAND [ARGS]...
+
+  The CLI for Octue SDKs and APIs, most notably Twined.
+
+  Read more in the docs: https://twined.octue.com
+
+Options:
+  --log-level [debug|info|warning|error]
+                                  Log level used for the analysis.  [default:
+                                  info]
+  --version                       Show the version and exit.
+  -h, --help                      Show this message and exit.
+
+Commands:
+  twined  The Twined CLI.
+```
