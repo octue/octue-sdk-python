@@ -185,8 +185,14 @@ services:
     output_location: gs://<gcp-project-id>-octue-twined/example-service/outputs
     service_registries:
       - name: <handle>'s services
-        endpoint: https://<region>-<gcp-project-id>.cloudfunctions.net/<environment>-octue-twined-service-registry
+        endpoint: https://<region>-<gcp-project-id>.cloudfunctions.net/octue-twined-service-registry
 ```
+
+!!! tip
+
+    The service registry endpoint is the `service_registry_url` output of the `terraform-octue-twined-core` module.
+    Run `terraform output service_registry_url` in your `terraform_core` directory to get it. There's one service
+    registry per Google Cloud project, shared by every environment.
 
 !!! tip
 

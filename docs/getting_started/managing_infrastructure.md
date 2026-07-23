@@ -79,6 +79,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~>6.12"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~>2.4"
+    }
   }
 }
 
@@ -91,7 +95,7 @@ provider "google" {
 
 
 module "octue_twined_core" {
-  source = "git::github.com/octue/terraform-octue-twined-core.git?ref=0.1.2"
+  source = "git::github.com/octue/terraform-octue-twined-core.git?ref=0.2.0"
   google_cloud_project_id          = var.google_cloud_project_id
   google_cloud_region              = var.google_cloud_region
   github_account                   = var.github_account
@@ -127,6 +131,12 @@ variable "github_account" {
 
 ## Create the core infrastructure
 
+!!! important
+
+    The core infrastructure must be created **before** the cluster. As well as the storage and IAM resources the
+    cluster depends on, the core module grants the Cloud Build and Cloud Functions service agent roles that the
+    cluster's event handler needs in order to build.
+
 In the command line, Change directory into `terraform_core` and generate the Terraform plan:
 
 ```shell
@@ -142,6 +152,14 @@ terraform apply
 ```
 
 and approve the run.
+
+The core module outputs a `service_registry_url`. This is the endpoint of the
+[service registry](https://github.com/octue/terraform-octue-twined-core#service-registry), which tells the Twined SDK
+which service revisions exist. You'll need it when configuring services, so make a note of it:
+
+```shell
+terraform output service_registry_url
+```
 
 ## Add the cluster Terraform configuration
 
@@ -163,6 +181,10 @@ terraform {
     kubectl = {
       source  = "gavinbunney/kubectl"
       version = "~>1.19"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~>2.4"
     }
   }
 
@@ -201,7 +223,7 @@ locals {
 
 
 module "octue_twined_cluster" {
-  source = "git::github.com/octue/terraform-octue-twined-cluster.git?ref=0.3.0"
+  source = "git::github.com/octue/terraform-octue-twined-cluster.git?ref=0.4.0"
   google_cloud_project_id = var.google_cloud_project_id
   google_cloud_region = var.google_cloud_region
   environment = local.environment
