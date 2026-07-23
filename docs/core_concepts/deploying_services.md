@@ -57,10 +57,9 @@ deploying to and billing must be set up for it.
 
 There are two steps to deploying the infrastructure:
 
-1.  Deploy the core infrastructure (storage bucket, event store, IAM
-    service accounts and roles)
-2.  Deploy the Kubernetes cluster, event handler, service registry, and
-    Pub/Sub topic
+1.  Deploy the core infrastructure (storage bucket, event store, service
+    registry, IAM service accounts and roles)
+2.  Deploy the Kubernetes cluster, event handler, and Pub/Sub topic
 
 #### 1. Deploy core infrastructure
 
