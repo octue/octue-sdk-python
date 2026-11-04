@@ -19,7 +19,7 @@ processing). You can:
 2.  Run:
 
     > ```shell
-    > octue twined question ask local --input-values='{"some": "input"}'
+    > octue twined question ask-local --input-values='{"some": "input"}'
     > ```
 
 The output values and/or manifest will be printed to `stdout` but are

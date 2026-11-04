@@ -197,6 +197,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
 
         # Check question attributes.
         self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
+        self.assertIsInstance(question["attributes"]["datetime"], str)
         # The question should be an originator question.
         self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
         self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
@@ -235,6 +236,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
 
         # Check question attributes.
         self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
+        self.assertIsInstance(question["attributes"]["datetime"], str)
         # The question should be an originator question.
         self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
         self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
@@ -277,6 +279,7 @@ class TestQuestionAskLocalCommand(BaseTestCase):
 
         # Check question attributes.
         self.assertTrue(question["attributes"]["recipient"].startswith("testing/test-app"))
+        self.assertIsInstance(question["attributes"]["datetime"], str)
         # The question should be an originator question.
         self.assertEqual(question["attributes"]["question_uuid"], question["attributes"]["originator_question_uuid"])
         self.assertEqual(question["attributes"]["parent"], question["attributes"]["originator"])
