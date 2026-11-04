@@ -18,14 +18,14 @@ def make_question_event(
     :param str|None recipient: the service revision unique identifier (SRUID) of the service revision the question is for
     :param str|None question_uuid: the UUID to use for the question; if `None`, a UUID is generated
     :param dict|None attributes: the attributes to use for the question event; if none are provided, the question will be an originator question
-    :return dict: the question event and its attributes
+    :return dict: the question event and its attributes in serialised form (as they'd be received from Pub/Sub)
     """
     if not attributes:
         attributes = QuestionAttributes(
             question_uuid=question_uuid,
             sender=sender,
             recipient=recipient,
-        ).to_minimal_dict()
+        ).to_serialised_attributes()
 
     return {
         "event": make_minimal_dictionary(input_values=input_values, input_manifest=input_manifest, kind="question"),
